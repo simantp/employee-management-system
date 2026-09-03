@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Clock, 
   Users, 
@@ -47,6 +47,74 @@ function getMonthKey(dateStr: string): string {
   return 'August 2026';
 }
 
+function getDayOfWeek(dateStr: string): string {
+  if (!dateStr) return 'Monday';
+  try {
+    const d = new Date(dateStr);
+    if (!isNaN(d.getTime())) {
+      return d.toLocaleDateString('en-AU', { weekday: 'long' });
+    }
+  } catch (e) {}
+
+  const parts = dateStr.trim().split(/[\s-]+/);
+  if (parts.length >= 3) {
+    const day = parseInt(parts[0], 10);
+    const monthStr = parts[1];
+    const year = parseInt(parts[2], 10);
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const mIdx = months.findIndex(m => monthStr.toLowerCase().startsWith(m.toLowerCase()));
+    if (mIdx !== -1 && !isNaN(day) && !isNaN(year)) {
+      const d = new Date(year, mIdx, day);
+      return d.toLocaleDateString('en-AU', { weekday: 'long' });
+    }
+  }
+  return 'Monday';
+}
+
+function formatRunningDuration(clockInStr: string, dateStr: string, nowMs: number): string {
+  try {
+    let hours = 8;
+    let minutes = 0;
+    let seconds = 0;
+
+    const match = (clockInStr || '').match(/(\d+):(\d+)(?::(\d+))?\s*(AM|PM)?/i);
+    if (match) {
+      hours = parseInt(match[1], 10);
+      minutes = parseInt(match[2], 10);
+      seconds = match[3] ? parseInt(match[3], 10) : 0;
+      const meridian = match[4] ? match[4].toUpperCase() : null;
+      if (meridian === 'PM' && hours < 12) hours += 12;
+      if (meridian === 'AM' && hours === 12) hours = 0;
+    }
+
+    const today = new Date(nowMs);
+    const startTime = new Date(today.getFullYear(), today.getMonth(), today.getDate(), hours, minutes, seconds);
+
+    let diffSec = Math.floor((nowMs - startTime.getTime()) / 1000);
+    if (diffSec < 0) {
+      diffSec = Math.abs(diffSec) % (24 * 3600);
+    }
+
+    const h = Math.floor(diffSec / 3600);
+    const m = Math.floor((diffSec % 3600) / 60);
+    const s = diffSec % 60;
+
+    const pad = (n: number) => String(n).padStart(2, '0');
+    return `${pad(h)}:${pad(m)}:${pad(s)}`;
+  } catch (e) {
+    return '08:00:00';
+  }
+}
+
+function formatCompletedDuration(totalHours: number): string {
+  const totalSec = Math.max(0, Math.round((totalHours || 0) * 3600));
+  const h = Math.floor(totalSec / 3600);
+  const m = Math.floor((totalSec % 3600) / 60);
+  const s = totalSec % 60;
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return `${pad(h)}:${pad(m)}:${pad(s)}`;
+}
+
 export default function AdminTimecardManagement() {
   const { 
     timecards, 
@@ -57,6 +125,14 @@ export default function AdminTimecardManagement() {
     adminDeleteTimecard,
     clockOutWithKiosk
   } = useApp();
+
+  const [currentTime, setCurrentTime] = useState<number>(Date.now());
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentTime(Date.now());
+    }, 1000);
+    return () => clearInterval(timer);
+  }, []);
 
   const [search, setSearch] = useState('');
   const [staffFilter, setStaffFilter] = useState('ALL');
@@ -149,12 +225,13 @@ export default function AdminTimecardManagement() {
   };
 
   const exportCompanyReportCSV = () => {
-    const headers = ['Record ID', 'Employee ID', 'Employee Name', 'Department', 'Shift Date', 'Clock In', 'Clock Out', 'Break (min)', 'Paid Hours', 'Overtime', 'Status', 'Notes', 'Adjusted By'];
+    const headers = ['Record ID', 'Employee ID', 'Employee Name', 'Department', 'Day', 'Shift Date', 'Clock In', 'Clock Out', 'Break (min)', 'Paid Hours', 'Overtime', 'Status', 'Notes', 'Adjusted By'];
     const rows = filteredTimecards.map(t => [
       `"${t.id}"`,
       `"${t.employeeId}"`,
       `"${t.employeeName}"`,
       `"${t.department || ''}"`,
+      `"${getDayOfWeek(t.date)}"`,
       `"${t.date}"`,
       `"${t.clockIn}"`,
       `"${t.clockOut || 'Active'}"`,
@@ -298,9 +375,15 @@ export default function AdminTimecardManagement() {
                   <div>
                     <h4 className="font-bold text-white text-xs">{emp.firstName} {emp.lastName}</h4>
                     <span className="text-[10px] text-slate-400 block">{emp.department || 'Production'}</span>
-                    <span className="text-[10px] font-mono text-emerald-400 font-bold">
-                      In: {emp.lastClockIn ? new Date(emp.lastClockIn).toLocaleTimeString('en-AU', { hour: '2-digit', minute: '2-digit' }) : 'Today'}
-                    </span>
+                    <div className="flex items-center gap-2 mt-1">
+                      <span className="text-[10px] font-mono text-emerald-400 font-bold">
+                        In: {emp.lastClockIn ? new Date(emp.lastClockIn).toLocaleTimeString('en-AU', { hour: '2-digit', minute: '2-digit' }) : 'Today'}
+                      </span>
+                      <span className="text-[10px] font-mono font-bold text-emerald-300 bg-emerald-950/80 px-2 py-0.5 rounded-md border border-emerald-700/60 flex items-center gap-1">
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
+                        <span>{formatRunningDuration(emp.lastClockIn || '07:30 AM', '', currentTime)}</span>
+                      </span>
+                    </div>
                   </div>
                 </div>
 
@@ -326,7 +409,7 @@ export default function AdminTimecardManagement() {
               <span>Month-Wise Staff Timecard Records ({filteredTimecards.length})</span>
             </h3>
             <p className="text-[11px] text-slate-500 mt-0.5">
-              Electronic punch logs organized by month. Filter by staff member and calendar month.
+              Electronic punch logs organized by month. Real-time active duration timers &amp; Fair Work audit breakdown.
             </p>
           </div>
 
@@ -416,69 +499,103 @@ export default function AdminTimecardManagement() {
                         <tr>
                           <th className="py-3 px-4">Staff Member</th>
                           <th className="py-3 px-4">Department</th>
+                          <th className="py-3 px-4">Day</th>
                           <th className="py-3 px-4">Shift Date</th>
                           <th className="py-3 px-4">Clock In</th>
                           <th className="py-3 px-4">Clock Out</th>
                           <th className="py-3 px-4">Break</th>
-                          <th className="py-3 px-4">Total Hours</th>
+                          <th className="py-3 px-4">Total Hours (Live)</th>
                           <th className="py-3 px-4">Status</th>
                           <th className="py-3 px-4 text-right">Actions</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-slate-100">
-                        {monthRecords.map(t => (
-                          <tr key={t.id} className="hover:bg-orange-50/40 transition-colors">
-                            <td className="py-3 px-4 font-bold text-slate-900">
-                              <div className="flex items-center gap-2.5">
-                                <img
-                                  src={t.employeeAvatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150'}
-                                  alt={t.employeeName}
-                                  className="w-8 h-8 rounded-xl object-cover ring-1 ring-slate-200"
-                                />
-                                <div>
-                                  <span className="font-extrabold text-slate-900 block">{t.employeeName}</span>
-                                  <span className="text-[10px] font-mono text-slate-400 font-bold">ID: {t.employeeId}</span>
+                        {monthRecords.map(t => {
+                          const isClockedIn = t.status === 'CLOCKED_IN' || !t.clockOut;
+
+                          return (
+                            <tr key={t.id} className="hover:bg-orange-50/40 transition-colors">
+                              <td className="py-3 px-4 font-bold text-slate-900">
+                                <div className="flex items-center gap-2.5">
+                                  <img
+                                    src={t.employeeAvatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150'}
+                                    alt={t.employeeName}
+                                    className="w-8 h-8 rounded-xl object-cover ring-1 ring-slate-200"
+                                  />
+                                  <div>
+                                    <span className="font-extrabold text-slate-900 block">{t.employeeName}</span>
+                                    <span className="text-[10px] font-mono text-slate-400 font-bold">ID: {t.employeeId}</span>
+                                  </div>
                                 </div>
-                              </div>
-                            </td>
-                            <td className="py-3 px-4 font-semibold text-slate-700">
-                              {t.department || 'Production'}
-                            </td>
-                            <td className="py-3 px-4 font-medium text-slate-800">
-                              {t.date}
-                            </td>
-                            <td className="py-3 px-4 font-mono font-bold text-emerald-700">
-                              {t.clockIn}
-                            </td>
-                            <td className="py-3 px-4 font-mono font-bold text-slate-700">
-                              {t.clockOut || (
-                                <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-black animate-pulse">
-                                  Clocked In
+                              </td>
+                              <td className="py-3 px-4 font-semibold text-slate-700">
+                                {t.department || 'Production'}
+                              </td>
+
+                              {/* Day Column */}
+                              <td className="py-3 px-4">
+                                <span className="px-2 py-0.5 rounded-lg bg-slate-100 text-slate-800 font-bold text-[11px] inline-block border border-slate-200/80">
+                                  {getDayOfWeek(t.date)}
                                 </span>
-                              )}
-                            </td>
-                            <td className="py-3 px-4 font-medium">
-                              {t.breakMinutes}m
-                            </td>
-                            <td className="py-3 px-4 font-black text-slate-900 text-sm">
-                              {t.totalHours}h
-                              {t.overtimeHours > 0 && (
-                                <span className="text-[10px] text-orange-600 block font-bold">+{t.overtimeHours}h OT</span>
-                              )}
-                            </td>
-                            <td className="py-3 px-4">
-                              <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-black border ${
-                                t.status === 'COMPLETED' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' :
-                                t.status === 'CLOCKED_IN' ? 'bg-amber-50 text-amber-700 border-amber-200' :
-                                t.status === 'MANUALLY_ADJUSTED' ? 'bg-purple-50 text-purple-700 border-purple-200' :
-                                'bg-slate-100 text-slate-600 border-slate-200'
-                              }`}>
-                                {t.status === 'MANUALLY_ADJUSTED' ? 'Admin Adjusted' : t.status}
-                              </span>
-                              {t.adjustedBy && (
-                                <span className="text-[9px] text-slate-400 block mt-0.5">By {t.adjustedBy}</span>
-                              )}
-                            </td>
+                              </td>
+
+                              {/* Date Column */}
+                              <td className="py-3 px-4 font-medium text-slate-800 font-mono">
+                                {t.date}
+                              </td>
+
+                              <td className="py-3 px-4 font-mono font-bold text-emerald-700">
+                                {t.clockIn}
+                              </td>
+
+                              <td className="py-3 px-4 font-mono font-bold text-slate-700">
+                                {t.clockOut || (
+                                  <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-black animate-pulse">
+                                    Clocked In
+                                  </span>
+                                )}
+                              </td>
+
+                              <td className="py-3 px-4 font-medium">
+                                {t.breakMinutes}m
+                              </td>
+
+                              {/* Total Hours with Live hrs:min:sec */}
+                              <td className="py-3 px-4">
+                                {isClockedIn ? (
+                                  <div className="flex items-center gap-1.5 font-mono text-xs font-black text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-xl border border-emerald-300 w-fit shadow-2xs">
+                                    <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping" />
+                                    <span>{formatRunningDuration(t.clockIn, t.date, currentTime)}</span>
+                                    <span className="text-[9px] text-emerald-600 uppercase font-sans font-extrabold ml-0.5">LIVE</span>
+                                  </div>
+                                ) : (
+                                  <div>
+                                    <span className="font-mono font-black text-slate-900 text-xs block">
+                                      {formatCompletedDuration(t.totalHours)}
+                                    </span>
+                                    <span className="text-[10px] text-slate-400 font-semibold font-mono">
+                                      ({t.totalHours.toFixed(1)}h)
+                                    </span>
+                                    {t.overtimeHours > 0 && (
+                                      <span className="text-[9px] text-orange-600 block font-bold">+{t.overtimeHours}h OT</span>
+                                    )}
+                                  </div>
+                                )}
+                              </td>
+
+                              <td className="py-3 px-4">
+                                <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-black border ${
+                                  t.status === 'COMPLETED' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' :
+                                  t.status === 'CLOCKED_IN' ? 'bg-amber-50 text-amber-700 border-amber-200' :
+                                  t.status === 'MANUALLY_ADJUSTED' ? 'bg-purple-50 text-purple-700 border-purple-200' :
+                                  'bg-slate-100 text-slate-600 border-slate-200'
+                                }`}>
+                                  {t.status === 'MANUALLY_ADJUSTED' ? 'Admin Adjusted' : t.status}
+                                </span>
+                                {t.adjustedBy && (
+                                  <span className="text-[9px] text-slate-400 block mt-0.5">By {t.adjustedBy}</span>
+                                )}
+                              </td>
                             <td className="py-3 px-4 text-right">
                               <div className="flex items-center justify-end gap-1.5">
                                 <button
@@ -505,7 +622,8 @@ export default function AdminTimecardManagement() {
                               </div>
                             </td>
                           </tr>
-                        ))}
+                        );
+                      })}
                       </tbody>
                     </table>
                   </div>
@@ -772,22 +890,30 @@ export default function AdminTimecardManagement() {
               <thead className="bg-slate-100 text-[10px] font-bold text-slate-500 uppercase">
                 <tr>
                   <th className="p-2">Employee</th>
-                  <th className="p-2">Date</th>
+                  <th className="p-2">Day</th>
+                  <th className="p-2">Shift Date</th>
                   <th className="p-2">In / Out</th>
-                  <th className="p-2">Hours</th>
+                  <th className="p-2">Hours (Live)</th>
                   <th className="p-2">Status</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
-                {filteredTimecards.map(t => (
-                  <tr key={t.id}>
-                    <td className="p-2 font-bold text-slate-900">{t.employeeName}</td>
-                    <td className="p-2">{t.date}</td>
-                    <td className="p-2 font-mono">{t.clockIn} – {t.clockOut || 'Active'}</td>
-                    <td className="p-2 font-bold">{t.totalHours}h</td>
-                    <td className="p-2">{t.status}</td>
-                  </tr>
-                ))}
+                {filteredTimecards.map(t => {
+                  const isClockedIn = t.status === 'CLOCKED_IN' || !t.clockOut;
+
+                  return (
+                    <tr key={t.id}>
+                      <td className="p-2 font-bold text-slate-900">{t.employeeName}</td>
+                      <td className="p-2 font-semibold text-slate-700">{getDayOfWeek(t.date)}</td>
+                      <td className="p-2 font-mono">{t.date}</td>
+                      <td className="p-2 font-mono">{t.clockIn} – {t.clockOut || 'Active'}</td>
+                      <td className="p-2 font-bold font-mono">
+                        {isClockedIn ? formatRunningDuration(t.clockIn, t.date, currentTime) : `${formatCompletedDuration(t.totalHours)} (${t.totalHours}h)`}
+                      </td>
+                      <td className="p-2 font-semibold">{t.status}</td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>

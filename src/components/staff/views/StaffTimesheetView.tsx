@@ -20,6 +20,50 @@ import {
 import { useApp } from '@/lib/store';
 import { TimecardRecord } from '@/types';
 
+function formatRunningDuration(clockInStr: string, dateStr: string, nowMs: number): string {
+  try {
+    let hours = 8;
+    let minutes = 0;
+    let seconds = 0;
+
+    const match = (clockInStr || '').match(/(\d+):(\d+)(?::(\d+))?\s*(AM|PM)?/i);
+    if (match) {
+      hours = parseInt(match[1], 10);
+      minutes = parseInt(match[2], 10);
+      seconds = match[3] ? parseInt(match[3], 10) : 0;
+      const meridian = match[4] ? match[4].toUpperCase() : null;
+      if (meridian === 'PM' && hours < 12) hours += 12;
+      if (meridian === 'AM' && hours === 12) hours = 0;
+    }
+
+    const today = new Date(nowMs);
+    const startTime = new Date(today.getFullYear(), today.getMonth(), today.getDate(), hours, minutes, seconds);
+
+    let diffSec = Math.floor((nowMs - startTime.getTime()) / 1000);
+    if (diffSec < 0) {
+      diffSec = Math.abs(diffSec) % (24 * 3600);
+    }
+
+    const h = Math.floor(diffSec / 3600);
+    const m = Math.floor((diffSec % 3600) / 60);
+    const s = diffSec % 60;
+
+    const pad = (n: number) => String(n).padStart(2, '0');
+    return `${pad(h)}:${pad(m)}:${pad(s)}`;
+  } catch (e) {
+    return '08:00:00';
+  }
+}
+
+function formatCompletedDuration(totalHours: number): string {
+  const totalSec = Math.max(0, Math.round((totalHours || 0) * 3600));
+  const h = Math.floor(totalSec / 3600);
+  const m = Math.floor((totalSec % 3600) / 60);
+  const s = totalSec % 60;
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return `${pad(h)}:${pad(m)}:${pad(s)}`;
+}
+
 export default function StaffTimesheetView() {
   const { currentStaff, timecards, leaveRequests, updateStaffKioskPin } = useApp();
   const [showPinModal, setShowPinModal] = useState(false);
@@ -29,9 +73,11 @@ export default function StaffTimesheetView() {
 
   // Live Sydney Clock
   const [currentTimeStr, setCurrentTimeStr] = useState('');
+  const [currentTimeMs, setCurrentTimeMs] = useState<number>(Date.now());
   useEffect(() => {
     const tick = () => {
       const now = new Date();
+      setCurrentTimeMs(now.getTime());
       setCurrentTimeStr(now.toLocaleTimeString('en-AU', { timeZone: 'Australia/Sydney', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true }));
     };
     tick();
@@ -224,43 +270,62 @@ export default function StaffTimesheetView() {
             </thead>
             <tbody className="divide-y divide-slate-100">
               {/* 1. Timecard Clock logs */}
-              {staffTimecards.map(t => (
-                <tr key={t.id} className="hover:bg-slate-50/80 transition">
-                  <td className="py-3.5 px-5 font-bold text-slate-900">
-                    <div>{t.date}</div>
-                    <span className="text-[10px] text-slate-400 font-normal">
-                      {new Date(t.date).toLocaleDateString('en-AU', { weekday: 'short' })}
-                    </span>
-                  </td>
-                  <td className="py-3.5 px-5">
-                    <span className="font-semibold text-slate-800 block">{t.department || currentStaff.department || 'Production'}</span>
-                    <span className="text-[10px] text-slate-400">{t.notes || 'Standard shift'}</span>
-                  </td>
-                  <td className="py-3.5 px-5 font-mono font-bold text-emerald-700">{t.clockIn}</td>
-                  <td className="py-3.5 px-5 font-mono font-bold text-slate-700">
-                    {t.clockOut || (
-                      <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-extrabold animate-pulse">
-                        Active Now
+              {staffTimecards.map(t => {
+                const isClockedIn = t.status === 'CLOCKED_IN' || !t.clockOut;
+
+                return (
+                  <tr key={t.id} className="hover:bg-slate-50/80 transition">
+                    <td className="py-3.5 px-5 font-bold text-slate-900">
+                      <div>{t.date}</div>
+                      <span className="text-[10px] text-slate-500 font-semibold px-1.5 py-0.5 rounded bg-slate-100 border border-slate-200 inline-block mt-0.5">
+                        {new Date(t.date).toLocaleDateString('en-AU', { weekday: 'long' })}
                       </span>
-                    )}
-                  </td>
-                  <td className="py-3.5 px-5 font-medium">{t.breakMinutes}m</td>
-                  <td className="py-3.5 px-5 font-black text-slate-900 text-sm">{t.totalHours}h</td>
-                  <td className="py-3.5 px-5 font-bold text-orange-600">
-                    {t.overtimeHours > 0 ? `+${t.overtimeHours}h` : '—'}
-                  </td>
-                  <td className="py-3.5 px-5">
-                    <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-black border ${
-                      t.status === 'COMPLETED' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' :
-                      t.status === 'CLOCKED_IN' ? 'bg-amber-50 text-amber-700 border-amber-200' :
-                      t.status === 'MANUALLY_ADJUSTED' ? 'bg-purple-50 text-purple-700 border-purple-200' :
-                      'bg-slate-100 text-slate-600 border-slate-200'
-                    }`}>
-                      {t.status === 'MANUALLY_ADJUSTED' ? 'Admin Verified' : t.status}
-                    </span>
-                  </td>
-                </tr>
-              ))}
+                    </td>
+                    <td className="py-3.5 px-5">
+                      <span className="font-semibold text-slate-800 block">{t.department || currentStaff.department || 'Production'}</span>
+                      <span className="text-[10px] text-slate-400">{t.notes || 'Standard shift'}</span>
+                    </td>
+                    <td className="py-3.5 px-5 font-mono font-bold text-emerald-700">{t.clockIn}</td>
+                    <td className="py-3.5 px-5 font-mono font-bold text-slate-700">
+                      {t.clockOut || (
+                        <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-extrabold animate-pulse">
+                          Active Now
+                        </span>
+                      )}
+                    </td>
+                    <td className="py-3.5 px-5 font-medium">{t.breakMinutes}m</td>
+                    <td className="py-3.5 px-5">
+                      {isClockedIn ? (
+                        <div className="flex items-center gap-1.5 font-mono text-xs font-black text-emerald-700 bg-emerald-50 px-2 py-1 rounded-lg border border-emerald-300 w-fit">
+                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping" />
+                          <span>{formatRunningDuration(t.clockIn, t.date, currentTimeMs)}</span>
+                          <span className="text-[9px] text-emerald-600 font-sans font-bold">LIVE</span>
+                        </div>
+                      ) : (
+                        <div>
+                          <span className="font-mono font-black text-slate-900 text-sm block">
+                            {formatCompletedDuration(t.totalHours)}
+                          </span>
+                          <span className="text-[10px] text-slate-400 font-mono">({t.totalHours}h)</span>
+                        </div>
+                      )}
+                    </td>
+                    <td className="py-3.5 px-5 font-bold text-orange-600">
+                      {t.overtimeHours > 0 ? `+${t.overtimeHours}h` : '—'}
+                    </td>
+                    <td className="py-3.5 px-5">
+                      <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-black border ${
+                        t.status === 'COMPLETED' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' :
+                        t.status === 'CLOCKED_IN' ? 'bg-amber-50 text-amber-700 border-amber-200' :
+                        t.status === 'MANUALLY_ADJUSTED' ? 'bg-purple-50 text-purple-700 border-purple-200' :
+                        'bg-slate-100 text-slate-600 border-slate-200'
+                      }`}>
+                        {t.status === 'MANUALLY_ADJUSTED' ? 'Admin Verified' : t.status}
+                      </span>
+                    </td>
+                  </tr>
+                );
+              })}
 
               {/* 2. Integrated Approved Leaves */}
               {staffLeaves.map(l => (
