@@ -72,10 +72,6 @@ export default function StaffDashboard({
     return <StaffLeaveView />;
   }
 
-  if (activeTab === 'payroll') {
-    return <StaffPayrollView />;
-  }
-
   if (activeTab === 'employment') {
     return <StaffEmploymentView />;
   }

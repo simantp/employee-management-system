@@ -47,9 +47,8 @@ export default function StaffSidebar({
       ]
     },
     {
-      title: 'FINANCES & PEOPLE',
+      title: 'PEOPLE & DIRECTORY',
       items: [
-        { id: 'payroll', label: 'Payroll & Banking', icon: CreditCard, badge: '🔒' },
         { id: 'emergency', label: 'Emergency Contacts', icon: PhoneCall, badge: null },
         { id: 'directory', label: 'Company Directory', icon: Users, badge: null },
       ]

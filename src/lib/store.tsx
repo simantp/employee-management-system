@@ -177,6 +177,8 @@ interface AppContextType {
   updateProfileAvatar: (empId: string, avatarUrl: string) => void;
   markNotificationRead: (id: string) => void;
   markAllNotificationsRead: (recipient: 'ADMIN' | 'STAFF') => void;
+  addToast: (title: string, message: string, type?: 'success' | 'warning' | 'info' | 'error') => void;
+  addAudit: (action: string, targetType: string, targetId: string, details: string, actorName?: string, actorRole?: string) => void;
   removeToast: (id: string) => void;
   triggerSimulatedRealtimeEvent: (type: 'NEW_STAFF_LEAVE' | 'VISA_WARNING' | 'CERTIFICATE_REMINDER') => void;
 }
@@ -1366,6 +1368,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       reviewDocument,
       markNotificationRead,
       markAllNotificationsRead,
+      addToast,
+      addAudit,
       removeToast,
       triggerSimulatedRealtimeEvent,
     }}>

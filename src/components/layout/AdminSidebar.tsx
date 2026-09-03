@@ -36,26 +36,24 @@ export default function AdminSidebar({
 
   const pendingApprovals = leaveRequests.filter(r => r.status === 'PENDING').length;
 
+  const expiringVisasCount = alerts.filter(a => a.type === 'VISA_EXPIRY' && a.daysRemaining <= 60).length;
+
   const navItems = [
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, badge: null },
     { id: 'timecards', label: 'Timecard & Shifts', icon: Clock, badge: activeWorkingStaffCount > 0 ? `${activeWorkingStaffCount} Active` : null },
     { id: 'employees', label: 'Employees', icon: Users, badge: String(employees.length) },
     { id: 'approvals', label: 'Leave Approvals', icon: CalendarCheck2, badge: pendingApprovals > 0 ? String(pendingApprovals) : null },
-    { id: 'personal-details', label: 'Personal Details', icon: UserCheck, badge: null },
-    { id: 'employment', label: 'Employment', icon: Briefcase, badge: null },
     { id: 'documents', label: 'Documents', icon: FileText, badge: null },
   ];
 
   const complianceSubItems = [
-    { id: 'visa-alerts', label: 'Visa Tracking', count: '3 Expiring' },
-    { id: 'license-alerts', label: 'Driver Licenses', count: '45d' },
-    { id: 'whs-policies', label: 'WHS Policies', count: null },
+    { id: 'visa-alerts', label: 'Visa Tracking', count: expiringVisasCount > 0 ? `${expiringVisasCount} Expiring` : null },
+    { id: 'license-alerts', label: 'Driver Licenses', count: 'NSW' },
+    { id: 'whs-policies', label: 'WHS Policies', count: 'ISO' },
   ];
 
   const bottomNavItems = [
-    { id: 'payroll', label: 'Payroll & Banking', icon: CreditCard, badge: 'Encrypted' },
     { id: 'emergency', label: 'Emergency Contacts', icon: PhoneCall, badge: null },
-    { id: 'reports', label: 'Reports', icon: BarChart3, badge: null },
     { id: 'alerts', label: 'Alerts & Reminders', icon: Bell, badge: String(alerts.length) },
     { id: 'roles', label: 'Roles & Permissions', icon: KeyRound, badge: null },
     { id: 'audit-log', label: 'Audit Log', icon: History, badge: 'Live' },

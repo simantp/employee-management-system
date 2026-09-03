@@ -241,19 +241,6 @@ export default function EmployeeDetailModal({
 
           <button
             type="button"
-            onClick={() => setActiveSection('BANKING')}
-            className={`px-3.5 py-2 rounded-t-xl font-bold text-xs flex items-center gap-1.5 border-b-2 transition cursor-pointer ${
-              activeSection === 'BANKING' 
-                ? 'border-orange-500 text-orange-600 bg-white shadow-xs' 
-                : 'border-transparent text-slate-500 hover:text-slate-900'
-            }`}
-          >
-            <CreditCard className="w-3.5 h-3.5" />
-            <span>Banking &amp; Superannuation</span>
-          </button>
-
-          <button
-            type="button"
             onClick={() => setActiveSection('VISA_EMERGENCY')}
             className={`px-3.5 py-2 rounded-t-xl font-bold text-xs flex items-center gap-1.5 border-b-2 transition cursor-pointer ${
               activeSection === 'VISA_EMERGENCY' 

@@ -24,6 +24,9 @@ import EmployeeDetailModal from './EmployeeDetailModal';
 import PostAnnouncementModal from './PostAnnouncementModal';
 import EmployeeManagementView from './EmployeeManagementView';
 import AdminTimecardManagement from './AdminTimecardManagement';
+import AdminComplianceManagement from './AdminComplianceManagement';
+import AdminAlertsReminders from './AdminAlertsReminders';
+import AdminSettingsHub from './AdminSettingsHub';
 import { Megaphone } from 'lucide-react';
 import { Employee } from '@/types';
 import { useApp } from '@/lib/store';
@@ -44,16 +47,20 @@ export default function AdminDashboard({
     ? 'Timecard Records & Shift Management'
     : activeTab === 'employees'
     ? 'Staff & Employee Directory'
-    : activeTab === 'personal-details'
-    ? 'Staff Personal & Contact Directory'
-    : activeTab === 'employment'
-    ? 'Employment, Roles & Start Dates'
-    : activeTab === 'payroll'
-    ? 'Staff Payroll & AES-256 Banking Vault'
     : activeTab === 'emergency'
     ? 'Emergency Contacts & Next of Kin'
     : activeTab === 'approvals'
     ? 'Leave & Compliance Approvals'
+    : (activeTab === 'compliance' || activeTab === 'visa-alerts')
+    ? 'Visa Tracking & VEVO Compliance'
+    : activeTab === 'license-alerts'
+    ? 'Driver Licenses & Operator Permits'
+    : activeTab === 'whs-policies'
+    ? 'Work Health & Safety (WHS) Standards'
+    : activeTab === 'alerts'
+    ? 'Compliance Alerts & Staff Reminders'
+    : activeTab === 'settings'
+    ? 'System & Operations Settings'
     : activeTab === 'roles' 
     ? 'Roles & Permissions' 
     : (activeTab === 'documents' || activeTab === 'doc-types')
@@ -70,7 +77,7 @@ export default function AdminDashboard({
             {pageTitle}
           </h1>
           <p className="text-xs text-slate-500 mt-0.5">
-            Sydney Plant & Headquarters Management • Australian Compliance Hub
+            Sydney Plant &amp; Headquarters Management • Australian Compliance Hub
           </p>
         </div>
 
@@ -94,13 +101,23 @@ export default function AdminDashboard({
 
       {activeTab === 'timecards' ? (
         <AdminTimecardManagement />
-      ) : activeTab === 'employees' || activeTab === 'personal-details' || activeTab === 'employment' || activeTab === 'payroll' || activeTab === 'emergency' ? (
+      ) : activeTab === 'employees' || activeTab === 'emergency' ? (
         <EmployeeManagementView />
       ) : activeTab === 'approvals' ? (
         <div className="space-y-6">
           <PendingLeaveApprovals />
           <PendingDocumentApprovals />
         </div>
+      ) : activeTab === 'compliance' || activeTab === 'visa-alerts' ? (
+        <AdminComplianceManagement defaultSubTab="visa" />
+      ) : activeTab === 'license-alerts' ? (
+        <AdminComplianceManagement defaultSubTab="license" />
+      ) : activeTab === 'whs-policies' ? (
+        <AdminComplianceManagement defaultSubTab="whs" />
+      ) : activeTab === 'alerts' ? (
+        <AdminAlertsReminders />
+      ) : activeTab === 'settings' ? (
+        <AdminSettingsHub />
       ) : activeTab === 'roles' ? (
         <RolesManagement />
       ) : (activeTab === 'documents' || activeTab === 'doc-types') ? (
