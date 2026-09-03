@@ -20,48 +20,52 @@ import {
 import { useApp } from '@/lib/store';
 import { TimecardRecord } from '@/types';
 
-function formatRunningDuration(clockInStr: string, dateStr: string, nowMs: number): string {
+function formatSecondsToHMS(totalSec: number): string {
+  const safeSec = Math.max(0, Math.floor(totalSec || 0));
+  const h = Math.floor(safeSec / 3600);
+  const m = Math.floor((safeSec % 3600) / 60);
+  const s = safeSec % 60;
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return `${pad(h)}:${pad(m)}:${pad(s)}`;
+}
+
+function getShiftRunningSeconds(t: TimecardRecord, nowMs: number): number {
+  if (t.clockInTimestamp) {
+    return Math.max(0, Math.floor((nowMs - t.clockInTimestamp) / 1000));
+  }
   try {
-    let hours = 8;
-    let minutes = 0;
-    let seconds = 0;
+    const parts = (t.clockIn || '').match(/(\d+):(\d+)(?::(\d+))?\s*(AM|PM)?/i);
+    if (!parts) return 0;
+    let h = parseInt(parts[1], 10);
+    const m = parseInt(parts[2], 10);
+    const s = parts[3] ? parseInt(parts[3], 10) : 0;
+    const mer = parts[4] ? parts[4].toUpperCase() : null;
+    if (mer === 'PM' && h < 12) h += 12;
+    if (mer === 'AM' && h === 12) h = 0;
 
-    const match = (clockInStr || '').match(/(\d+):(\d+)(?::(\d+))?\s*(AM|PM)?/i);
-    if (match) {
-      hours = parseInt(match[1], 10);
-      minutes = parseInt(match[2], 10);
-      seconds = match[3] ? parseInt(match[3], 10) : 0;
-      const meridian = match[4] ? match[4].toUpperCase() : null;
-      if (meridian === 'PM' && hours < 12) hours += 12;
-      if (meridian === 'AM' && hours === 12) hours = 0;
+    const now = new Date(nowMs);
+    const start = new Date(now.getFullYear(), now.getMonth(), now.getDate(), h, m, s);
+    const diffSec = Math.floor((nowMs - start.getTime()) / 1000);
+    if (diffSec >= 0 && diffSec < 24 * 3600) {
+      return diffSec;
     }
-
-    const today = new Date(nowMs);
-    const startTime = new Date(today.getFullYear(), today.getMonth(), today.getDate(), hours, minutes, seconds);
-
-    let diffSec = Math.floor((nowMs - startTime.getTime()) / 1000);
-    if (diffSec < 0) {
-      diffSec = Math.abs(diffSec) % (24 * 3600);
-    }
-
-    const h = Math.floor(diffSec / 3600);
-    const m = Math.floor((diffSec % 3600) / 60);
-    const s = diffSec % 60;
-
-    const pad = (n: number) => String(n).padStart(2, '0');
-    return `${pad(h)}:${pad(m)}:${pad(s)}`;
+    return 0; // Starts from 00:00:00!
   } catch (e) {
-    return '08:00:00';
+    return 0;
   }
 }
 
-function formatCompletedDuration(totalHours: number): string {
-  const totalSec = Math.max(0, Math.round((totalHours || 0) * 3600));
-  const h = Math.floor(totalSec / 3600);
-  const m = Math.floor((totalSec % 3600) / 60);
-  const s = totalSec % 60;
-  const pad = (n: number) => String(n).padStart(2, '0');
-  return `${pad(h)}:${pad(m)}:${pad(s)}`;
+function formatRunningDuration(t: TimecardRecord, nowMs: number): string {
+  const sec = getShiftRunningSeconds(t, nowMs);
+  return formatSecondsToHMS(sec);
+}
+
+function formatCompletedDuration(t: TimecardRecord): string {
+  if (t.durationSeconds !== undefined && t.durationSeconds > 0) {
+    return formatSecondsToHMS(t.durationSeconds);
+  }
+  const sec = Math.max(0, Math.round((t.totalHours || 0) * 3600));
+  return formatSecondsToHMS(sec);
 }
 
 export default function StaffTimesheetView() {
@@ -296,17 +300,17 @@ export default function StaffTimesheetView() {
                     <td className="py-3.5 px-5 font-medium">{t.breakMinutes}m</td>
                     <td className="py-3.5 px-5">
                       {isClockedIn ? (
-                        <div className="flex items-center gap-1.5 font-mono text-xs font-black text-emerald-700 bg-emerald-50 px-2 py-1 rounded-lg border border-emerald-300 w-fit">
+                        <div className="flex items-center gap-1.5 font-mono text-xs font-black text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-lg border border-emerald-300 w-fit">
                           <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping" />
-                          <span>{formatRunningDuration(t.clockIn, t.date, currentTimeMs)}</span>
+                          <span>{formatRunningDuration(t, currentTimeMs)}</span>
                           <span className="text-[9px] text-emerald-600 font-sans font-bold">LIVE</span>
                         </div>
                       ) : (
                         <div>
                           <span className="font-mono font-black text-slate-900 text-sm block">
-                            {formatCompletedDuration(t.totalHours)}
+                            {formatCompletedDuration(t)}
                           </span>
-                          <span className="text-[10px] text-slate-400 font-mono">({t.totalHours}h)</span>
+                          <span className="text-[10px] text-slate-400 font-mono">({t.totalHours >= 1 ? `${t.totalHours.toFixed(1)}h` : `${(t.totalHours * 60).toFixed(0)}m`})</span>
                         </div>
                       )}
                     </td>

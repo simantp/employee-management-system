@@ -71,48 +71,80 @@ function getDayOfWeek(dateStr: string): string {
   return 'Monday';
 }
 
-function formatRunningDuration(clockInStr: string, dateStr: string, nowMs: number): string {
+function formatSecondsToHMS(totalSec: number): string {
+  const safeSec = Math.max(0, Math.floor(totalSec || 0));
+  const h = Math.floor(safeSec / 3600);
+  const m = Math.floor((safeSec % 3600) / 60);
+  const s = safeSec % 60;
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return `${pad(h)}:${pad(m)}:${pad(s)}`;
+}
+
+function parseTimeToSeconds(timeStr: string): number {
+  if (!timeStr) return 0;
+  const match = timeStr.match(/(\d+):(\d+)(?::(\d+))?\s*(AM|PM)?/i);
+  if (!match) return 0;
+  let h = parseInt(match[1], 10);
+  const m = parseInt(match[2], 10);
+  const s = match[3] ? parseInt(match[3], 10) : 0;
+  const mer = match[4] ? match[4].toUpperCase() : null;
+  if (mer === 'PM' && h < 12) h += 12;
+  if (mer === 'AM' && h === 12) h = 0;
+  return h * 3600 + m * 60 + s;
+}
+
+function calculateShiftDuration(clockIn: string, clockOut: string, breakMinutes: number): { totalHours: number; durationSeconds: number; overtimeHours: number } {
+  const inSec = parseTimeToSeconds(clockIn);
+  let outSec = parseTimeToSeconds(clockOut);
+  if (outSec < inSec) {
+    outSec += 24 * 3600; // overnight shift
+  }
+  const breakSec = Math.max(0, (breakMinutes || 0) * 60);
+  const totalSec = Math.max(0, outSec - inSec - breakSec);
+  const totalHours = parseFloat((totalSec / 3600).toFixed(4));
+  const overtimeHours = totalHours > 7.6 ? parseFloat((totalHours - 7.6).toFixed(4)) : 0;
+  return { totalHours, durationSeconds: totalSec, overtimeHours };
+}
+
+function getShiftRunningSeconds(t: TimecardRecord, nowMs: number): number {
+  if (t.clockInTimestamp) {
+    return Math.max(0, Math.floor((nowMs - t.clockInTimestamp) / 1000));
+  }
+
+  // If clockIn is string format e.g. "07:30 AM"
   try {
-    let hours = 8;
-    let minutes = 0;
-    let seconds = 0;
+    const parts = (t.clockIn || '').match(/(\d+):(\d+)(?::(\d+))?\s*(AM|PM)?/i);
+    if (!parts) return 0;
+    let h = parseInt(parts[1], 10);
+    const m = parseInt(parts[2], 10);
+    const s = parts[3] ? parseInt(parts[3], 10) : 0;
+    const mer = parts[4] ? parts[4].toUpperCase() : null;
+    if (mer === 'PM' && h < 12) h += 12;
+    if (mer === 'AM' && h === 12) h = 0;
 
-    const match = (clockInStr || '').match(/(\d+):(\d+)(?::(\d+))?\s*(AM|PM)?/i);
-    if (match) {
-      hours = parseInt(match[1], 10);
-      minutes = parseInt(match[2], 10);
-      seconds = match[3] ? parseInt(match[3], 10) : 0;
-      const meridian = match[4] ? match[4].toUpperCase() : null;
-      if (meridian === 'PM' && hours < 12) hours += 12;
-      if (meridian === 'AM' && hours === 12) hours = 0;
+    const now = new Date(nowMs);
+    const start = new Date(now.getFullYear(), now.getMonth(), now.getDate(), h, m, s);
+    const diffSec = Math.floor((nowMs - start.getTime()) / 1000);
+    if (diffSec >= 0 && diffSec < 24 * 3600) {
+      return diffSec;
     }
-
-    const today = new Date(nowMs);
-    const startTime = new Date(today.getFullYear(), today.getMonth(), today.getDate(), hours, minutes, seconds);
-
-    let diffSec = Math.floor((nowMs - startTime.getTime()) / 1000);
-    if (diffSec < 0) {
-      diffSec = Math.abs(diffSec) % (24 * 3600);
-    }
-
-    const h = Math.floor(diffSec / 3600);
-    const m = Math.floor((diffSec % 3600) / 60);
-    const s = diffSec % 60;
-
-    const pad = (n: number) => String(n).padStart(2, '0');
-    return `${pad(h)}:${pad(m)}:${pad(s)}`;
+    return 0; // Starts clean from 00:00:00!
   } catch (e) {
-    return '08:00:00';
+    return 0;
   }
 }
 
-function formatCompletedDuration(totalHours: number): string {
-  const totalSec = Math.max(0, Math.round((totalHours || 0) * 3600));
-  const h = Math.floor(totalSec / 3600);
-  const m = Math.floor((totalSec % 3600) / 60);
-  const s = totalSec % 60;
-  const pad = (n: number) => String(n).padStart(2, '0');
-  return `${pad(h)}:${pad(m)}:${pad(s)}`;
+function formatRunningDuration(t: TimecardRecord, nowMs: number): string {
+  const sec = getShiftRunningSeconds(t, nowMs);
+  return formatSecondsToHMS(sec);
+}
+
+function formatCompletedDuration(t: TimecardRecord): string {
+  if (t.durationSeconds !== undefined && t.durationSeconds > 0) {
+    return formatSecondsToHMS(t.durationSeconds);
+  }
+  const sec = Math.max(0, Math.round((t.totalHours || 0) * 3600));
+  return formatSecondsToHMS(sec);
 }
 
 export default function AdminTimecardManagement() {
@@ -188,11 +220,15 @@ export default function AdminTimecardManagement() {
     e.preventDefault();
     if (!editingRecord) return;
 
+    const { totalHours, durationSeconds, overtimeHours } = calculateShiftDuration(formClockIn, formClockOut, Number(formBreak) || 0);
+
     adminAdjustTimecard(editingRecord.id, {
       clockIn: formClockIn,
       clockOut: formClockOut,
       breakMinutes: Number(formBreak) || 0,
-      totalHours: 8.0,
+      totalHours,
+      durationSeconds,
+      overtimeHours,
       notes: formNotes || editingRecord.notes
     });
 
@@ -204,6 +240,8 @@ export default function AdminTimecardManagement() {
     const targetEmp = employees.find(e => e.id === formEmployeeId);
     if (!targetEmp) return;
 
+    const { totalHours, durationSeconds, overtimeHours } = calculateShiftDuration(formClockIn, formClockOut, Number(formBreak) || 0);
+
     adminAddTimecard({
       employeeId: targetEmp.id,
       employeeName: `${targetEmp.firstName} ${targetEmp.lastName}`,
@@ -212,9 +250,10 @@ export default function AdminTimecardManagement() {
       date: formDate || new Date().toLocaleDateString('en-AU', { day: '2-digit', month: 'short', year: 'numeric' }),
       clockIn: formClockIn,
       clockOut: formClockOut,
-      breakMinutes: Number(formBreak) || 30,
-      totalHours: 8.0,
-      overtimeHours: 0.4,
+      breakMinutes: Number(formBreak) || 0,
+      totalHours,
+      durationSeconds,
+      overtimeHours,
       status: 'MANUALLY_ADJUSTED',
       notes: formNotes || 'Manually logged by SuperAdmin'
     });
@@ -381,7 +420,7 @@ export default function AdminTimecardManagement() {
                       </span>
                       <span className="text-[10px] font-mono font-bold text-emerald-300 bg-emerald-950/80 px-2 py-0.5 rounded-md border border-emerald-700/60 flex items-center gap-1">
                         <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
-                        <span>{formatRunningDuration(emp.lastClockIn || '07:30 AM', '', currentTime)}</span>
+                        <span>{formatSecondsToHMS(emp.clockInTimestamp ? Math.max(0, Math.floor((currentTime - emp.clockInTimestamp) / 1000)) : (emp.lastClockIn ? Math.max(0, Math.floor((currentTime - new Date(emp.lastClockIn).getTime()) / 1000)) : 0))}</span>
                       </span>
                     </div>
                   </div>
@@ -565,16 +604,16 @@ export default function AdminTimecardManagement() {
                                 {isClockedIn ? (
                                   <div className="flex items-center gap-1.5 font-mono text-xs font-black text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-xl border border-emerald-300 w-fit shadow-2xs">
                                     <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping" />
-                                    <span>{formatRunningDuration(t.clockIn, t.date, currentTime)}</span>
+                                    <span>{formatRunningDuration(t, currentTime)}</span>
                                     <span className="text-[9px] text-emerald-600 uppercase font-sans font-extrabold ml-0.5">LIVE</span>
                                   </div>
                                 ) : (
                                   <div>
                                     <span className="font-mono font-black text-slate-900 text-xs block">
-                                      {formatCompletedDuration(t.totalHours)}
+                                      {formatCompletedDuration(t)}
                                     </span>
                                     <span className="text-[10px] text-slate-400 font-semibold font-mono">
-                                      ({t.totalHours.toFixed(1)}h)
+                                      ({t.totalHours >= 1 ? `${t.totalHours.toFixed(1)}h` : `${(t.totalHours * 60).toFixed(0)}m`})
                                     </span>
                                     {t.overtimeHours > 0 && (
                                       <span className="text-[9px] text-orange-600 block font-bold">+{t.overtimeHours}h OT</span>
@@ -908,7 +947,7 @@ export default function AdminTimecardManagement() {
                       <td className="p-2 font-mono">{t.date}</td>
                       <td className="p-2 font-mono">{t.clockIn} – {t.clockOut || 'Active'}</td>
                       <td className="p-2 font-bold font-mono">
-                        {isClockedIn ? formatRunningDuration(t.clockIn, t.date, currentTime) : `${formatCompletedDuration(t.totalHours)} (${t.totalHours}h)`}
+                        {isClockedIn ? formatRunningDuration(t, currentTime) : `${formatCompletedDuration(t)} (${t.totalHours.toFixed(1)}h)`}
                       </td>
                       <td className="p-2 font-semibold">{t.status}</td>
                     </tr>

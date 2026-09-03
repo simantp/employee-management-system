@@ -1133,9 +1133,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     }
 
     const now = new Date();
-    const timeStr = now.toLocaleTimeString('en-AU', { timeZone: 'Australia/Sydney', hour: '2-digit', minute: '2-digit', hour12: true });
+    const nowMs = now.getTime();
+    const timeStr = now.toLocaleTimeString('en-AU', { timeZone: 'Australia/Sydney', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true });
     const dateStr = now.toLocaleDateString('en-AU', { day: '2-digit', month: 'short', year: 'numeric' });
-    const shiftId = 'tc-' + Date.now();
+    const shiftId = 'tc-' + nowMs;
 
     const newTimecard: TimecardRecord = {
       id: shiftId,
@@ -1145,8 +1146,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       department: emp.department || 'General Operations',
       date: dateStr,
       clockIn: timeStr,
-      breakMinutes: 30,
+      clockInTimestamp: nowMs,
+      breakMinutes: 0,
       totalHours: 0,
+      durationSeconds: 0,
       overtimeHours: 0,
       status: 'CLOCKED_IN',
       notes: `Clocked in via Quick Kiosk Terminal at ${emp.workLocation || 'Sydney NSW'}`
@@ -1158,13 +1161,14 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       ...emp,
       clockState: 'CLOCKED_IN',
       lastClockIn: now.toISOString(),
+      clockInTimestamp: nowMs,
       currentShiftId: shiftId,
     };
     setEmployees(prev => prev.map(e => e.id === emp.id ? updatedEmp : e));
 
     // Instant SuperAdmin Notification
     const newNotif: NotificationItem = {
-      id: 'notif-' + Date.now(),
+      id: 'notif-' + nowMs,
       recipient: 'ADMIN',
       title: `🟢 ${emp.firstName} ${emp.lastName} Clocked In`,
       message: `${emp.firstName} ${emp.lastName} clocked IN at ${timeStr} (${emp.department || 'Production'}).`,
@@ -1180,7 +1184,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     return { success: true, message: `Successfully clocked in at ${timeStr}`, employee: updatedEmp };
   };
 
-  const clockOutWithKiosk = (pin: string, password?: string, breakMinutes: number = 30): { success: boolean; message: string; employee?: Employee; totalHours?: number } => {
+  const clockOutWithKiosk = (pin: string, password?: string, breakMinutes: number = 0): { success: boolean; message: string; employee?: Employee; totalHours?: number } => {
     const cleanPin = pin.trim();
     const emp = employees.find(e => {
       const p = (e.kioskPin || '').trim();
@@ -1198,18 +1202,28 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     }
 
     const now = new Date();
-    const timeStr = now.toLocaleTimeString('en-AU', { timeZone: 'Australia/Sydney', hour: '2-digit', minute: '2-digit', hour12: true });
+    const nowMs = now.getTime();
+    const timeStr = now.toLocaleTimeString('en-AU', { timeZone: 'Australia/Sydney', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true });
     
-    let totalHours = 8.0;
-    if (emp.lastClockIn) {
-      const clockInTime = new Date(emp.lastClockIn).getTime();
-      const diffMs = now.getTime() - clockInTime;
-      const hours = Math.max(0.1, (diffMs / (1000 * 60 * 60)) - (breakMinutes / 60));
-      totalHours = parseFloat(hours.toFixed(1));
-      if (totalHours < 0.5) totalHours = 8.0; // standard shift fallback for instant testing
+    let clockInTime = emp.clockInTimestamp;
+    if (!clockInTime && emp.lastClockIn) {
+      clockInTime = new Date(emp.lastClockIn).getTime();
+    }
+    if (!clockInTime) {
+      clockInTime = nowMs;
     }
 
-    const overtime = totalHours > 7.6 ? parseFloat((totalHours - 7.6).toFixed(1)) : 0;
+    const elapsedMs = Math.max(0, nowMs - clockInTime);
+    const elapsedSec = Math.floor(elapsedMs / 1000);
+    const exactHours = elapsedSec / 3600;
+    const totalHours = parseFloat(exactHours.toFixed(4));
+    const overtime = totalHours > 7.6 ? parseFloat((totalHours - 7.6).toFixed(4)) : 0;
+
+    const pad = (n: number) => String(n).padStart(2, '0');
+    const h = Math.floor(elapsedSec / 3600);
+    const m = Math.floor((elapsedSec % 3600) / 60);
+    const s = elapsedSec % 60;
+    const hmsFormatted = `${pad(h)}:${pad(m)}:${pad(s)}`;
 
     setTimecards(prev => {
       const existingIdx = prev.findIndex(t => t.id === emp.currentShiftId || (t.employeeId === emp.id && t.status === 'CLOCKED_IN'));
@@ -1218,6 +1232,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         updated[existingIdx] = {
           ...updated[existingIdx],
           clockOut: timeStr,
+          clockOutTimestamp: nowMs,
+          durationSeconds: elapsedSec,
           breakMinutes,
           totalHours,
           overtimeHours: overtime,
@@ -1226,14 +1242,17 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         return updated;
       } else {
         const newRecord: TimecardRecord = {
-          id: 'tc-' + Date.now(),
+          id: 'tc-' + nowMs,
           employeeId: emp.id,
           employeeName: `${emp.firstName} ${emp.lastName}`,
           employeeAvatar: emp.avatarUrl,
           department: emp.department || 'General Operations',
           date: now.toLocaleDateString('en-AU', { day: '2-digit', month: 'short', year: 'numeric' }),
-          clockIn: '08:00 AM',
+          clockIn: timeStr,
           clockOut: timeStr,
+          clockInTimestamp: clockInTime,
+          clockOutTimestamp: nowMs,
+          durationSeconds: elapsedSec,
           breakMinutes,
           totalHours,
           overtimeHours: overtime,
@@ -1247,26 +1266,27 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       ...emp,
       clockState: 'CLOCKED_OUT',
       lastClockOut: now.toISOString(),
+      clockInTimestamp: undefined,
       currentShiftId: undefined
     };
     setEmployees(prev => prev.map(e => e.id === emp.id ? updatedEmp : e));
 
     // Instant SuperAdmin Notification
     const newNotif: NotificationItem = {
-      id: 'notif-' + Date.now(),
+      id: 'notif-' + nowMs,
       recipient: 'ADMIN',
       title: `🔴 ${emp.firstName} ${emp.lastName} Clocked Out`,
-      message: `${emp.firstName} ${emp.lastName} clocked OUT at ${timeStr} (Shift: ${totalHours} hrs).`,
+      message: `${emp.firstName} ${emp.lastName} clocked OUT at ${timeStr} (Duration: ${hmsFormatted}).`,
       type: 'TIMECARD_CLOCK_OUT',
       timestamp: 'Just now',
       read: false
     };
     setNotifications(prev => [newNotif, ...prev]);
 
-    addToast('🔴 Clock-Out Successful', `Goodbye ${emp.firstName}! Shift ended at ${timeStr} (${totalHours} hrs).`, 'success');
-    addAudit('KIOSK_CLOCK_OUT', 'Timecard', emp.currentShiftId || 'tc', `${emp.firstName} ${emp.lastName} clocked OUT at ${timeStr}`, `${emp.firstName} ${emp.lastName}`, 'Staff');
+    addToast('🔴 Clock-Out Successful', `Goodbye ${emp.firstName}! Shift recorded: ${hmsFormatted} (${totalHours.toFixed(2)} hrs).`, 'success');
+    addAudit('KIOSK_CLOCK_OUT', 'Timecard', emp.currentShiftId || 'tc', `${emp.firstName} ${emp.lastName} clocked OUT at ${timeStr} (${hmsFormatted})`, `${emp.firstName} ${emp.lastName}`, 'Staff');
 
-    return { success: true, message: `Successfully clocked out at ${timeStr} (${totalHours} hrs)`, employee: updatedEmp, totalHours };
+    return { success: true, message: `Shift ended: ${hmsFormatted} (${totalHours.toFixed(2)} hrs)`, employee: updatedEmp, totalHours };
   };
 
   const updateStaffKioskPin = (empId: string, newPin: string) => {
@@ -1281,13 +1301,18 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   };
 
   const adminAdjustTimecard = (id: string, updates: Partial<TimecardRecord>) => {
-    setTimecards(prev => prev.map(t => t.id === id ? { 
-      ...t, 
-      ...updates, 
-      status: 'MANUALLY_ADJUSTED', 
-      adjustedBy: currentUser?.name || 'Super Admin', 
-      adjustedAt: new Date().toLocaleDateString('en-AU') 
-    } : t));
+    setTimecards(prev => prev.map(t => {
+      if (t.id === id) {
+        return { 
+          ...t, 
+          ...updates, 
+          status: 'MANUALLY_ADJUSTED', 
+          adjustedBy: currentUser?.name || 'Super Admin', 
+          adjustedAt: new Date().toLocaleDateString('en-AU') 
+        };
+      }
+      return t;
+    }));
     addToast('Timecard Adjusted', 'Timecard record updated with administrative audit stamp.', 'success');
     addAudit('ADJUST_TIMECARD', 'Timecard', id, `Superadmin manually adjusted shift`);
   };
@@ -1301,7 +1326,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       adjustedAt: new Date().toLocaleDateString('en-AU')
     };
     setTimecards(prev => [newRecord, ...prev]);
-    addToast('Shift Added', 'New shift entry added to timecard log.', 'success');
+    addToast('Shift Record Created', `Manual shift entry logged for ${record.employeeName}.`, 'success');
+    addAudit('CREATE_TIMECARD', 'Timecard', newRecord.id, `Superadmin manually logged shift for ${record.employeeName}`);
   };
 
   const adminDeleteTimecard = (id: string) => {

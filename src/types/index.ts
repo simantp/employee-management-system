@@ -142,6 +142,7 @@ export interface Employee {
   clockState?: 'CLOCKED_IN' | 'CLOCKED_OUT';
   lastClockIn?: string;
   lastClockOut?: string;
+  clockInTimestamp?: number; // ms epoch timestamp when clock-in occurred
   currentShiftId?: string;
 }
 
@@ -153,9 +154,12 @@ export interface TimecardRecord {
   employeeName: string;
   employeeAvatar?: string;
   department?: Department | string;
-  date: string; // "2026-08-20"
+  date: string; // "17 Aug 2026"
   clockIn: string; // "07:30 AM" or ISO
   clockOut?: string; // "04:00 PM" or ISO
+  clockInTimestamp?: number; // exact ms epoch
+  clockOutTimestamp?: number; // exact ms epoch
+  durationSeconds?: number; // exact seconds worked
   breakMinutes: number;
   totalHours: number;
   overtimeHours: number;
