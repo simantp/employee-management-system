@@ -35,11 +35,27 @@ export default function AuthPortal() {
     resendOTP, 
     pendingOTP, 
     users,
+    employees,
+    clockInWithKiosk,
+    clockOutWithKiosk,
     activePortal 
   } = useApp();
 
-  // Mode: 'LOGIN' | 'REGISTER' | 'VERIFY_OTP'
-  const [mode, setMode] = useState<'LOGIN' | 'REGISTER' | 'VERIFY_OTP'>('LOGIN');
+  // Mode: 'LOGIN' | 'REGISTER' | 'VERIFY_OTP' | 'KIOSK'
+  const [mode, setMode] = useState<'LOGIN' | 'REGISTER' | 'VERIFY_OTP' | 'KIOSK'>('LOGIN');
+
+  // Kiosk mode state
+  const [kioskPin, setKioskPin] = useState('');
+  const [kioskPassword, setKioskPassword] = useState('');
+  const [kioskFeedback, setKioskFeedback] = useState<{
+    type: 'IN' | 'OUT';
+    staffName: string;
+    department: string;
+    avatarUrl?: string;
+    time: string;
+    hours?: number;
+    message: string;
+  } | null>(null);
 
   // Login form state
   const [loginEmail, setLoginEmail] = useState('');
@@ -104,6 +120,55 @@ export default function AuthPortal() {
       setResendTimer(45);
     }
   }, [pendingOTP]);
+
+
+  // Kiosk real-time PIN matching
+  const matchedStaff = employees.find(e => e.kioskPin === kioskPin.trim());
+
+  const handleKioskClockIn = () => {
+    if (!kioskPin || !matchedStaff) return;
+    const res = clockInWithKiosk(kioskPin, kioskPassword);
+    if (res.success && res.employee) {
+      confetti({ particleCount: 80, spread: 70, origin: { y: 0.6 } });
+      const now = new Date();
+      setKioskFeedback({
+        type: 'IN',
+        staffName: `${res.employee.firstName} ${res.employee.lastName}`,
+        department: res.employee.department || 'Production',
+        avatarUrl: res.employee.avatarUrl,
+        time: now.toLocaleTimeString('en-AU', { timeZone: 'Australia/Sydney', hour: '2-digit', minute: '2-digit', hour12: true }),
+        message: res.message
+      });
+      setTimeout(() => {
+        setKioskPin('');
+        setKioskPassword('');
+        setKioskFeedback(null);
+      }, 4000);
+    }
+  };
+
+  const handleKioskClockOut = () => {
+    if (!kioskPin || !matchedStaff) return;
+    const res = clockOutWithKiosk(kioskPin, kioskPassword, 30);
+    if (res.success && res.employee) {
+      confetti({ particleCount: 80, spread: 70, origin: { y: 0.6 } });
+      const now = new Date();
+      setKioskFeedback({
+        type: 'OUT',
+        staffName: `${res.employee.firstName} ${res.employee.lastName}`,
+        department: res.employee.department || 'Production',
+        avatarUrl: res.employee.avatarUrl,
+        time: now.toLocaleTimeString('en-AU', { timeZone: 'Australia/Sydney', hour: '2-digit', minute: '2-digit', hour12: true }),
+        hours: res.totalHours,
+        message: res.message
+      });
+      setTimeout(() => {
+        setKioskPin('');
+        setKioskPassword('');
+        setKioskFeedback(null);
+      }, 4000);
+    }
+  };
 
   const handleLoginSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -325,21 +390,23 @@ export default function AuthPortal() {
                   {mode === 'LOGIN' && 'Sign in to Portal'}
                   {mode === 'REGISTER' && 'Register New Staff Account'}
                   {mode === 'VERIFY_OTP' && 'Verify Your Email'}
+                  {mode === 'KIOSK' && '⏱️ Shift Clock In / Out Kiosk'}
                 </h3>
                 
                 <p className="text-xs text-slate-400 mt-1">
                   {mode === 'LOGIN' && 'Super Admin auto-routes to Admin Portal, Staff enters Staff Workspace'}
                   {mode === 'REGISTER' && 'Join the HsCreations printing & design team with automated email verification'}
                   {mode === 'VERIFY_OTP' && `Security code dispatched to ${pendingOTP?.email || 'your email'}`}
+                  {mode === 'KIOSK' && 'Instant 4-digit PIN timecard punching with real-time SuperAdmin alert'}
                 </p>
 
                 {/* Tabs Switcher */}
                 {mode !== 'VERIFY_OTP' && (
-                  <div className="flex bg-slate-950 p-1 rounded-2xl mt-5 border border-slate-800">
+                  <div className="flex bg-slate-950 p-1 rounded-2xl mt-5 border border-slate-800 gap-1">
                     <button
                       type="button"
                       onClick={() => setMode('LOGIN')}
-                      className={`flex-1 py-2.5 rounded-xl text-xs font-black transition-all ${
+                      className={`flex-1 py-2 rounded-xl text-[11px] font-black transition-all cursor-pointer ${
                         mode === 'LOGIN' 
                           ? 'bg-gradient-to-r from-orange-500 via-amber-500 to-red-500 text-slate-950 shadow-lg shadow-orange-500/25' 
                           : 'text-slate-400 hover:text-white'
@@ -350,17 +417,213 @@ export default function AuthPortal() {
                     <button
                       type="button"
                       onClick={() => setMode('REGISTER')}
-                      className={`flex-1 py-2.5 rounded-xl text-xs font-black transition-all ${
+                      className={`flex-1 py-2 rounded-xl text-[11px] font-black transition-all cursor-pointer ${
                         mode === 'REGISTER' 
                           ? 'bg-gradient-to-r from-orange-500 via-amber-500 to-red-500 text-slate-950 shadow-lg shadow-orange-500/25' 
                           : 'text-slate-400 hover:text-white'
                       }`}
                     >
-                      Register as Staff
+                      Register
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setMode('KIOSK')}
+                      className={`flex-1 py-2 rounded-xl text-[11px] font-black transition-all flex items-center justify-center gap-1 cursor-pointer ${
+                        mode === 'KIOSK' 
+                          ? 'bg-gradient-to-r from-emerald-500 to-teal-500 text-slate-950 shadow-lg shadow-emerald-500/25' 
+                          : 'text-emerald-400 hover:text-emerald-300'
+                      }`}
+                    >
+                      <Clock className="w-3.5 h-3.5" />
+                      <span>Kiosk Clock</span>
                     </button>
                   </div>
                 )}
               </div>
+
+              {/* MODE 4: KIOSK CLOCK IN / OUT TERMINAL */}
+              {mode === 'KIOSK' && (
+                <div className="p-6 space-y-5 animate-in fade-in duration-150">
+                  
+                  {/* Real-time Clock Header */}
+                  <div className="p-4 rounded-2xl bg-slate-950 border border-slate-800 text-center space-y-1 shadow-inner">
+                    <div className="flex items-center justify-center gap-2">
+                      <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse" />
+                      <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Live Sydney Plant Terminal</span>
+                    </div>
+                    <div className="text-2xl font-black font-mono text-orange-400 tracking-wider">
+                      {sydneyTimeStr || '08:30:00 AM'}
+                    </div>
+                    <span className="text-[10px] text-slate-500 font-semibold block">AEST (Australian Eastern Standard Time)</span>
+                  </div>
+
+                  {/* Feedback Modal / Overlay when Clocked */}
+                  {kioskFeedback ? (
+                    <div className="p-6 rounded-2xl bg-gradient-to-br from-slate-900 to-slate-950 border-2 border-emerald-500/60 text-center space-y-4 shadow-2xl animate-in zoom-in-95">
+                      <div className="w-16 h-16 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center mx-auto ring-4 ring-emerald-500/30">
+                        <CheckCircle2 className="w-9 h-9" />
+                      </div>
+                      <div>
+                        <span className={`px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider ${
+                          kioskFeedback.type === 'IN' ? 'bg-emerald-500/20 text-emerald-400' : 'bg-rose-500/20 text-rose-400'
+                        }`}>
+                          {kioskFeedback.type === 'IN' ? '🟢 Clocked IN Successfully' : '🔴 Clocked OUT Successfully'}
+                        </span>
+                        <h4 className="text-xl font-black text-white mt-2">{kioskFeedback.staffName}</h4>
+                        <p className="text-xs text-slate-400">{kioskFeedback.department}</p>
+                      </div>
+
+                      <div className="p-3.5 rounded-xl bg-slate-950 border border-slate-800 font-mono text-xs text-slate-300">
+                        <div>Punch Timestamp: <strong className="text-orange-400">{kioskFeedback.time} AEST</strong></div>
+                        {kioskFeedback.hours && (
+                          <div className="mt-1">Logged Shift Duration: <strong className="text-emerald-400">{kioskFeedback.hours} Hours</strong></div>
+                        )}
+                        <div className="text-[10px] text-slate-500 mt-1">SuperAdmin and Sydney Dispatch alerted.</div>
+                      </div>
+
+                      <div className="text-[10px] text-slate-500 font-semibold">
+                        Terminal resets automatically in 3 seconds...
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      
+                      {/* 4-Digit PIN Input */}
+                      <div>
+                        <div className="flex justify-between items-center mb-1.5">
+                          <label className="font-bold text-slate-300 text-xs">Enter 4-Digit Employee PIN *</label>
+                          <span className="text-[10px] text-orange-400 font-semibold">Auto-detects shift state</span>
+                        </div>
+                        <input
+                          type="password"
+                          maxLength={4}
+                          inputMode="numeric"
+                          placeholder="••••"
+                          value={kioskPin}
+                          onChange={e => setKioskPin(e.target.value.replace(/\D/g, '').slice(0, 4))}
+                          className="w-full text-center text-3xl font-mono font-black tracking-widest py-3.5 rounded-2xl bg-slate-950 border-2 border-slate-700 text-white focus:border-orange-500 focus:bg-[#0c1322] focus:outline-none transition shadow-inner"
+                        />
+                      </div>
+
+                      {/* Detected Staff Badge Card */}
+                      {kioskPin.length === 4 && (
+                        <div>
+                          {matchedStaff ? (
+                            <div className="p-4 rounded-2xl bg-slate-950/80 border border-slate-800 space-y-3 animate-in fade-in">
+                              <div className="flex items-center gap-3">
+                                <img
+                                  src={matchedStaff.avatarUrl || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150'}
+                                  alt={matchedStaff.firstName}
+                                  className="w-12 h-12 rounded-2xl object-cover ring-2 ring-orange-500/50"
+                                />
+                                <div className="flex-1">
+                                  <div className="flex items-center justify-between">
+                                    <h4 className="font-extrabold text-white text-sm">
+                                      {matchedStaff.firstName} {matchedStaff.lastName}
+                                    </h4>
+                                    <span className="text-[10px] font-mono text-slate-400 font-bold">
+                                      ID: {matchedStaff.employeeNumber}
+                                    </span>
+                                  </div>
+                                  <p className="text-[11px] text-slate-400">{matchedStaff.jobTitle} • {matchedStaff.department || 'Production'}</p>
+                                </div>
+                              </div>
+
+                              {/* Live Clock Status Indicator */}
+                              <div className="pt-2 border-t border-slate-800/80 flex items-center justify-between text-xs">
+                                <span className="text-slate-400 font-bold">Current State:</span>
+                                {matchedStaff.clockState === 'CLOCKED_IN' ? (
+                                  <span className="px-2.5 py-1 rounded-full bg-rose-500/20 text-rose-300 font-extrabold text-[10px] border border-rose-500/30 flex items-center gap-1.5">
+                                    <span className="w-1.5 h-1.5 rounded-full bg-rose-400 animate-ping" />
+                                    <span>ON SHIFT (Clocked In)</span>
+                                  </span>
+                                ) : (
+                                  <span className="px-2.5 py-1 rounded-full bg-emerald-500/20 text-emerald-300 font-extrabold text-[10px] border border-emerald-500/30 flex items-center gap-1.5">
+                                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                                    <span>OFF DUTY (Clocked Out)</span>
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                          ) : (
+                            <div className="p-3 bg-red-950/40 border border-red-500/30 rounded-xl text-center text-red-300 text-xs font-bold">
+                              ⚠️ No employee found with PIN: {kioskPin}
+                            </div>
+                          )}
+                        </div>
+                      )}
+
+                      {/* Dual Action Buttons (Rule: only one is active based on state!) */}
+                      <div className="grid grid-cols-2 gap-3 pt-2">
+                        {/* Clock In Button */}
+                        <button
+                          type="button"
+                          disabled={!matchedStaff || matchedStaff.clockState === 'CLOCKED_IN'}
+                          onClick={handleKioskClockIn}
+                          className={`py-3.5 px-4 rounded-2xl font-black text-xs flex flex-col items-center justify-center gap-1 transition-all ${
+                            matchedStaff && matchedStaff.clockState !== 'CLOCKED_IN'
+                              ? 'bg-gradient-to-r from-emerald-500 to-teal-500 text-slate-950 shadow-lg shadow-emerald-500/30 hover:scale-[1.02] cursor-pointer'
+                              : 'bg-slate-950 border border-slate-800 text-slate-600 opacity-40 cursor-not-allowed'
+                          }`}
+                        >
+                          <span className="text-sm font-black flex items-center gap-1">
+                            <span>🟢 Clock IN</span>
+                          </span>
+                          <span className="text-[9px] font-semibold opacity-80">
+                            {matchedStaff?.clockState === 'CLOCKED_IN' ? 'Already on shift' : 'Start Shift'}
+                          </span>
+                        </button>
+
+                        {/* Clock Out Button */}
+                        <button
+                          type="button"
+                          disabled={!matchedStaff || matchedStaff.clockState !== 'CLOCKED_IN'}
+                          onClick={handleKioskClockOut}
+                          className={`py-3.5 px-4 rounded-2xl font-black text-xs flex flex-col items-center justify-center gap-1 transition-all ${
+                            matchedStaff && matchedStaff.clockState === 'CLOCKED_IN'
+                              ? 'bg-gradient-to-r from-rose-500 to-red-500 text-white shadow-lg shadow-rose-500/30 hover:scale-[1.02] cursor-pointer'
+                              : 'bg-slate-950 border border-slate-800 text-slate-600 opacity-40 cursor-not-allowed'
+                          }`}
+                        >
+                          <span className="text-sm font-black flex items-center gap-1">
+                            <span>🔴 Clock OUT</span>
+                          </span>
+                          <span className="text-[9px] font-semibold opacity-80">
+                            {matchedStaff?.clockState !== 'CLOCKED_IN' ? 'Not clocked in' : 'End Shift'}
+                          </span>
+                        </button>
+                      </div>
+
+                      {/* Quick Demo Test PIN Chips */}
+                      <div className="pt-4 border-t border-slate-800/80">
+                        <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider block mb-2">
+                          1-Click Demo Employee PINs:
+                        </span>
+                        <div className="flex flex-wrap gap-1.5">
+                          {employees.slice(0, 4).map(emp => (
+                            <button
+                              key={emp.id}
+                              type="button"
+                              onClick={() => setKioskPin(emp.kioskPin || '4829')}
+                              className={`px-2.5 py-1.5 rounded-xl text-[10px] font-bold border transition flex items-center gap-1 cursor-pointer ${
+                                kioskPin === emp.kioskPin
+                                  ? 'bg-orange-500/20 text-orange-300 border-orange-500/40'
+                                  : 'bg-slate-950 text-slate-400 border-slate-800 hover:text-white'
+                              }`}
+                            >
+                              <span>{emp.firstName}:</span>
+                              <span className="font-mono text-orange-400 font-black">{emp.kioskPin || '4829'}</span>
+                              <span className={`w-1.5 h-1.5 rounded-full ${emp.clockState === 'CLOCKED_IN' ? 'bg-emerald-400' : 'bg-slate-600'}`} />
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                    </div>
+                  )}
+
+                </div>
+              )}
 
               {/* MODE 1: LOGIN */}
               {mode === 'LOGIN' && (

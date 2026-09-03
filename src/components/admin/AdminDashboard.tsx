@@ -23,6 +23,7 @@ import AddEmployeeModal from './AddEmployeeModal';
 import EmployeeDetailModal from './EmployeeDetailModal';
 import PostAnnouncementModal from './PostAnnouncementModal';
 import EmployeeManagementView from './EmployeeManagementView';
+import AdminTimecardManagement from './AdminTimecardManagement';
 import { Megaphone } from 'lucide-react';
 import { Employee } from '@/types';
 import { useApp } from '@/lib/store';
@@ -39,7 +40,9 @@ export default function AdminDashboard({
 
   const pendingApprovals = leaveRequests.filter(r => r.status === 'PENDING').length;
 
-  const pageTitle = activeTab === 'employees'
+  const pageTitle = activeTab === 'timecards'
+    ? 'Timecard Records & Shift Management'
+    : activeTab === 'employees'
     ? 'Staff & Employee Directory'
     : activeTab === 'personal-details'
     ? 'Staff Personal & Contact Directory'
@@ -89,7 +92,9 @@ export default function AdminDashboard({
         </div>
       </div>
 
-      {activeTab === 'employees' || activeTab === 'personal-details' || activeTab === 'employment' || activeTab === 'payroll' || activeTab === 'emergency' ? (
+      {activeTab === 'timecards' ? (
+        <AdminTimecardManagement />
+      ) : activeTab === 'employees' || activeTab === 'personal-details' || activeTab === 'employment' || activeTab === 'payroll' || activeTab === 'emergency' ? (
         <EmployeeManagementView />
       ) : activeTab === 'approvals' ? (
         <div className="space-y-6">

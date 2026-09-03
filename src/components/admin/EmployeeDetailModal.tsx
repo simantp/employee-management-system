@@ -57,6 +57,7 @@ export default function EmployeeDetailModal({
   const [reportsTo, setReportsTo] = useState(employee.reportsTo || 'Operations Lead');
   const [status, setStatus] = useState(employee.status || 'Active');
   const [workingHours, setWorkingHours] = useState<number>(employee.workingHours || 38);
+  const [kioskPin, setKioskPin] = useState(employee.kioskPin || '4829');
 
   // 3. Leave Balances Management
   const [annualLeave, setAnnualLeave] = useState<number>(employee.leaveBalance?.annual ?? 20);
@@ -120,6 +121,7 @@ export default function EmployeeDetailModal({
       status: status as any,
       workingHours: Number(workingHours) || 38,
       workingHoursConfirmed: true,
+      kioskPin: kioskPin.trim() || employee.kioskPin || '4829',
       visaStatusConfirmed: true,
       leaveBalance: updatedLeaveBalance,
       bankName,
@@ -324,6 +326,24 @@ export default function EmployeeDetailModal({
                       onChange={e => setJobTitle(e.target.value)}
                       className="w-full p-2.5 border border-slate-300 rounded-xl bg-white disabled:bg-slate-50 font-bold text-slate-900"
                     />
+                  </div>
+
+                  <div>
+                    <label className="font-bold text-slate-700 block mb-1 flex items-center justify-between">
+                      <span>4-Digit Kiosk Punch PIN</span>
+                      <span className="text-[10px] text-orange-600 font-black font-mono">Shift Punch</span>
+                    </label>
+                    <input
+                      type="text"
+                      maxLength={4}
+                      inputMode="numeric"
+                      disabled={!isEditing}
+                      value={kioskPin}
+                      onChange={e => setKioskPin(e.target.value.replace(/\D/g, '').slice(0, 4))}
+                      className="w-full p-2.5 border border-slate-300 rounded-xl bg-white disabled:bg-slate-50 font-mono font-black text-orange-600 tracking-widest text-center text-sm"
+                      placeholder="4829"
+                    />
+                    <span className="text-[10px] text-slate-400 mt-0.5 block">Staff punch-in PIN. SuperAdmin can view and change anytime.</span>
                   </div>
 
                   <div>

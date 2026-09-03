@@ -19,7 +19,8 @@ import {
   ChevronRight,
   LogOut,
   Building2,
-  CalendarCheck2
+  CalendarCheck2,
+  Clock
 } from 'lucide-react';
 import { useApp } from '@/lib/store';
 
@@ -30,13 +31,14 @@ export default function AdminSidebar({
   activeTab?: string; 
   onSelectTab?: (tab: string) => void;
 }) {
-  const { alerts, leaveRequests, employees } = useApp();
+  const { alerts, leaveRequests, employees, activeWorkingStaffCount } = useApp();
   const [complianceOpen, setComplianceOpen] = useState(true);
 
   const pendingApprovals = leaveRequests.filter(r => r.status === 'PENDING').length;
 
   const navItems = [
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, badge: null },
+    { id: 'timecards', label: 'Timecard & Shifts', icon: Clock, badge: activeWorkingStaffCount > 0 ? `${activeWorkingStaffCount} Active` : null },
     { id: 'employees', label: 'Employees', icon: Users, badge: String(employees.length) },
     { id: 'approvals', label: 'Leave Approvals', icon: CalendarCheck2, badge: pendingApprovals > 0 ? String(pendingApprovals) : null },
     { id: 'personal-details', label: 'Personal Details', icon: UserCheck, badge: null },

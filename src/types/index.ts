@@ -136,6 +136,34 @@ export interface Employee {
   leaveBalance: LeaveBalance;
   payslips: Payslip[];
   documents: EmployeeDocument[];
+
+  // Timecard & Kiosk Clock-in System
+  kioskPin?: string; // 4-digit Quick PIN e.g. "4829"
+  clockState?: 'CLOCKED_IN' | 'CLOCKED_OUT';
+  lastClockIn?: string;
+  lastClockOut?: string;
+  currentShiftId?: string;
+}
+
+export type TimecardStatus = 'CLOCKED_IN' | 'COMPLETED' | 'ON_LEAVE' | 'MANUALLY_ADJUSTED';
+
+export interface TimecardRecord {
+  id: string;
+  employeeId: string;
+  employeeName: string;
+  employeeAvatar?: string;
+  department?: Department | string;
+  date: string; // "2026-08-20"
+  clockIn: string; // "07:30 AM" or ISO
+  clockOut?: string; // "04:00 PM" or ISO
+  breakMinutes: number;
+  totalHours: number;
+  overtimeHours: number;
+  status: TimecardStatus;
+  leaveType?: LeaveType;
+  notes?: string;
+  adjustedBy?: string;
+  adjustedAt?: string;
 }
 
 export interface LeaveRequest {
@@ -182,7 +210,7 @@ export interface NotificationItem {
   recipientId?: string;
   title: string;
   message: string;
-  type: 'LEAVE_REQUEST' | 'LEAVE_STATUS' | 'VISA_EXPIRY' | 'LICENSE_EXPIRY' | 'CERTIFICATE_REMINDER' | 'PROFILE_UPDATE' | 'BANK_UPDATE' | 'GENERAL';
+  type: 'LEAVE_REQUEST' | 'LEAVE_STATUS' | 'VISA_EXPIRY' | 'LICENSE_EXPIRY' | 'CERTIFICATE_REMINDER' | 'PROFILE_UPDATE' | 'BANK_UPDATE' | 'TIMECARD_CLOCK_IN' | 'TIMECARD_CLOCK_OUT' | 'TIMECARD_ADJUST' | 'GENERAL';
   timestamp: string;
   read: boolean;
   actionUrl?: string;

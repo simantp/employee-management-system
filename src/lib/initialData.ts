@@ -1,4 +1,4 @@
-import { Employee, LeaveRequest, ComplianceAlert, NotificationItem, AuditLog } from '@/types';
+import { Employee, LeaveRequest, ComplianceAlert, NotificationItem, AuditLog, TimecardRecord } from '@/types';
 import { encryptAES256 } from './crypto';
 
 export const INITIAL_EMPLOYEES: Employee[] = [
@@ -84,7 +84,9 @@ export const INITIAL_EMPLOYEES: Employee[] = [
       { id: 'doc-3', name: 'Bank Account Confirmation', type: 'Payroll', uploadDate: '10/05/2025', status: 'Verified', fileSize: '850 KB' },
       { id: 'doc-4', name: 'Driving License Copy', type: 'License', uploadDate: '12/05/2025', status: 'Pending', fileSize: '3.1 MB' },
       { id: 'doc-5', name: 'Signed Resume & CV', type: 'HR Onboarding', uploadDate: '10/05/2025', status: 'Verified', fileSize: '1.8 MB' },
-    ]
+    ],
+    kioskPin: '4829',
+    clockState: 'CLOCKED_OUT',
   },
   {
     id: 'emp-41',
@@ -130,7 +132,9 @@ export const INITIAL_EMPLOYEES: Employee[] = [
     accountNumberEncrypted: encryptAES256('882910102'),
     leaveBalance: { annual: 14, sick: 8, carers: 3, longService: 0 },
     payslips: [],
-    documents: []
+    documents: [],
+    kioskPin: '1234',
+    clockState: 'CLOCKED_OUT',
   },
   {
     id: 'emp-40',
@@ -620,3 +624,97 @@ export const INITIAL_AUDIT_LOGS: AuditLog[] = [
     ipAddress: '203.14.182.91 (Sydney, AU)',
   }
 ];
+
+export const INITIAL_TIMECARDS: TimecardRecord[] = [
+  {
+    id: 'tc-01',
+    employeeId: 'emp-42',
+    employeeName: 'Suman Thapa',
+    employeeAvatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
+    department: 'Production (Riverwood)',
+    date: '17 Aug 2026',
+    clockIn: '07:30 AM',
+    clockOut: '04:00 PM',
+    breakMinutes: 30,
+    totalHours: 8.0,
+    overtimeHours: 0.4,
+    status: 'COMPLETED',
+    notes: 'Morning shift on Large Format Roland printer.'
+  },
+  {
+    id: 'tc-02',
+    employeeId: 'emp-42',
+    employeeName: 'Suman Thapa',
+    employeeAvatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
+    department: 'Production (Riverwood)',
+    date: '18 Aug 2026',
+    clockIn: '07:28 AM',
+    clockOut: '04:05 PM',
+    breakMinutes: 30,
+    totalHours: 8.1,
+    overtimeHours: 0.5,
+    status: 'COMPLETED',
+    notes: 'Die-cutting and packaging line.'
+  },
+  {
+    id: 'tc-03',
+    employeeId: 'emp-42',
+    employeeName: 'Suman Thapa',
+    employeeAvatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
+    department: 'Production (Riverwood)',
+    date: '19 Aug 2026',
+    clockIn: '07:31 AM',
+    clockOut: '04:00 PM',
+    breakMinutes: 30,
+    totalHours: 8.0,
+    overtimeHours: 0.4,
+    status: 'COMPLETED',
+    notes: 'Rockdale express order batching.'
+  },
+  {
+    id: 'tc-04',
+    employeeId: 'emp-41',
+    employeeName: 'Anita KC',
+    employeeAvatar: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=150&auto=format&fit=crop&q=80',
+    department: 'Design',
+    date: '19 Aug 2026',
+    clockIn: '08:30 AM',
+    clockOut: '05:00 PM',
+    breakMinutes: 30,
+    totalHours: 8.0,
+    overtimeHours: 0.4,
+    status: 'COMPLETED',
+    notes: 'Client proofing & 3D mockups.'
+  },
+  {
+    id: 'tc-05',
+    employeeId: 'emp-40',
+    employeeName: 'Ramesh Adhikari',
+    employeeAvatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80',
+    department: 'Administration',
+    date: '18 Aug 2026',
+    clockIn: '08:00 AM',
+    clockOut: '04:30 PM',
+    breakMinutes: 30,
+    totalHours: 8.0,
+    overtimeHours: 0.4,
+    status: 'COMPLETED',
+    notes: 'Operations logistics dispatch.'
+  },
+  {
+    id: 'tc-06',
+    employeeId: 'emp-39',
+    employeeName: 'Nisha Pokharel',
+    employeeAvatar: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=150&auto=format&fit=crop&q=80',
+    department: 'Sales & Marketing',
+    date: '17 Aug 2026',
+    clockIn: '08:45 AM',
+    clockOut: '05:15 PM',
+    breakMinutes: 30,
+    totalHours: 8.0,
+    overtimeHours: 0.4,
+    status: 'COMPLETED',
+    notes: 'Campaign onboarding.'
+  }
+];
+
