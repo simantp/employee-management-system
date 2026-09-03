@@ -47,8 +47,6 @@ export default function AdminDashboard({
     ? 'Timecard Records & Shift Management'
     : activeTab === 'employees'
     ? 'Staff & Employee Directory'
-    : activeTab === 'emergency'
-    ? 'Emergency Contacts & Next of Kin'
     : activeTab === 'approvals'
     ? 'Leave & Compliance Approvals'
     : (activeTab === 'compliance' || activeTab === 'visa-alerts')
@@ -101,7 +99,7 @@ export default function AdminDashboard({
 
       {activeTab === 'timecards' ? (
         <AdminTimecardManagement />
-      ) : activeTab === 'employees' || activeTab === 'emergency' ? (
+      ) : activeTab === 'employees' ? (
         <EmployeeManagementView />
       ) : activeTab === 'approvals' ? (
         <div className="space-y-6">
@@ -109,11 +107,11 @@ export default function AdminDashboard({
           <PendingDocumentApprovals />
         </div>
       ) : activeTab === 'compliance' || activeTab === 'visa-alerts' ? (
-        <AdminComplianceManagement defaultSubTab="visa" />
+        <AdminComplianceManagement key="visa" defaultSubTab="visa" />
       ) : activeTab === 'license-alerts' ? (
-        <AdminComplianceManagement defaultSubTab="license" />
+        <AdminComplianceManagement key="license" defaultSubTab="license" />
       ) : activeTab === 'whs-policies' ? (
-        <AdminComplianceManagement defaultSubTab="whs" />
+        <AdminComplianceManagement key="whs" defaultSubTab="whs" />
       ) : activeTab === 'alerts' ? (
         <AdminAlertsReminders />
       ) : activeTab === 'settings' ? (

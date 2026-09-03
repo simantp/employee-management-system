@@ -26,6 +26,27 @@ import {
 import { useApp } from '@/lib/store';
 import { TimecardRecord, Employee, Department } from '@/types';
 
+function getMonthKey(dateStr: string): string {
+  if (!dateStr) return 'August 2026';
+  try {
+    const d = new Date(dateStr);
+    if (!isNaN(d.getTime())) {
+      return d.toLocaleDateString('en-AU', { month: 'long', year: 'numeric' });
+    }
+  } catch (e) {}
+
+  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  const fullMonths = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+  for (let i = 0; i < months.length; i++) {
+    if (dateStr.includes(months[i]) || dateStr.includes(fullMonths[i])) {
+      const yearMatch = dateStr.match(/\d{4}/);
+      const year = yearMatch ? yearMatch[0] : '2026';
+      return `${fullMonths[i]} ${year}`;
+    }
+  }
+  return 'August 2026';
+}
+
 export default function AdminTimecardManagement() {
   const { 
     timecards, 
@@ -38,8 +59,8 @@ export default function AdminTimecardManagement() {
   } = useApp();
 
   const [search, setSearch] = useState('');
-  const [deptFilter, setDeptFilter] = useState('ALL');
-  const [statusFilter, setStatusFilter] = useState('ALL');
+  const [staffFilter, setStaffFilter] = useState('ALL');
+  const [monthFilter, setMonthFilter] = useState('ALL');
 
   const [editingRecord, setEditingRecord] = useState<TimecardRecord | null>(null);
   const [showAddModal, setShowAddModal] = useState(false);
@@ -54,6 +75,12 @@ export default function AdminTimecardManagement() {
 
   const activeStaff = employees.filter(e => e.clockState === 'CLOCKED_IN');
 
+  const availableMonths = Array.from(
+    new Set(timecards.map(t => getMonthKey(t.date)))
+  );
+  if (!availableMonths.includes('August 2026')) availableMonths.unshift('August 2026');
+  if (!availableMonths.includes('July 2026')) availableMonths.push('July 2026');
+
   const filteredTimecards = timecards.filter(t => {
     const q = search.toLowerCase();
     const matchQuery = 
@@ -61,11 +88,21 @@ export default function AdminTimecardManagement() {
       (t.department && t.department.toLowerCase().includes(q)) ||
       t.date.toLowerCase().includes(q);
 
-    const matchDept = deptFilter === 'ALL' || t.department === deptFilter;
-    const matchStatus = statusFilter === 'ALL' || t.status === statusFilter;
+    const matchStaff = staffFilter === 'ALL' || t.employeeId === staffFilter;
+    const matchMonth = monthFilter === 'ALL' || getMonthKey(t.date) === monthFilter;
 
-    return matchQuery && matchDept && matchStatus;
+    return matchQuery && matchStaff && matchMonth;
   });
+
+  // Group filtered timecards month-wise
+  const timecardsByMonth = filteredTimecards.reduce<Record<string, TimecardRecord[]>>((acc, curr) => {
+    const m = getMonthKey(curr.date);
+    if (!acc[m]) acc[m] = [];
+    acc[m].push(curr);
+    return acc;
+  }, {});
+
+  const monthKeys = Object.keys(timecardsByMonth);
 
   const totalCompanyHours = filteredTimecards.reduce((acc, curr) => acc + (curr.totalHours || 0), 0);
   const totalCompanyOvertime = filteredTimecards.reduce((acc, curr) => acc + (curr.overtimeHours || 0), 0);
@@ -286,10 +323,10 @@ export default function AdminTimecardManagement() {
           <div>
             <h3 className="text-base font-black text-slate-900 tracking-tight flex items-center gap-2">
               <Clock className="w-5 h-5 text-orange-600" />
-              <span>All Staff Timecards ({filteredTimecards.length})</span>
+              <span>Month-Wise Staff Timecard Records ({filteredTimecards.length})</span>
             </h3>
             <p className="text-[11px] text-slate-500 mt-0.5">
-              Electronic timecard logs recorded via 4-digit PIN Kiosks. Superadmin has full adjustment access.
+              Electronic punch logs organized by month. Filter by staff member and calendar month.
             </p>
           </div>
 
@@ -298,138 +335,185 @@ export default function AdminTimecardManagement() {
               <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
               <input
                 type="text"
-                placeholder="Search staff, dept, date..."
+                placeholder="Search staff, date..."
                 value={search}
                 onChange={e => setSearch(e.target.value)}
-                className="pl-9 pr-3 py-2 text-xs bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-500/20 text-slate-800 w-48 sm:w-56 font-medium"
+                className="pl-9 pr-3 py-2 text-xs bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-500/20 text-slate-800 w-44 sm:w-52 font-medium"
               />
             </div>
 
+            {/* Staff Filter */}
             <select
-              value={deptFilter}
-              onChange={e => setDeptFilter(e.target.value)}
-              className="text-xs font-bold bg-white border border-slate-200 rounded-xl px-3 py-2 text-slate-700 cursor-pointer focus:outline-none"
+              value={staffFilter}
+              onChange={e => setStaffFilter(e.target.value)}
+              className="text-xs font-bold bg-white border border-slate-200 rounded-xl px-3 py-2 text-slate-700 cursor-pointer focus:outline-none max-w-xs"
             >
-              <option value="ALL">All Departments</option>
-              <option value="Production (Riverwood)">Production (Riverwood)</option>
-              <option value="Production (Rockdale)">Production (Rockdale)</option>
-              <option value="Design">Design</option>
-              <option value="Administration">Administration</option>
-              <option value="Sales & Marketing">Sales & Marketing</option>
+              <option value="ALL">All Staff Members ({employees.length})</option>
+              {employees.map(emp => (
+                <option key={emp.id} value={emp.id}>
+                  {emp.firstName} {emp.lastName} ({emp.employeeNumber})
+                </option>
+              ))}
             </select>
 
+            {/* Month Filter */}
             <select
-              value={statusFilter}
-              onChange={e => setStatusFilter(e.target.value)}
+              value={monthFilter}
+              onChange={e => setMonthFilter(e.target.value)}
               className="text-xs font-bold bg-white border border-slate-200 rounded-xl px-3 py-2 text-slate-700 cursor-pointer focus:outline-none"
             >
-              <option value="ALL">All Statuses</option>
-              <option value="CLOCKED_IN">Clocked In (Active)</option>
-              <option value="COMPLETED">Completed</option>
-              <option value="MANUALLY_ADJUSTED">Admin Adjusted</option>
+              <option value="ALL">All Recorded Months</option>
+              {availableMonths.map(m => (
+                <option key={m} value={m}>{m}</option>
+              ))}
             </select>
           </div>
         </div>
 
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs text-slate-600">
-            <thead className="bg-slate-50 text-[10px] font-black text-slate-400 uppercase tracking-wider border-b border-slate-100">
-              <tr>
-                <th className="py-3.5 px-5">Staff Member</th>
-                <th className="py-3.5 px-5">Department</th>
-                <th className="py-3.5 px-5">Date</th>
-                <th className="py-3.5 px-5">Clock In</th>
-                <th className="py-3.5 px-5">Clock Out</th>
-                <th className="py-3.5 px-5">Break</th>
-                <th className="py-3.5 px-5">Total Hours</th>
-                <th className="py-3.5 px-5">Status</th>
-                <th className="py-3.5 px-5 text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
-              {filteredTimecards.map(t => (
-                <tr key={t.id} className="hover:bg-orange-50/40 transition-colors">
-                  <td className="py-3.5 px-5 font-bold text-slate-900">
-                    <div className="flex items-center gap-2.5">
-                      <img
-                        src={t.employeeAvatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150'}
-                        alt={t.employeeName}
-                        className="w-8 h-8 rounded-xl object-cover ring-1 ring-slate-200"
-                      />
-                      <div>
-                        <span className="font-extrabold text-slate-900 block">{t.employeeName}</span>
-                        <span className="text-[10px] font-mono text-slate-400 font-bold">ID: {t.employeeId}</span>
-                      </div>
-                    </div>
-                  </td>
-                  <td className="py-3.5 px-5 font-semibold text-slate-700">
-                    {t.department || 'Production'}
-                  </td>
-                  <td className="py-3.5 px-5 font-medium text-slate-800">
-                    {t.date}
-                  </td>
-                  <td className="py-3.5 px-5 font-mono font-bold text-emerald-700">
-                    {t.clockIn}
-                  </td>
-                  <td className="py-3.5 px-5 font-mono font-bold text-slate-700">
-                    {t.clockOut || (
-                      <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-black animate-pulse">
-                        Clocked In
-                      </span>
-                    )}
-                  </td>
-                  <td className="py-3.5 px-5 font-medium">
-                    {t.breakMinutes}m
-                  </td>
-                  <td className="py-3.5 px-5 font-black text-slate-900 text-sm">
-                    {t.totalHours}h
-                    {t.overtimeHours > 0 && (
-                      <span className="text-[10px] text-orange-600 block font-bold">+{t.overtimeHours}h OT</span>
-                    )}
-                  </td>
-                  <td className="py-3.5 px-5">
-                    <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-black border ${
-                      t.status === 'COMPLETED' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' :
-                      t.status === 'CLOCKED_IN' ? 'bg-amber-50 text-amber-700 border-amber-200' :
-                      t.status === 'MANUALLY_ADJUSTED' ? 'bg-purple-50 text-purple-700 border-purple-200' :
-                      'bg-slate-100 text-slate-600 border-slate-200'
-                    }`}>
-                      {t.status === 'MANUALLY_ADJUSTED' ? 'Admin Adjusted' : t.status}
-                    </span>
-                    {t.adjustedBy && (
-                      <span className="text-[9px] text-slate-400 block mt-0.5">By {t.adjustedBy}</span>
-                    )}
-                  </td>
-                  <td className="py-3.5 px-5 text-right">
-                    <div className="flex items-center justify-end gap-1.5">
-                      <button
-                        onClick={() => {
-                          setEditingRecord(t);
-                          setFormClockIn(t.clockIn);
-                          setFormClockOut(t.clockOut || '04:00 PM');
-                          setFormBreak(t.breakMinutes);
-                          setFormNotes(t.notes || '');
-                        }}
-                        className="px-2.5 py-1.5 rounded-lg bg-slate-100 hover:bg-orange-100 hover:text-orange-900 text-slate-700 font-bold text-[11px] transition flex items-center gap-1 cursor-pointer"
-                      >
-                        <Edit3 className="w-3.5 h-3.5 text-orange-600" />
-                        <span>Adjust</span>
-                      </button>
+        {monthKeys.length === 0 ? (
+          <div className="p-12 text-center text-slate-500 space-y-2">
+            <Calendar className="w-10 h-10 text-slate-300 mx-auto" />
+            <h4 className="font-bold text-slate-800 text-sm">No Timecard Records Found</h4>
+            <p className="text-[11px] text-slate-400 max-w-sm mx-auto">
+              No shifts match the selected staff or month filter. Adjust your filter selection above.
+            </p>
+          </div>
+        ) : (
+          <div className="space-y-6 p-4 sm:p-5">
+            {monthKeys.map(monthName => {
+              const monthRecords = timecardsByMonth[monthName];
+              const monthHours = monthRecords.reduce((sum, r) => sum + (r.totalHours || 0), 0);
+              const monthOT = monthRecords.reduce((sum, r) => sum + (r.overtimeHours || 0), 0);
 
-                      <button
-                        onClick={() => adminDeleteTimecard(t.id)}
-                        className="p-1.5 rounded-lg hover:bg-red-50 text-slate-400 hover:text-red-600 transition cursor-pointer"
-                        title="Delete Shift"
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
+              return (
+                <div key={monthName} className="rounded-2xl border border-slate-200/90 overflow-hidden shadow-2xs">
+                  {/* Month Header Banner */}
+                  <div className="px-5 py-3.5 bg-slate-900 text-white flex flex-wrap items-center justify-between gap-3">
+                    <div className="flex items-center gap-2.5">
+                      <Calendar className="w-4 h-4 text-orange-400" />
+                      <span className="font-black text-xs text-white">{monthName}</span>
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-800 text-slate-300">
+                        {monthRecords.length} Shifts
+                      </span>
                     </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+
+                    <div className="flex items-center gap-3 text-[11px]">
+                      <span className="text-slate-300 font-medium">
+                        Total Paid: <strong className="text-emerald-400 font-mono font-bold">{monthHours.toFixed(1)}h</strong>
+                      </span>
+                      {monthOT > 0 && (
+                        <span className="text-slate-300 font-medium">
+                          OT: <strong className="text-orange-400 font-mono font-bold">+{monthOT.toFixed(1)}h</strong>
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Shift Records Table */}
+                  <div className="overflow-x-auto bg-white">
+                    <table className="w-full text-left text-xs text-slate-600">
+                      <thead className="bg-slate-50 text-[10px] font-black text-slate-400 uppercase tracking-wider border-b border-slate-100">
+                        <tr>
+                          <th className="py-3 px-4">Staff Member</th>
+                          <th className="py-3 px-4">Department</th>
+                          <th className="py-3 px-4">Shift Date</th>
+                          <th className="py-3 px-4">Clock In</th>
+                          <th className="py-3 px-4">Clock Out</th>
+                          <th className="py-3 px-4">Break</th>
+                          <th className="py-3 px-4">Total Hours</th>
+                          <th className="py-3 px-4">Status</th>
+                          <th className="py-3 px-4 text-right">Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100">
+                        {monthRecords.map(t => (
+                          <tr key={t.id} className="hover:bg-orange-50/40 transition-colors">
+                            <td className="py-3 px-4 font-bold text-slate-900">
+                              <div className="flex items-center gap-2.5">
+                                <img
+                                  src={t.employeeAvatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150'}
+                                  alt={t.employeeName}
+                                  className="w-8 h-8 rounded-xl object-cover ring-1 ring-slate-200"
+                                />
+                                <div>
+                                  <span className="font-extrabold text-slate-900 block">{t.employeeName}</span>
+                                  <span className="text-[10px] font-mono text-slate-400 font-bold">ID: {t.employeeId}</span>
+                                </div>
+                              </div>
+                            </td>
+                            <td className="py-3 px-4 font-semibold text-slate-700">
+                              {t.department || 'Production'}
+                            </td>
+                            <td className="py-3 px-4 font-medium text-slate-800">
+                              {t.date}
+                            </td>
+                            <td className="py-3 px-4 font-mono font-bold text-emerald-700">
+                              {t.clockIn}
+                            </td>
+                            <td className="py-3 px-4 font-mono font-bold text-slate-700">
+                              {t.clockOut || (
+                                <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-black animate-pulse">
+                                  Clocked In
+                                </span>
+                              )}
+                            </td>
+                            <td className="py-3 px-4 font-medium">
+                              {t.breakMinutes}m
+                            </td>
+                            <td className="py-3 px-4 font-black text-slate-900 text-sm">
+                              {t.totalHours}h
+                              {t.overtimeHours > 0 && (
+                                <span className="text-[10px] text-orange-600 block font-bold">+{t.overtimeHours}h OT</span>
+                              )}
+                            </td>
+                            <td className="py-3 px-4">
+                              <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-black border ${
+                                t.status === 'COMPLETED' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' :
+                                t.status === 'CLOCKED_IN' ? 'bg-amber-50 text-amber-700 border-amber-200' :
+                                t.status === 'MANUALLY_ADJUSTED' ? 'bg-purple-50 text-purple-700 border-purple-200' :
+                                'bg-slate-100 text-slate-600 border-slate-200'
+                              }`}>
+                                {t.status === 'MANUALLY_ADJUSTED' ? 'Admin Adjusted' : t.status}
+                              </span>
+                              {t.adjustedBy && (
+                                <span className="text-[9px] text-slate-400 block mt-0.5">By {t.adjustedBy}</span>
+                              )}
+                            </td>
+                            <td className="py-3 px-4 text-right">
+                              <div className="flex items-center justify-end gap-1.5">
+                                <button
+                                  onClick={() => {
+                                    setEditingRecord(t);
+                                    setFormClockIn(t.clockIn);
+                                    setFormClockOut(t.clockOut || '04:00 PM');
+                                    setFormBreak(t.breakMinutes);
+                                    setFormNotes(t.notes || '');
+                                  }}
+                                  className="px-2.5 py-1.5 rounded-lg bg-slate-100 hover:bg-orange-100 hover:text-orange-900 text-slate-700 font-bold text-[11px] transition flex items-center gap-1 cursor-pointer"
+                                >
+                                  <Edit3 className="w-3.5 h-3.5 text-orange-600" />
+                                  <span>Adjust</span>
+                                </button>
+
+                                <button
+                                  onClick={() => adminDeleteTimecard(t.id)}
+                                  className="p-1.5 rounded-lg hover:bg-red-50 text-slate-400 hover:text-red-600 transition cursor-pointer"
+                                  title="Delete Shift"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
       </div>
 
       {/* MODAL 1: SUPERADMIN ADJUST */}

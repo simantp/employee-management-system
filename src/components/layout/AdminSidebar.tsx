@@ -53,7 +53,6 @@ export default function AdminSidebar({
   ];
 
   const bottomNavItems = [
-    { id: 'emergency', label: 'Emergency Contacts', icon: PhoneCall, badge: null },
     { id: 'alerts', label: 'Alerts & Reminders', icon: Bell, badge: String(alerts.length) },
     { id: 'roles', label: 'Roles & Permissions', icon: KeyRound, badge: null },
     { id: 'audit-log', label: 'Audit Log', icon: History, badge: 'Live' },

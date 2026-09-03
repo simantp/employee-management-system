@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   ShieldCheck, 
   ShieldAlert, 
@@ -28,6 +28,13 @@ export default function AdminComplianceManagement({
   const { employees, alerts, addToast, addAudit } = useApp();
   
   const [subTab, setSubTab] = useState<'visa' | 'license' | 'whs'>(defaultSubTab);
+
+  useEffect(() => {
+    if (defaultSubTab) {
+      setSubTab(defaultSubTab);
+    }
+  }, [defaultSubTab]);
+
   const [search, setSearch] = useState('');
   const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
   const [vevoCheckingId, setVevoCheckingId] = useState<string | null>(null);
