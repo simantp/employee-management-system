@@ -372,7 +372,7 @@ export default function AuthPortal() {
 
           {/* RIGHT SIDE: Interactive Holographic Terminal Card (7 cols) */}
           <div className="lg:col-span-7 flex justify-center lg:justify-end w-full">
-            <div className="bg-slate-900/90 backdrop-blur-2xl rounded-3xl shadow-2xl border border-slate-800/90 max-w-lg w-full overflow-hidden animate-in fade-in zoom-in-95 duration-200 text-xs shadow-black/40">
+            <div className="bg-slate-900/95 backdrop-blur-2xl rounded-3xl shadow-2xl border border-slate-800/90 max-w-xl w-full overflow-hidden animate-in fade-in zoom-in-95 duration-200 text-xs shadow-black/40">
               
               {/* Card Header & Switcher */}
               <div className="p-6 border-b border-slate-800/80 bg-gradient-to-b from-slate-900 to-slate-950/60">
@@ -400,15 +400,15 @@ export default function AuthPortal() {
                   {mode === 'KIOSK' && 'Instant 4-digit PIN timecard punching with real-time SuperAdmin alert'}
                 </p>
 
-                {/* Tabs Switcher */}
+                {/* 3-Way Mode Switcher Tabs */}
                 {mode !== 'VERIFY_OTP' && (
-                  <div className="flex bg-slate-950 p-1 rounded-2xl mt-5 border border-slate-800 gap-1">
+                  <div className="grid grid-cols-3 bg-slate-950 p-1.5 rounded-2xl mt-5 border border-slate-800 gap-1.5 shadow-inner">
                     <button
                       type="button"
                       onClick={() => setMode('LOGIN')}
-                      className={`flex-1 py-2 rounded-xl text-[11px] font-black transition-all cursor-pointer ${
+                      className={`py-2.5 px-2 rounded-xl text-xs font-bold transition-all text-center cursor-pointer ${
                         mode === 'LOGIN' 
-                          ? 'bg-gradient-to-r from-orange-500 via-amber-500 to-red-500 text-slate-950 shadow-lg shadow-orange-500/25' 
+                          ? 'bg-gradient-to-r from-orange-500 via-amber-500 to-red-500 text-slate-950 shadow-md font-black' 
                           : 'text-slate-400 hover:text-white'
                       }`}
                     >
@@ -417,9 +417,9 @@ export default function AuthPortal() {
                     <button
                       type="button"
                       onClick={() => setMode('REGISTER')}
-                      className={`flex-1 py-2 rounded-xl text-[11px] font-black transition-all cursor-pointer ${
+                      className={`py-2.5 px-2 rounded-xl text-xs font-bold transition-all text-center cursor-pointer ${
                         mode === 'REGISTER' 
-                          ? 'bg-gradient-to-r from-orange-500 via-amber-500 to-red-500 text-slate-950 shadow-lg shadow-orange-500/25' 
+                          ? 'bg-gradient-to-r from-orange-500 via-amber-500 to-red-500 text-slate-950 shadow-md font-black' 
                           : 'text-slate-400 hover:text-white'
                       }`}
                     >
@@ -428,9 +428,9 @@ export default function AuthPortal() {
                     <button
                       type="button"
                       onClick={() => setMode('KIOSK')}
-                      className={`flex-1 py-2 rounded-xl text-[11px] font-black transition-all flex items-center justify-center gap-1 cursor-pointer ${
+                      className={`py-2.5 px-2 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 text-center cursor-pointer ${
                         mode === 'KIOSK' 
-                          ? 'bg-gradient-to-r from-emerald-500 to-teal-500 text-slate-950 shadow-lg shadow-emerald-500/25' 
+                          ? 'bg-gradient-to-r from-emerald-500 to-teal-500 text-slate-950 shadow-md font-black' 
                           : 'text-emerald-400 hover:text-emerald-300'
                       }`}
                     >
@@ -488,21 +488,37 @@ export default function AuthPortal() {
                   ) : (
                     <div className="space-y-4">
                       
-                      {/* 4-Digit PIN Input */}
-                      <div>
-                        <div className="flex justify-between items-center mb-1.5">
-                          <label className="font-bold text-slate-300 text-xs">Enter 4-Digit Employee PIN *</label>
-                          <span className="text-[10px] text-orange-400 font-semibold">Auto-detects shift state</span>
+                      {/* 4-Digit PIN & Password Grid */}
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div>
+                          <div className="flex justify-between items-center mb-1.5">
+                            <label className="font-bold text-slate-300 text-xs">4-Digit PIN *</label>
+                            <span className="text-[10px] text-orange-400 font-semibold">Auto-detects</span>
+                          </div>
+                          <input
+                            type="password"
+                            maxLength={4}
+                            inputMode="numeric"
+                            placeholder="••••"
+                            value={kioskPin}
+                            onChange={e => setKioskPin(e.target.value.replace(/\D/g, '').slice(0, 4))}
+                            className="w-full text-center text-2xl font-mono font-black tracking-widest py-3 rounded-xl bg-slate-950 border border-slate-700 text-white focus:border-orange-500 focus:outline-none transition shadow-inner"
+                          />
                         </div>
-                        <input
-                          type="password"
-                          maxLength={4}
-                          inputMode="numeric"
-                          placeholder="••••"
-                          value={kioskPin}
-                          onChange={e => setKioskPin(e.target.value.replace(/\D/g, '').slice(0, 4))}
-                          className="w-full text-center text-3xl font-mono font-black tracking-widest py-3.5 rounded-2xl bg-slate-950 border-2 border-slate-700 text-white focus:border-orange-500 focus:bg-[#0c1322] focus:outline-none transition shadow-inner"
-                        />
+
+                        <div>
+                          <label className="font-bold text-slate-300 block mb-1.5 text-xs">Password (Optional)</label>
+                          <div className="relative">
+                            <Lock className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                            <input
+                              type="password"
+                              placeholder="••••••••"
+                              value={kioskPassword}
+                              onChange={e => setKioskPassword(e.target.value)}
+                              className="w-full pl-10 pr-3 py-3 rounded-xl bg-slate-950 border border-slate-700 text-white focus:border-orange-500 focus:outline-none transition text-xs shadow-inner"
+                            />
+                          </div>
+                        </div>
                       </div>
 
                       {/* Detected Staff Badge Card */}
