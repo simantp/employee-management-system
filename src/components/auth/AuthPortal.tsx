@@ -18,13 +18,13 @@ export default function AuthPortal() {
     activePortal 
   } = useApp();
 
-  // Mode: 'LOGIN' | 'REGISTER' | 'VERIFY_OTP' | 'KIOSK'
-  const [mode, setMode] = useState<'LOGIN' | 'REGISTER' | 'VERIFY_OTP' | 'KIOSK'>('LOGIN');
+  // Mode: 'LOGIN' | 'REGISTER' | 'VERIFY_OTP' | 'CLOCK'
+  const [mode, setMode] = useState<'LOGIN' | 'REGISTER' | 'VERIFY_OTP' | 'CLOCK'>('LOGIN');
 
-  // Kiosk mode state
-  const [kioskPin, setKioskPin] = useState('');
-  const [kioskPassword, setKioskPassword] = useState('');
-  const [kioskFeedback, setKioskFeedback] = useState<{
+  // Shift Clock state
+  const [clockPin, setClockPin] = useState('');
+  const [clockPassword, setClockPassword] = useState('');
+  const [clockFeedback, setClockFeedback] = useState<{
     type: 'IN' | 'OUT';
     staffName: string;
     department: string;
@@ -45,7 +45,6 @@ export default function AuthPortal() {
     email: '',
     mobilePhone: '',
     password: '',
-    department: 'Large Format & Digital Print',
   });
 
   // Submission & error feedback states
@@ -59,6 +58,13 @@ export default function AuthPortal() {
 
   // Live Sydney clock
   const [sydneyTimeStr, setSydneyTimeStr] = useState('');
+
+  // Clean any URL hash automatically on mount
+  useEffect(() => {
+    if (typeof window !== 'undefined' && window.location.hash) {
+      window.history.replaceState(null, '', window.location.pathname + window.location.search);
+    }
+  }, []);
 
   useEffect(() => {
     const updateTime = () => {
@@ -98,22 +104,21 @@ export default function AuthPortal() {
     }
   }, [pendingOTP]);
 
-
-  // Kiosk real-time PIN matching with robust fallback
+  // Real-time PIN matching with fallback
   const matchedStaff = employees.find(e => {
-    const cleanPin = kioskPin.trim();
+    const cleanPin = clockPin.trim();
     if (!cleanPin) return false;
     const empPin = (e.kioskPin || '').trim();
     return empPin === cleanPin || (cleanPin === '4829' && e.id === 'emp-42') || (cleanPin === '1234' && e.id === 'emp-41') || (cleanPin === '5678' && e.id === 'emp-40') || (cleanPin === '9988' && e.id === 'emp-38');
   });
 
-  const handleKioskClockIn = () => {
-    if (!kioskPin || !matchedStaff) return;
-    const res = clockInWithKiosk(kioskPin, kioskPassword);
+  const handleClockIn = () => {
+    if (!clockPin || !matchedStaff) return;
+    const res = clockInWithKiosk(clockPin, clockPassword);
     if (res.success && res.employee) {
       confetti({ particleCount: 80, spread: 70, origin: { y: 0.6 } });
       const now = new Date();
-      setKioskFeedback({
+      setClockFeedback({
         type: 'IN',
         staffName: `${res.employee.firstName} ${res.employee.lastName}`,
         department: res.employee.department || 'Production',
@@ -122,20 +127,20 @@ export default function AuthPortal() {
         message: res.message
       });
       setTimeout(() => {
-        setKioskPin('');
-        setKioskPassword('');
-        setKioskFeedback(null);
+        setClockPin('');
+        setClockPassword('');
+        setClockFeedback(null);
       }, 4000);
     }
   };
 
-  const handleKioskClockOut = () => {
-    if (!kioskPin || !matchedStaff) return;
-    const res = clockOutWithKiosk(kioskPin, kioskPassword, 30);
+  const handleClockOut = () => {
+    if (!clockPin || !matchedStaff) return;
+    const res = clockOutWithKiosk(clockPin, clockPassword, 30);
     if (res.success && res.employee) {
       confetti({ particleCount: 80, spread: 70, origin: { y: 0.6 } });
       const now = new Date();
-      setKioskFeedback({
+      setClockFeedback({
         type: 'OUT',
         staffName: `${res.employee.firstName} ${res.employee.lastName}`,
         department: res.employee.department || 'Production',
@@ -145,9 +150,9 @@ export default function AuthPortal() {
         message: res.message
       });
       setTimeout(() => {
-        setKioskPin('');
-        setKioskPassword('');
-        setKioskFeedback(null);
+        setClockPin('');
+        setClockPassword('');
+        setClockFeedback(null);
       }, 4000);
     }
   };
@@ -178,7 +183,6 @@ export default function AuthPortal() {
         email: regForm.email,
         mobilePhone: regForm.mobilePhone,
         password: regForm.password || 'password123',
-        department: regForm.department,
       });
 
       if (res.success) {
@@ -187,7 +191,7 @@ export default function AuthPortal() {
         setErrorMessage(res.message || 'Registration could not be completed.');
       }
     } catch (err: any) {
-      setErrorMessage(err.message || 'An error occurred while sending the email code.');
+      setErrorMessage(err.message || 'An error occurred while sending the email verification code.');
     } finally {
       setIsSubmitting(false);
     }
@@ -198,7 +202,6 @@ export default function AuthPortal() {
     const newDigits = [...otpDigits];
 
     if (cleanVal.length > 1) {
-      // Pasted full code
       const pasted = cleanVal.slice(0, 6).split('');
       pasted.forEach((d, i) => {
         newDigits[i] = d;
@@ -245,94 +248,109 @@ export default function AuthPortal() {
     <div className="min-h-screen bg-[#070b14] text-slate-100 flex flex-col justify-between relative overflow-x-hidden font-sans selection:bg-orange-500 selection:text-white">
       
       {/* Dynamic Ambient Background Glows */}
-      <div className="fixed top-[-100px] left-1/4 w-[500px] h-[500px] bg-orange-600/10 rounded-full blur-[140px] pointer-events-none" />
-      <div className="fixed bottom-[-100px] right-1/4 w-[500px] h-[500px] bg-amber-600/10 rounded-full blur-[140px] pointer-events-none" />
-      <div className="fixed inset-0 bg-[radial-gradient(#1e293b_1px,transparent_1px)] [background-size:24px_24px] opacity-20 pointer-events-none" />
+      <div className="fixed -top-24 left-1/4 w-96 sm:w-[540px] h-96 sm:h-[540px] bg-orange-600/10 rounded-full blur-[140px] pointer-events-none" />
+      <div className="fixed -bottom-24 right-1/4 w-96 sm:w-[540px] h-96 sm:h-[540px] bg-amber-600/10 rounded-full blur-[140px] pointer-events-none" />
+      <div className="fixed inset-0 bg-[radial-gradient(#1e293b_1px,transparent_1px)] [background-size:24px_24px] opacity-25 pointer-events-none" />
 
       {/* Top Navbar */}
-      <header className="px-6 lg:px-12 py-5 flex items-center justify-between relative z-20 max-w-7xl mx-auto w-full border-b border-slate-800/40">
-        <div className="flex items-center gap-3.5">
-          <div className="bg-white px-3 py-1.5 rounded-2xl shadow-lg shadow-black/40 border border-slate-700/60 flex items-center justify-center">
+      <header className="px-4 sm:px-8 lg:px-12 py-4 sm:py-5 flex items-center justify-between relative z-20 max-w-7xl mx-auto w-full border-b border-slate-800/60">
+        
+        {/* Brand Logo & Name */}
+        <div className="flex items-center gap-3">
+          <div className="p-1.5 px-2.5 rounded-xl bg-slate-900/90 border border-slate-700/70 shadow-lg shadow-black/30 flex items-center gap-2">
             <img 
               src="/images/hs-creations-logo.png" 
               alt="HsCreations Logo" 
-              className="h-7 sm:h-8 object-contain"
+              className="h-6 sm:h-7 object-contain"
               onError={(e) => {
                 e.currentTarget.style.display = 'none';
               }}
             />
-            <span className="font-bold text-slate-900 text-xs tracking-tight ml-1">HSCREATIONS</span>
+            <span className="font-extrabold text-white text-xs sm:text-sm tracking-tight">
+              HsCreations
+            </span>
           </div>
-          <div>
+
+          <div className="hidden sm:block">
             <div className="flex items-center gap-2">
-              <span className="text-white font-bold text-sm tracking-wide">
-                OPERATIONS PORTAL
+              <span className="text-white font-bold text-xs tracking-wide">
+                OPERATIONS &amp; WORKFORCE PORTAL
               </span>
-              <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-orange-500/20 text-orange-400 border border-orange-500/30">
+              <span className="text-[9px] font-extrabold px-2 py-0.5 rounded-full bg-orange-500/20 text-orange-400 border border-orange-500/30">
                 SYDNEY NSW
               </span>
             </div>
-            <p className="text-[10px] font-medium text-slate-400 tracking-wider">
-              Printing &amp; Creative Design Workforce Management
+            <p className="text-[10px] text-slate-400 font-medium tracking-wide">
+              Print Production, Creative Design &amp; HR Compliance System
             </p>
           </div>
         </div>
 
         {/* Live Sydney Time Badge */}
-        <div className="hidden sm:flex items-center gap-2.5 px-4 py-2 rounded-full bg-slate-900/90 border border-slate-800 text-xs text-slate-300 backdrop-blur-md shadow-lg shadow-black/20">
-          <span className="font-mono font-bold text-orange-400">{sydneyTimeStr || 'AEST'}</span>
-          <span className="text-[11px] text-slate-400 font-semibold">• Sydney Plant</span>
+        <div className="flex items-center gap-2.5 px-3.5 py-1.5 sm:px-4 sm:py-2 rounded-full bg-slate-900/90 border border-slate-800 text-xs text-slate-300 backdrop-blur-md shadow-lg shadow-black/20">
+          <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+          <span className="font-mono font-bold text-orange-400 text-[11px] sm:text-xs">
+            {sydneyTimeStr || 'AEST Live'}
+          </span>
+          <span className="hidden md:inline text-[10px] text-slate-400 font-semibold border-l border-slate-700 pl-2">
+            Sydney Plant
+          </span>
         </div>
       </header>
 
       {/* Main Workspace */}
-      <main className="flex-1 flex items-center justify-center px-4 sm:px-6 lg:px-12 py-8 lg:py-12 relative z-20 max-w-7xl mx-auto w-full">
+      <main className="flex-1 flex items-center justify-center px-4 sm:px-6 lg:px-12 py-6 sm:py-8 lg:py-12 relative z-20 max-w-7xl mx-auto w-full">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-center w-full">
           
-          {/* LEFT SIDE: Brand Hero & Live Telemetry (5 cols) */}
-          <div className="hidden lg:flex lg:col-span-5 flex-col space-y-6">
+          {/* LEFT SIDE: Brand Hero & Telemetry (Visible on large screens, compact on mobile) */}
+          <div className="lg:col-span-5 flex flex-col space-y-5 lg:space-y-6">
             
-            <div className="space-y-3.5">
-              <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-orange-500/10 text-orange-300 border border-orange-500/25 text-xs font-bold backdrop-blur-md">
-                <span>Sydney Printing, Signage &amp; Prepress Hub</span>
+            {/* Tagline & Headline */}
+            <div className="space-y-3">
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-orange-500/10 text-orange-300 border border-orange-500/25 text-xs font-bold backdrop-blur-md">
+                <span>⚡ Sydney Printing, Signage &amp; Prepress Hub</span>
               </div>
 
-              <h2 className="text-3xl xl:text-4xl font-black text-white tracking-tight leading-tight">
-                Crafting Print Perfection. Empowering Staff.
-              </h2>
+              <h1 className="text-2xl sm:text-3xl xl:text-4xl font-black text-white tracking-tight leading-snug">
+                Crafting Print Perfection. <br className="hidden sm:inline" />
+                <span className="text-transparent bg-clip-text bg-gradient-to-r from-orange-400 via-amber-300 to-orange-500">
+                  Empowering Our Team.
+                </span>
+              </h1>
 
-              <p className="text-xs text-slate-400 leading-relaxed max-w-md">
-                Welcome to <strong>HsCreations</strong> workforce system. Seamless shift rostering, instant leave submissions, prepress workflows, and encrypted HR compliance for our Sydney print technicians, designers, and production team.
+              <p className="text-xs sm:text-sm text-slate-400 leading-relaxed max-w-md">
+                Welcome to the <strong>HsCreations</strong> operations platform. Real-time shift tracking, leave approvals, prepress timesheets, and encrypted compliance for our Sydney print technicians, signage specialists, and design staff.
               </p>
             </div>
 
             {/* Live Operational Stats Pills */}
-            <div className="grid grid-cols-2 gap-3.5 max-w-md">
-              <div className="p-4 rounded-2xl bg-slate-900/80 border border-slate-800 backdrop-blur-md space-y-1 shadow-lg shadow-black/20">
+            <div className="grid grid-cols-2 gap-3 max-w-md">
+              <div className="p-3.5 sm:p-4 rounded-2xl bg-slate-900/80 border border-slate-800 backdrop-blur-md space-y-1 shadow-lg shadow-black/20">
                 <div className="text-slate-400 text-[10px] font-bold uppercase tracking-wider">
-                  Print Floor
+                  Print Operations
                 </div>
-                <div className="text-white font-bold text-sm">Press &amp; Design Live</div>
-                <div className="text-[11px] text-orange-400 font-medium">07:30 – 16:00 AEST</div>
+                <div className="text-white font-bold text-xs sm:text-sm">Press &amp; Prepress Active</div>
+                <div className="text-[11px] text-orange-400 font-semibold">07:30 – 16:00 AEST</div>
               </div>
 
-              <div className="p-4 rounded-2xl bg-slate-900/80 border border-slate-800 backdrop-blur-md space-y-1 shadow-lg shadow-black/20">
+              <div className="p-3.5 sm:p-4 rounded-2xl bg-slate-900/80 border border-slate-800 backdrop-blur-md space-y-1 shadow-lg shadow-black/20">
                 <div className="text-slate-400 text-[10px] font-bold uppercase tracking-wider">
-                  Quality Standard
+                  Compliance &amp; QA
                 </div>
-                <div className="text-white font-bold text-sm">ISO 9001 Print QA</div>
-                <div className="text-[11px] text-emerald-400 font-medium">Fair Work AU Compliant</div>
+                <div className="text-white font-bold text-xs sm:text-sm">ISO 9001 Standard</div>
+                <div className="text-[11px] text-emerald-400 font-semibold">Fair Work AU Verified</div>
               </div>
             </div>
 
             {/* System Highlights */}
-            <div className="space-y-2.5 max-w-md text-xs text-slate-300">
-              <div className="p-3 rounded-2xl bg-slate-900/60 border border-slate-800/80">
-                <span className="font-semibold text-slate-300 text-xs">Digital, Offset &amp; Large Format Operations</span>
+            <div className="hidden sm:flex flex-col space-y-2 max-w-md text-xs text-slate-300">
+              <div className="flex items-center gap-2.5 p-2.5 rounded-xl bg-slate-900/60 border border-slate-800/70">
+                <span className="text-orange-400 font-bold">✓</span>
+                <span className="text-slate-300 font-medium text-xs">Digital, Offset &amp; Large Format Production Hub</span>
               </div>
-
-              <div className="p-3 rounded-2xl bg-slate-900/60 border border-slate-800/80">
-                <span className="font-semibold text-slate-300 text-xs">AES-256 Encrypted Banking &amp; VEVO Compliance</span>
+              <div className="flex items-center gap-2.5 p-2.5 rounded-xl bg-slate-900/60 border border-slate-800/70">
+                <span className="text-orange-400 font-bold">✓</span>
+                <span className="text-slate-300 font-medium text-xs">AES-256 Encrypted Documents &amp; VEVO Visa Tracking</span>
               </div>
             </div>
 
@@ -340,11 +358,11 @@ export default function AuthPortal() {
 
           {/* RIGHT SIDE: Interactive Auth Card (7 cols) */}
           <div className="lg:col-span-7 flex justify-center lg:justify-end w-full">
-            <div className="bg-slate-900/90 backdrop-blur-2xl rounded-3xl shadow-2xl border border-slate-800 max-w-xl w-full overflow-hidden text-xs shadow-black/50">
+            <div className="bg-slate-900/90 backdrop-blur-2xl rounded-3xl shadow-2xl border border-slate-800 max-w-lg w-full overflow-hidden text-xs shadow-black/50">
               
-              {/* Card Header & Switcher */}
-              <div className="p-6 sm:p-7 border-b border-slate-800 bg-gradient-to-b from-slate-900/90 to-slate-950/70">
-                <div className="flex items-center justify-between mb-2.5">
+              {/* Card Header & Segmented Tabs */}
+              <div className="p-5 sm:p-7 border-b border-slate-800 bg-gradient-to-b from-slate-900/90 to-slate-950/70">
+                <div className="flex items-center justify-between mb-2">
                   <span className="text-[10px] font-black uppercase tracking-widest text-orange-400">
                     HsCreations Terminal
                   </span>
@@ -353,23 +371,23 @@ export default function AuthPortal() {
                   </span>
                 </div>
 
-                <h3 className="text-xl sm:text-2xl font-black text-white tracking-tight">
+                <h2 className="text-xl sm:text-2xl font-black text-white tracking-tight">
                   {mode === 'LOGIN' && 'Sign in to Portal'}
                   {mode === 'REGISTER' && 'Register Staff Account'}
                   {mode === 'VERIFY_OTP' && 'Verify Your Email'}
-                  {mode === 'KIOSK' && 'Shift Clock In / Out Kiosk'}
-                </h3>
+                  {mode === 'CLOCK' && 'Shift Clock Terminal'}
+                </h2>
                 
                 <p className="text-xs text-slate-400 mt-1">
-                  {mode === 'LOGIN' && 'Super Admin auto-routes to Admin Portal, Staff enters Staff Workspace'}
-                  {mode === 'REGISTER' && 'Join the HsCreations printing & design team with automated email verification'}
+                  {mode === 'LOGIN' && 'Super Admin auto-routes to Admin Portal, Staff enters Staff Workspace.'}
+                  {mode === 'REGISTER' && 'Join the HsCreations printing & design team with automated email verification.'}
                   {mode === 'VERIFY_OTP' && `Security code dispatched to ${pendingOTP?.email || 'your email'}`}
-                  {mode === 'KIOSK' && 'Instant 4-digit PIN timecard punching with real-time SuperAdmin alert'}
+                  {mode === 'CLOCK' && 'Instant 4-digit PIN timecard punch with real-time manager synchronization.'}
                 </p>
 
                 {/* 3-Way Mode Switcher Tabs */}
                 {mode !== 'VERIFY_OTP' && (
-                  <div className="grid grid-cols-3 bg-slate-950/90 p-1.5 rounded-2xl mt-5 border border-slate-800 gap-1.5 shadow-inner">
+                  <div className="grid grid-cols-3 bg-slate-950/90 p-1.5 rounded-2xl mt-4 sm:mt-5 border border-slate-800 gap-1.5 shadow-inner">
                     <button
                       type="button"
                       onClick={() => {
@@ -378,12 +396,13 @@ export default function AuthPortal() {
                       }}
                       className={`py-2.5 px-2 rounded-xl text-xs transition-all text-center cursor-pointer ${
                         mode === 'LOGIN' 
-                          ? 'bg-gradient-to-r from-orange-500 to-amber-500 text-slate-950 shadow-md font-bold' 
+                          ? 'bg-gradient-to-r from-orange-500 to-amber-500 text-slate-950 shadow-md font-extrabold' 
                           : 'text-slate-400 hover:text-white font-bold'
                       }`}
                     >
                       Sign In
                     </button>
+
                     <button
                       type="button"
                       onClick={() => {
@@ -392,25 +411,26 @@ export default function AuthPortal() {
                       }}
                       className={`py-2.5 px-2 rounded-xl text-xs transition-all text-center cursor-pointer ${
                         mode === 'REGISTER' 
-                          ? 'bg-gradient-to-r from-orange-500 to-amber-500 text-slate-950 shadow-md font-bold' 
+                          ? 'bg-gradient-to-r from-orange-500 to-amber-500 text-slate-950 shadow-md font-extrabold' 
                           : 'text-slate-400 hover:text-white font-bold'
                       }`}
                     >
                       Register
                     </button>
+
                     <button
                       type="button"
                       onClick={() => {
-                        setMode('KIOSK');
+                        setMode('CLOCK');
                         setErrorMessage(null);
                       }}
                       className={`py-2.5 px-2 rounded-xl text-xs transition-all flex items-center justify-center text-center cursor-pointer ${
-                        mode === 'KIOSK' 
-                          ? 'bg-gradient-to-r from-emerald-500 to-teal-500 text-slate-950 shadow-md font-bold' 
+                        mode === 'CLOCK' 
+                          ? 'bg-gradient-to-r from-emerald-500 to-teal-500 text-slate-950 shadow-md font-extrabold' 
                           : 'text-emerald-400 hover:text-emerald-300 font-bold'
                       }`}
                     >
-                      <span>Kiosk Clock</span>
+                      <span>Shift Clock</span>
                     </button>
                   </div>
                 )}
@@ -418,7 +438,7 @@ export default function AuthPortal() {
 
               {/* MODE 1: LOGIN */}
               {mode === 'LOGIN' && (
-                <div className="p-6 sm:p-7 space-y-5">
+                <div className="p-5 sm:p-7 space-y-5">
                   <form onSubmit={handleLoginSubmit} className="space-y-4">
                     <div>
                       <label className="font-bold text-slate-200 block mb-1.5 text-xs">Work or Personal Email *</label>
@@ -435,7 +455,13 @@ export default function AuthPortal() {
                     <div>
                       <div className="flex justify-between items-center mb-1.5">
                         <label className="font-bold text-slate-200 text-xs">Password *</label>
-                        <span className="text-[11px] text-orange-400 font-semibold cursor-pointer hover:underline">Forgot password?</span>
+                        <button
+                          type="button"
+                          onClick={() => alert('Password reset link will be sent to your registered work email.')}
+                          className="text-[11px] text-orange-400 font-semibold hover:underline cursor-pointer"
+                        >
+                          Forgot password?
+                        </button>
                       </div>
                       <input
                         type="password"
@@ -448,41 +474,41 @@ export default function AuthPortal() {
 
                     <button
                       type="submit"
-                      className="w-full py-3.5 rounded-xl bg-gradient-to-r from-orange-500 via-amber-500 to-orange-500 hover:from-orange-400 hover:to-amber-400 text-slate-950 font-bold text-xs shadow-lg shadow-orange-500/25 transition-all hover:scale-[1.01] active:scale-[0.99] flex items-center justify-center mt-2 cursor-pointer"
+                      className="w-full py-3.5 rounded-xl bg-gradient-to-r from-orange-500 via-amber-500 to-orange-500 hover:from-orange-400 hover:to-amber-400 text-slate-950 font-extrabold text-xs shadow-lg shadow-orange-500/25 transition-all hover:scale-[1.01] active:scale-[0.99] flex items-center justify-center mt-2 cursor-pointer"
                     >
                       Sign In to HsCreations
                     </button>
                   </form>
 
                   {/* 1-Click Instant Demo Credentials */}
-                  <div className="pt-5 border-t border-slate-800 space-y-2.5">
+                  <div className="pt-4 border-t border-slate-800 space-y-2.5">
                     <div className="text-slate-400 font-bold uppercase tracking-wider text-[10px]">
                       Instant 1-Click Test Access:
                     </div>
 
-                    <div className="grid grid-cols-2 gap-3">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                       <button
                         type="button"
                         onClick={() => handleQuickLogin('admin@company.com.au')}
-                        className="p-3 rounded-xl border border-slate-800 bg-slate-950/80 hover:bg-slate-800 hover:border-orange-500/50 text-left transition-all flex items-center justify-between group cursor-pointer shadow-xs"
+                        className="p-3 rounded-xl border border-slate-800 bg-slate-950/80 hover:bg-slate-800 hover:border-orange-500/50 text-left transition-all flex items-center justify-between group cursor-pointer"
                       >
                         <div>
                           <span className="block text-xs font-bold text-white group-hover:text-orange-400">Super Admin</span>
-                          <span className="text-[10px] text-orange-400 font-bold">Admin Portal</span>
+                          <span className="text-[10px] text-orange-400 font-semibold">Admin &amp; HR Portal</span>
                         </div>
-                        <span className="text-xs font-bold text-slate-500 group-hover:text-orange-400">Enter</span>
+                        <span className="text-xs font-bold text-slate-500 group-hover:text-orange-400">Enter →</span>
                       </button>
 
                       <button
                         type="button"
                         onClick={() => handleQuickLogin('suman.thapa@company.com')}
-                        className="p-3 rounded-xl border border-slate-800 bg-slate-950/80 hover:bg-slate-800 hover:border-orange-500/50 text-left transition-all flex items-center justify-between group cursor-pointer shadow-xs"
+                        className="p-3 rounded-xl border border-slate-800 bg-slate-950/80 hover:bg-slate-800 hover:border-orange-500/50 text-left transition-all flex items-center justify-between group cursor-pointer"
                       >
                         <div>
                           <span className="block text-xs font-bold text-white group-hover:text-orange-400">Suman Thapa</span>
-                          <span className="text-[10px] text-amber-400 font-bold">Staff Portal</span>
+                          <span className="text-[10px] text-amber-400 font-semibold">Staff Workspace</span>
                         </div>
-                        <span className="text-xs font-bold text-slate-500 group-hover:text-orange-400">Enter</span>
+                        <span className="text-xs font-bold text-slate-500 group-hover:text-orange-400">Enter →</span>
                       </button>
                     </div>
                   </div>
@@ -491,7 +517,7 @@ export default function AuthPortal() {
 
               {/* MODE 2: REGISTER AS STAFF */}
               {mode === 'REGISTER' && (
-                <div className="p-6 sm:p-7 space-y-4">
+                <div className="p-5 sm:p-7 space-y-4">
                   {errorMessage && (
                     <div className="p-3.5 rounded-xl bg-rose-950/80 border border-rose-500/50 text-rose-200 text-xs shadow-lg shadow-rose-950/30">
                       <div className="font-bold text-rose-300">Registration Notice</div>
@@ -515,7 +541,7 @@ export default function AuthPortal() {
                   <form onSubmit={handleRegisterSubmit} className="space-y-3.5">
                     
                     {/* First & Last Name */}
-                    <div className="grid grid-cols-2 gap-3">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       <div>
                         <label className="font-bold text-slate-200 block mb-1 text-xs">First Name *</label>
                         <input
@@ -542,7 +568,7 @@ export default function AuthPortal() {
 
                     {/* Email Address */}
                     <div>
-                      <label className="font-bold text-slate-200 block mb-1 text-xs">Email Address *</label>
+                      <label className="font-bold text-slate-200 block mb-1 text-xs">Work or Personal Email *</label>
                       <input
                         type="email"
                         required
@@ -553,34 +579,17 @@ export default function AuthPortal() {
                       />
                     </div>
 
-                    {/* Mobile & Department */}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                      <div>
-                        <label className="font-bold text-slate-200 block mb-1 text-xs">Mobile Phone *</label>
-                        <input
-                          type="text"
-                          required
-                          placeholder="0412 345 678"
-                          value={regForm.mobilePhone}
-                          onChange={e => setRegForm({...regForm, mobilePhone: e.target.value})}
-                          className="w-full px-3 py-2.5 rounded-xl bg-slate-950 border border-slate-700/80 text-white font-medium focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 focus:outline-none transition placeholder:text-slate-500 text-xs shadow-inner"
-                        />
-                      </div>
-
-                      <div>
-                        <label className="font-bold text-slate-200 block mb-1 text-xs">Department *</label>
-                        <select
-                          value={regForm.department}
-                          onChange={e => setRegForm({...regForm, department: e.target.value})}
-                          className="w-full px-3 py-2.5 rounded-xl bg-slate-950 border border-slate-700/80 text-white font-medium focus:border-orange-500 focus:outline-none transition text-xs cursor-pointer shadow-inner"
-                        >
-                          <option value="Large Format & Digital Print">Large Format & Digital Print</option>
-                          <option value="Offset Press & Binding">Offset Press & Binding</option>
-                          <option value="Signage & Installation">Signage & Installation</option>
-                          <option value="Graphic Design & Prepress">Graphic Design & Prepress</option>
-                          <option value="Operations & Logistics">Operations & Logistics</option>
-                        </select>
-                      </div>
+                    {/* Mobile Phone */}
+                    <div>
+                      <label className="font-bold text-slate-200 block mb-1 text-xs">Mobile Phone *</label>
+                      <input
+                        type="text"
+                        required
+                        placeholder="0412 345 678"
+                        value={regForm.mobilePhone}
+                        onChange={e => setRegForm({...regForm, mobilePhone: e.target.value})}
+                        className="w-full px-4 py-2.5 rounded-xl bg-slate-950 border border-slate-700/80 text-white font-medium focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 focus:outline-none transition placeholder:text-slate-500 text-xs shadow-inner"
+                      />
                     </div>
 
                     {/* Password */}
@@ -599,7 +608,7 @@ export default function AuthPortal() {
                     <button
                       type="submit"
                       disabled={isSubmitting}
-                      className="w-full py-3.5 rounded-xl bg-gradient-to-r from-orange-500 via-amber-500 to-orange-500 hover:from-orange-400 hover:to-amber-400 disabled:opacity-60 text-slate-950 font-bold text-xs shadow-xl shadow-orange-500/25 transition-all hover:scale-[1.01] active:scale-[0.99] flex items-center justify-center mt-3 cursor-pointer"
+                      className="w-full py-3.5 rounded-xl bg-gradient-to-r from-orange-500 via-amber-500 to-orange-500 hover:from-orange-400 hover:to-amber-400 disabled:opacity-60 text-slate-950 font-extrabold text-xs shadow-xl shadow-orange-500/25 transition-all hover:scale-[1.01] active:scale-[0.99] flex items-center justify-center mt-3 cursor-pointer"
                     >
                       {isSubmitting ? 'Sending Verification Code...' : 'Send 6-Digit Email Verification Code'}
                     </button>
@@ -609,9 +618,9 @@ export default function AuthPortal() {
 
               {/* MODE 3: 6-DIGIT EMAIL OTP VERIFICATION */}
               {mode === 'VERIFY_OTP' && (
-                <div className="p-6 sm:p-7 space-y-5 text-center">
+                <div className="p-5 sm:p-7 space-y-5 text-center">
                   <div>
-                    <h4 className="font-bold text-white text-base">Enter 6-Digit Email Code</h4>
+                    <h3 className="font-bold text-white text-base">Enter 6-Digit Email Code</h3>
                     <p className="text-slate-400 text-xs mt-1">
                       Verification code dispatched to<br />
                       <strong className="text-orange-400 font-mono font-bold">{pendingOTP?.email || 'your email'}</strong>
@@ -636,7 +645,7 @@ export default function AuthPortal() {
                         }}
                         className="px-3 py-1.5 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-400 hover:to-amber-400 text-slate-950 rounded-xl font-bold text-xs shadow-md transition-all hover:scale-105 cursor-pointer"
                       >
-                        Auto-Fill & Verify
+                        Auto-Fill &amp; Verify
                       </button>
                     </div>
                   )}
@@ -653,7 +662,7 @@ export default function AuthPortal() {
                         value={digit}
                         onChange={e => handleOtpChange(i, e.target.value)}
                         onKeyDown={e => handleOtpKeyDown(i, e)}
-                        className="w-11 h-13 text-center text-xl font-mono font-bold border-2 rounded-xl bg-slate-950 border-slate-700 text-white focus:border-orange-400 focus:bg-[#0c1322] focus:outline-none transition shadow-inner"
+                        className="w-12 h-14 text-center text-2xl font-mono font-bold border-2 rounded-xl bg-slate-950 border-slate-700 text-white focus:border-orange-400 focus:bg-[#0c1322] focus:outline-none transition shadow-inner"
                       />
                     ))}
                   </div>
@@ -664,14 +673,14 @@ export default function AuthPortal() {
                     disabled={otpDigits.some(d => d === '')}
                     className="w-full py-3.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 disabled:opacity-50 text-white font-bold text-xs shadow-xl shadow-emerald-600/30 transition-all hover:scale-[1.01] active:scale-[0.99] cursor-pointer"
                   >
-                    Verify & Enter HsCreations Portal
+                    Verify &amp; Enter HsCreations Portal
                   </button>
 
                   <div className="flex items-center justify-between text-xs pt-3 border-t border-slate-800 text-slate-400">
                     <button
                       type="button"
                       onClick={() => setMode('REGISTER')}
-                      className="hover:text-white transition font-medium"
+                      className="hover:text-white transition font-medium cursor-pointer"
                     >
                       ← Back to Register
                     </button>
@@ -691,14 +700,14 @@ export default function AuthPortal() {
                 </div>
               )}
 
-              {/* MODE 4: KIOSK CLOCK IN / OUT TERMINAL */}
-              {mode === 'KIOSK' && (
-                <div className="p-6 sm:p-7 space-y-5">
+              {/* MODE 4: SHIFT CLOCK IN / OUT TERMINAL */}
+              {mode === 'CLOCK' && (
+                <div className="p-5 sm:p-7 space-y-5">
                   
                   {/* Real-time Clock Header */}
                   <div className="p-3.5 rounded-2xl bg-slate-950 border border-slate-800 text-center space-y-1 shadow-inner">
                     <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-                      Sydney Plant Terminal
+                      Sydney Plant Timecard Terminal
                     </div>
                     <div className="text-2xl font-bold font-mono text-orange-400 tracking-wider">
                       {sydneyTimeStr || '08:30:00 AM'}
@@ -707,22 +716,22 @@ export default function AuthPortal() {
                   </div>
 
                   {/* Feedback Modal / Overlay when Clocked */}
-                  {kioskFeedback ? (
+                  {clockFeedback ? (
                     <div className="p-5 rounded-2xl bg-gradient-to-br from-slate-900 to-slate-950 border-2 border-emerald-500/60 text-center space-y-3 shadow-2xl animate-in zoom-in-95">
                       <div>
                         <span className={`px-3 py-1 rounded-full text-[11px] font-bold uppercase tracking-wider ${
-                          kioskFeedback.type === 'IN' ? 'bg-emerald-500/20 text-emerald-400' : 'bg-rose-500/20 text-rose-400'
+                          clockFeedback.type === 'IN' ? 'bg-emerald-500/20 text-emerald-400' : 'bg-rose-500/20 text-rose-400'
                         }`}>
-                          {kioskFeedback.type === 'IN' ? 'Clocked IN Successfully' : 'Clocked OUT Successfully'}
+                          {clockFeedback.type === 'IN' ? 'Clocked IN Successfully' : 'Clocked OUT Successfully'}
                         </span>
-                        <h4 className="text-lg font-bold text-white mt-2">{kioskFeedback.staffName}</h4>
-                        <p className="text-xs text-slate-400">{kioskFeedback.department}</p>
+                        <h4 className="text-lg font-bold text-white mt-2">{clockFeedback.staffName}</h4>
+                        <p className="text-xs text-slate-400">{clockFeedback.department}</p>
                       </div>
 
                       <div className="p-3 rounded-xl bg-slate-950 border border-slate-800 font-mono text-xs text-slate-300">
-                        <div>Punch Time: <strong className="text-orange-400">{kioskFeedback.time} AEST</strong></div>
-                        {kioskFeedback.hours !== undefined && (
-                          <div className="mt-1">Logged Shift: <strong className="text-emerald-400">{kioskFeedback.hours.toFixed(2)} Hours</strong></div>
+                        <div>Punch Time: <strong className="text-orange-400">{clockFeedback.time} AEST</strong></div>
+                        {clockFeedback.hours !== undefined && (
+                          <div className="mt-1">Logged Shift: <strong className="text-emerald-400">{clockFeedback.hours.toFixed(2)} Hours</strong></div>
                         )}
                       </div>
 
@@ -745,8 +754,8 @@ export default function AuthPortal() {
                             maxLength={4}
                             inputMode="numeric"
                             placeholder="••••"
-                            value={kioskPin}
-                            onChange={e => setKioskPin(e.target.value.replace(/\D/g, '').slice(0, 4))}
+                            value={clockPin}
+                            onChange={e => setClockPin(e.target.value.replace(/\D/g, '').slice(0, 4))}
                             className="w-full text-center text-2xl font-mono font-bold tracking-widest py-2.5 rounded-xl bg-slate-950 border border-slate-700 text-white focus:border-orange-500 focus:outline-none transition shadow-inner"
                           />
                         </div>
@@ -756,15 +765,15 @@ export default function AuthPortal() {
                           <input
                             type="password"
                             placeholder="••••••••"
-                            value={kioskPassword}
-                            onChange={e => setKioskPassword(e.target.value)}
+                            value={clockPassword}
+                            onChange={e => setClockPassword(e.target.value)}
                             className="w-full px-3 py-2.5 rounded-xl bg-slate-950 border border-slate-700 text-white focus:border-orange-500 focus:outline-none transition text-xs shadow-inner"
                           />
                         </div>
                       </div>
 
                       {/* Detected Staff Badge Card */}
-                      {kioskPin.length === 4 && (
+                      {clockPin.length === 4 && (
                         <div>
                           {matchedStaff ? (
                             <div className="p-3.5 rounded-2xl bg-slate-950/90 border border-slate-800 space-y-2.5 animate-in fade-in">
@@ -803,7 +812,7 @@ export default function AuthPortal() {
                             </div>
                           ) : (
                             <div className="p-3 bg-rose-950/40 border border-rose-500/30 rounded-xl text-center text-rose-300 text-xs font-bold">
-                              No employee found with PIN: {kioskPin}
+                              No employee found with PIN: {clockPin}
                             </div>
                           )}
                         </div>
@@ -815,7 +824,7 @@ export default function AuthPortal() {
                         <button
                           type="button"
                           disabled={!matchedStaff || matchedStaff.clockState === 'CLOCKED_IN'}
-                          onClick={handleKioskClockIn}
+                          onClick={handleClockIn}
                           className={`py-3 px-4 rounded-xl font-bold text-xs flex flex-col items-center justify-center gap-1 transition-all ${
                             matchedStaff && matchedStaff.clockState !== 'CLOCKED_IN'
                               ? 'bg-gradient-to-r from-emerald-500 to-teal-500 text-slate-950 shadow-lg shadow-emerald-500/30 hover:scale-[1.02] cursor-pointer'
@@ -834,7 +843,7 @@ export default function AuthPortal() {
                         <button
                           type="button"
                           disabled={!matchedStaff || matchedStaff.clockState !== 'CLOCKED_IN'}
-                          onClick={handleKioskClockOut}
+                          onClick={handleClockOut}
                           className={`py-3 px-4 rounded-xl font-bold text-xs flex flex-col items-center justify-center gap-1 transition-all ${
                             matchedStaff && matchedStaff.clockState === 'CLOCKED_IN'
                               ? 'bg-gradient-to-r from-rose-500 to-red-500 text-white shadow-lg shadow-rose-500/30 hover:scale-[1.02] cursor-pointer'
@@ -862,9 +871,9 @@ export default function AuthPortal() {
                               <button
                                 key={emp.id}
                                 type="button"
-                                onClick={() => setKioskPin(effectivePin)}
+                                onClick={() => setClockPin(effectivePin)}
                                 className={`px-2.5 py-1 rounded-xl text-[10px] font-bold border transition flex items-center gap-1 cursor-pointer ${
-                                  kioskPin === effectivePin
+                                  clockPin === effectivePin
                                     ? 'bg-orange-500/20 text-orange-300 border-orange-500/40'
                                     : 'bg-slate-950 text-slate-400 border-slate-800 hover:text-white'
                                 }`}

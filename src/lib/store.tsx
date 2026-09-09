@@ -17,7 +17,8 @@ import {
   Department,
   Announcement,
   TimecardRecord,
-  TimecardStatus
+  TimecardStatus,
+  ExpiryReminderSettings
 } from '@/types';
 import { 
   INITIAL_EMPLOYEES, 
@@ -36,6 +37,16 @@ interface ToastMessage {
   type: 'success' | 'warning' | 'info' | 'error';
   timestamp: string;
 }
+
+export const INITIAL_EXPIRY_SETTINGS: ExpiryReminderSettings = {
+  autoReminderEnabled: true,
+  visaWarningDays: 60,
+  visaCriticalDays: 30,
+  licenseWarningDays: 60,
+  licenseCriticalDays: 30,
+  warningFrequencyDays: 5,
+  criticalFrequencyDays: 3,
+};
 
 export const INITIAL_DOCUMENT_TYPES = [
   { id: 'dt-1', name: 'Passport Copy (Australian / International)', category: 'Identification', hasExpiry: true },
@@ -145,7 +156,7 @@ interface AppContextType {
   unreadAdminCount: number;
   unreadStaffCount: number;
 
-  // Timecard & Kiosk Clock-In System
+  // Timecard & Shift Clock-In System
   timecards: TimecardRecord[];
   activeWorkingStaffCount: number;
   clockInWithKiosk: (pin: string, password?: string) => { success: boolean; message: string; employee?: Employee };
@@ -167,6 +178,8 @@ interface AppContextType {
   // EMS Actions
   addEmployee: (employee: Omit<Employee, 'id' | 'leaveBalance' | 'payslips' | 'documents'>) => void;
   updateEmployee: (id: string, updates: Partial<Employee>) => void;
+  deleteEmployee: (id: string) => void;
+  archiveEmployee: (id: string, isArchived?: boolean) => void;
   submitLeaveRequest: (req: Omit<LeaveRequest, 'id' | 'status' | 'submittedAt' | 'reminderCount'>) => void;
   reviewLeaveRequest: (id: string, status: LeaveStatus, notes?: string) => void;
   uploadMedicalCertificate: (leaveId: string, fileUrl: string) => void;
@@ -182,6 +195,19 @@ interface AppContextType {
   addAudit: (action: string, targetType: string, targetId: string, details: string, actorName?: string, actorRole?: string) => void;
   removeToast: (id: string) => void;
   triggerSimulatedRealtimeEvent: (type: 'NEW_STAFF_LEAVE' | 'VISA_WARNING' | 'CERTIFICATE_REMINDER') => void;
+
+  // Expiry Compliance Settings & Actions
+  expirySettings: ExpiryReminderSettings;
+  updateExpirySettings: (settings: Partial<ExpiryReminderSettings>) => void;
+  sendInstantExpiryNotification: (params: {
+    employeeId: string;
+    documentType: 'VISA' | 'LICENSE';
+    documentName?: string;
+    documentNumber?: string;
+    expiryDate?: string;
+    daysRemaining: number;
+    severity?: 'WARNING' | 'CRITICAL';
+  }) => Promise<{ success: boolean; message: string }>;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -204,6 +230,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
   const [announcements, setAnnouncements] = useState<Announcement[]>(INITIAL_ANNOUNCEMENTS);
   const [timecards, setTimecards] = useState<TimecardRecord[]>(INITIAL_TIMECARDS);
+  const [expirySettings, setExpirySettings] = useState<ExpiryReminderSettings>(INITIAL_EXPIRY_SETTINGS);
 
   const currentStaff = employees.find(e => e.id === currentStaffId) || employees[0];
 
@@ -260,6 +287,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       const savedTimecards = localStorage.getItem('ems_timecards_v1');
       if (savedTimecards) setTimecards(JSON.parse(savedTimecards));
 
+      const savedExpirySettings = localStorage.getItem('ems_expiry_settings_v1');
+      if (savedExpirySettings) {
+        try {
+          setExpirySettings({ ...INITIAL_EXPIRY_SETTINGS, ...JSON.parse(savedExpirySettings) });
+        } catch (e) {}
+      }
+
       const savedAuth = localStorage.getItem('ems_auth_user_v1');
       if (savedAuth) {
         const parsedAuth = JSON.parse(savedAuth);
@@ -274,6 +308,45 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     } catch (e) {
       console.error('Storage hydration error', e);
     }
+
+    // ==========================================
+    // BACKEND DATABASE HYDRATION (MySQL / cPanel API)
+    // ==========================================
+    async function hydrateFromBackendDb() {
+      try {
+        const [empRes, tcRes, lrRes, dtRes, annRes, audRes] = await Promise.allSettled([
+          fetch('/api/employees').then(r => r.json()),
+          fetch('/api/timecards').then(r => r.json()),
+          fetch('/api/leave').then(r => r.json()),
+          fetch('/api/document-types').then(r => r.json()),
+          fetch('/api/announcements').then(r => r.json()),
+          fetch('/api/audit').then(r => r.json()),
+        ]);
+
+        if (empRes.status === 'fulfilled' && empRes.value?.success && Array.isArray(empRes.value.employees) && empRes.value.employees.length > 0) {
+          setEmployees(empRes.value.employees);
+        }
+        if (tcRes.status === 'fulfilled' && tcRes.value?.success && Array.isArray(tcRes.value.timecards) && tcRes.value.timecards.length > 0) {
+          setTimecards(tcRes.value.timecards);
+        }
+        if (lrRes.status === 'fulfilled' && lrRes.value?.success && Array.isArray(lrRes.value.leaveRequests) && lrRes.value.leaveRequests.length > 0) {
+          setLeaveRequests(lrRes.value.leaveRequests);
+        }
+        if (dtRes.status === 'fulfilled' && dtRes.value?.success && Array.isArray(dtRes.value.documentTypes) && dtRes.value.documentTypes.length > 0) {
+          setDocumentTypes(dtRes.value.documentTypes);
+        }
+        if (annRes.status === 'fulfilled' && annRes.value?.success && Array.isArray(annRes.value.announcements) && annRes.value.announcements.length > 0) {
+          setAnnouncements(annRes.value.announcements);
+        }
+        if (audRes.status === 'fulfilled' && audRes.value?.success && Array.isArray(audRes.value.auditLogs) && audRes.value.auditLogs.length > 0) {
+          setAuditLogs(audRes.value.auditLogs);
+        }
+      } catch (err) {
+        console.warn('Backend database synchronization fallback to cached state:', err);
+      }
+    }
+
+    hydrateFromBackendDb();
   }, []);
 
   useEffect(() => {
@@ -323,6 +396,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       localStorage.setItem('ems_audit_v1', JSON.stringify(auditLogs));
     } catch (e) {}
   }, [auditLogs]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('ems_expiry_settings_v1', JSON.stringify(expirySettings));
+    } catch (e) {}
+  }, [expirySettings]);
 
   useEffect(() => {
     try {
@@ -411,6 +490,24 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       ipAddress: '203.14.182.91 (Sydney, AU)',
     };
     setAuditLogs(prev => [newLog, ...prev]);
+
+    // Asynchronously persist to backend MySQL database
+    try {
+      fetch('/api/audit', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: newLog.id,
+          action: newLog.action,
+          targetEntity: newLog.targetType,
+          targetId: newLog.targetId,
+          details: newLog.details,
+          performedBy: newLog.actorName,
+          role: newLog.actorRole,
+          timestamp: newLog.timestamp,
+        })
+      }).catch(err => console.warn('Audit log database sync skipped:', err));
+    } catch(e) {}
   };
 
   // ==========================================
@@ -694,6 +791,15 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setEmployees(prev => [newEmployee, ...prev]);
     addAudit('CREATE_EMPLOYEE', 'Employee', newEmployee.id, `Created employee ${newEmployee.firstName} ${newEmployee.lastName} (${newEmployee.employeeNumber})`);
     addToast('Employee Added', `${newEmployee.firstName} ${newEmployee.lastName} registered successfully.`, 'success');
+
+    // MySQL Backend Sync
+    try {
+      fetch('/api/employees', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newEmployee),
+      }).catch(err => console.warn('Employee DB sync skipped:', err));
+    } catch (e) {}
   };
 
   const updateEmployee = (id: string, updates: Partial<Employee>) => {
@@ -717,6 +823,44 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
     addAudit('UPDATE_EMPLOYEE', 'Employee', id, `Admin updated fields for ${targetEmp?.firstName || ''} ${targetEmp?.lastName || ''}: ${Object.keys(updates).join(', ')}`);
     addToast('Employee Details Updated', 'Changes saved and notification sent to staff member.', 'success');
+
+    // MySQL Backend Sync
+    try {
+      fetch('/api/employees', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id, updates }),
+      }).catch(err => console.warn('Employee update DB sync skipped:', err));
+    } catch (e) {}
+  };
+
+  const deleteEmployee = (id: string) => {
+    const target = employees.find(e => e.id === id);
+    const empName = target ? `${target.firstName} ${target.lastName}` : 'Staff Member';
+    const empNum = target?.employeeNumber || id;
+
+    setEmployees(prev => prev.filter(e => e.id !== id));
+
+    // MySQL Backend Sync
+    try {
+      fetch(`/api/employees?id=${encodeURIComponent(id)}`, {
+        method: 'DELETE',
+      }).catch(err => console.warn('Employee delete DB sync skipped:', err));
+    } catch (e) {}
+
+    addAudit('DELETE_EMPLOYEE', 'Employee', id, `Admin permanently deleted staff member ${empName} (${empNum}) from records.`);
+    addToast('Employee Deleted', `${empName} (${empNum}) has been permanently deleted from records.`, 'info');
+  };
+
+  const archiveEmployee = (id: string, isArchived: boolean = true) => {
+    const target = employees.find(e => e.id === id);
+    const newStatus = isArchived ? 'Archived' : 'Active';
+    updateEmployee(id, { status: newStatus });
+    addToast(
+      isArchived ? 'Employee Archived' : 'Employee Restored',
+      `${target?.firstName} ${target?.lastName} status set to ${newStatus}. Historical data is preserved in database.`,
+      isArchived ? 'warning' : 'success'
+    );
   };
 
   const submitLeaveRequest = (req: Omit<LeaveRequest, 'id' | 'status' | 'submittedAt' | 'reminderCount'>) => {
@@ -761,6 +905,15 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         }),
       }).catch(err => console.error('Leave email dispatch failed:', err));
     } catch (e) {}
+
+    // MySQL Backend Sync
+    try {
+      fetch('/api/leave', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newReq),
+      }).catch(err => console.warn('Leave request DB sync skipped:', err));
+    } catch (e) {}
     
     addAudit('SUBMIT_LEAVE_REQUEST', 'LeaveRequest', newReq.id, `Submitted ${req.leaveType} leave (${req.totalDays} days) starting ${req.startDate}`, req.employeeName, 'STAFF');
     addToast('Leave Submitted & Admin Emailed', `Notification & email dispatched to Admin for ${req.employeeName}'s ${req.leaveType} leave request.`, 'success');
@@ -782,17 +935,43 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       setEmployees(prev => prev.map(emp => {
         if (emp.id === req.employeeId) {
           const typeKey = req.leaveType === 'ANNUAL' ? 'annual' : req.leaveType === 'SICK' ? 'sick' : req.leaveType === 'CARERS' ? 'carers' : 'longService';
+          const newBal = Math.max(0, emp.leaveBalance[typeKey] - req.totalDays);
+          const updatedBalance = {
+            ...emp.leaveBalance,
+            [typeKey]: newBal,
+          };
+
+          // Sync balance change to backend
+          try {
+            fetch('/api/employees', {
+              method: 'PUT',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                id: emp.id,
+                updates: {
+                  leaveBalance: updatedBalance,
+                }
+              }),
+            }).catch(e => {});
+          } catch(e) {}
+
           return {
             ...emp,
-            leaveBalance: {
-              ...emp.leaveBalance,
-              [typeKey]: Math.max(0, emp.leaveBalance[typeKey] - req.totalDays),
-            }
+            leaveBalance: updatedBalance,
           };
         }
         return emp;
       }));
     }
+
+    // MySQL Backend Sync
+    try {
+      fetch('/api/leave', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id, status, notes }),
+      }).catch(err => console.warn('Leave review DB sync skipped:', err));
+    } catch (e) {}
 
     const staffNotif: NotificationItem = {
       id: 'notif-' + Date.now(),
@@ -839,6 +1018,28 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       return emp;
     }));
 
+    // MySQL Backend Sync with Encrypted Strings
+    try {
+      fetch('/api/employees', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: empId,
+          updates: {
+            bankName: bank.bankName,
+            bankBranch: bank.bankBranch,
+            accountName: bank.accountName,
+            bsbEncrypted: bsbEnc,
+            bsbMasked: bsbMask,
+            accountNumberEncrypted: accEnc,
+            accountNumberMasked: accMask,
+            superFundName: bank.superFund,
+            superMemberNumber: bank.superNumber,
+          }
+        }),
+      }).catch(err => console.warn('Bank details DB sync skipped:', err));
+    } catch (e) {}
+
     const adminNotif: NotificationItem = {
       id: 'notif-' + Date.now(),
       recipient: 'ADMIN',
@@ -859,11 +1060,27 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setDocumentTypes(prev => [...prev, newType]);
     addAudit('CREATE_DOCUMENT_TYPE', 'DocumentType', newType.id, `Admin added document type: ${type.name}`);
     addToast('Document Type Added', `"${type.name}" is now available in staff upload dropdown.`, 'success');
+
+    // MySQL Backend Sync
+    try {
+      fetch('/api/document-types', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newType),
+      }).catch(err => console.warn('Document type DB sync skipped:', err));
+    } catch (e) {}
   };
 
   const deleteDocumentType = (id: string) => {
     setDocumentTypes(prev => prev.filter(d => d.id !== id));
     addToast('Document Type Removed', 'Document type deleted.', 'info');
+
+    // MySQL Backend Sync
+    try {
+      fetch(`/api/document-types?id=${encodeURIComponent(id)}`, {
+        method: 'DELETE',
+      }).catch(err => console.warn('Document type delete DB sync skipped:', err));
+    } catch (e) {}
   };
 
   const reviewDocument = (empId: string, docId: string, status: 'Verified' | 'Rejected', notes?: string) => {
@@ -879,6 +1096,21 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
     const targetEmp = employees.find(e => e.id === empId);
     const empName = targetEmp ? `${targetEmp.firstName} ${targetEmp.lastName}` : 'Staff Member';
+
+    // MySQL Backend Sync
+    try {
+      fetch('/api/documents', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          docId,
+          updates: {
+            status,
+            rejectionReason: notes || null,
+          }
+        }),
+      }).catch(err => console.warn('Document review DB sync skipped:', err));
+    } catch (e) {}
 
     addAudit(
       status === 'Verified' ? 'APPROVE_DOCUMENT' : 'REJECT_DOCUMENT',
@@ -921,16 +1153,29 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     // Also update users array
     setUsers(prev => prev.map(u => (u.staffId === empId || u.id === empId) ? { ...u, avatarUrl } : u));
 
+    // MySQL Backend Sync
+    try {
+      fetch('/api/employees', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: empId,
+          updates: { avatarUrl },
+        }),
+      }).catch(e => {});
+    } catch (e) {}
+
     addAudit('UPDATE_AVATAR', 'Employee', empId, 'Updated profile picture');
     addToast('Profile Photo Updated', 'Your profile picture has been saved to database.', 'success');
   };
 
-  const uploadDocument = (empId: string, doc: Omit<EmployeeDocument, 'id' | 'uploadDate' | 'status'>) => {
+  const uploadDocument = (empId: string, doc: Omit<EmployeeDocument, 'id' | 'uploadDate' | 'status'> & { status?: 'Verified' | 'Pending' | 'Rejected' | 'Expired' }) => {
+    const tempDocId = 'doc-' + Date.now();
     const newDoc: EmployeeDocument = {
       ...doc,
-      id: 'doc-' + Date.now(),
+      id: tempDocId,
       uploadDate: new Date().toLocaleDateString('en-AU'),
-      status: 'Pending',
+      status: doc.status || 'Pending',
     };
 
     setEmployees(prev => prev.map(emp => {
@@ -946,6 +1191,39 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     const targetEmp = employees.find(e => e.id === empId);
     const empName = targetEmp ? `${targetEmp.firstName} ${targetEmp.lastName}` : 'Staff Member';
 
+    // MySQL Backend & Server File Sync (Saves to /public/uploads/{staff_name}_{staff_id}/ and inserts into employee_documents)
+    try {
+      fetch('/api/documents/upload', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          empId,
+          empName,
+          name: doc.name,
+          type: doc.type,
+          documentNumber: doc.documentNumber || '',
+          expiryDate: doc.expiryDate || '',
+          status: doc.status || 'Pending',
+          fileName: `${doc.name.replace(/[^a-zA-Z0-9_-]/g, '_')}.png`,
+          fileData: doc.previewUrl,
+        }),
+      }).then(async res => {
+        const json = await res.json();
+        if (json.success && json.document) {
+          // Update the in-memory document with database generated ID and server relative file path
+          setEmployees(prev => prev.map(emp => {
+            if (emp.id === empId) {
+              return {
+                ...emp,
+                documents: emp.documents.map(d => d.id === tempDocId ? { ...d, id: json.document.id, previewUrl: json.document.previewUrl, fileSize: json.document.fileSize } : d)
+              };
+            }
+            return emp;
+          }));
+        }
+      }).catch(err => console.warn('Document server upload skipped:', err));
+    } catch (e) {}
+
     // Real-time Notification to Admin
     const adminNotif: NotificationItem = {
       id: 'notif-' + Date.now(),
@@ -959,7 +1237,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setNotifications(prev => [adminNotif, ...prev]);
 
     addAudit('UPLOAD_DOCUMENT', 'Document', newDoc.id, `${empName} uploaded document: ${doc.name} (${doc.type})`, empName, 'STAFF');
-    addToast('Document Uploaded', `"${doc.name}" has been uploaded and sent to HR for verification.`, 'success');
+    addToast('Document Uploaded', `"${doc.name}" saved to staff folder & sent for verification.`, 'success');
   };
 
   const updateDocument = (empId: string, docId: string, updates: Partial<EmployeeDocument>) => {
@@ -980,6 +1258,18 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
     const targetEmp = employees.find(e => e.id === empId);
     const empName = targetEmp ? `${targetEmp.firstName} ${targetEmp.lastName}` : 'Staff Member';
+
+    // MySQL Backend Sync
+    try {
+      fetch('/api/documents', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          docId,
+          updates,
+        }),
+      }).catch(err => console.warn('Document update DB sync skipped:', err));
+    } catch (e) {}
 
     // Notify Admin in real-time
     const adminNotif: NotificationItem = {
@@ -1007,6 +1297,14 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       }
       return emp;
     }));
+
+    // MySQL & Physical File Delete Sync
+    try {
+      fetch(`/api/documents?id=${encodeURIComponent(docId)}`, {
+        method: 'DELETE',
+      }).catch(err => console.warn('Document delete DB sync skipped:', err));
+    } catch (e) {}
+
     addToast('Document Removed', 'Document deleted from your vault.', 'info');
   };
 
@@ -1076,6 +1374,15 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     };
     setAnnouncements(prev => [newAnn, ...prev]);
 
+    // MySQL Backend Sync
+    try {
+      fetch('/api/announcements', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newAnn),
+      }).catch(err => console.warn('Announcement DB sync skipped:', err));
+    } catch (e) {}
+
     const notif: NotificationItem = {
       id: `notif-ann-${Date.now()}`,
       recipient: 'STAFF',
@@ -1098,7 +1405,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
 
   // ==========================================
-  // TIMECARD & KIOSK CLOCK-IN/OUT METHODS
+  // TIMECARD & SHIFT CLOCK-IN/OUT METHODS
   // ==========================================
 
   const activeWorkingStaffCount = employees.filter(e => e.clockState === 'CLOCKED_IN').length;
@@ -1140,7 +1447,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       durationSeconds: 0,
       overtimeHours: 0,
       status: 'CLOCKED_IN',
-      notes: `Clocked in via Quick Kiosk Terminal at ${emp.workLocation || 'Sydney NSW'}`
+      notes: `Clocked in via Shift Terminal at ${emp.workLocation || 'Sydney NSW'}`
     };
 
     setTimecards(prev => [newTimecard, ...prev]);
@@ -1153,6 +1460,29 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       currentShiftId: shiftId,
     };
     setEmployees(prev => prev.map(e => e.id === emp.id ? updatedEmp : e));
+
+    // MySQL Backend Sync: Timecard record + Employee state
+    try {
+      fetch('/api/timecards', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newTimecard),
+      }).catch(err => console.warn('Timecard DB sync skipped:', err));
+
+      fetch('/api/employees', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: emp.id,
+          updates: {
+            clockState: 'CLOCKED_IN',
+            lastClockIn: now.toISOString(),
+            clockInTimestamp: nowMs,
+            currentShiftId: shiftId,
+          }
+        }),
+      }).catch(err => console.warn('Employee clock-in DB sync skipped:', err));
+    } catch (e) {}
 
     // Instant SuperAdmin Notification
     const newNotif: NotificationItem = {
@@ -1167,7 +1497,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setNotifications(prev => [newNotif, ...prev]);
 
     addToast('Clock-In Successful', `Welcome ${emp.firstName}! Clocked in at ${timeStr} AEST.`, 'success');
-    addAudit('KIOSK_CLOCK_IN', 'Timecard', shiftId, `${emp.firstName} ${emp.lastName} clocked IN at ${timeStr}`, `${emp.firstName} ${emp.lastName}`, 'Staff');
+    addAudit('SHIFT_CLOCK_IN', 'Timecard', shiftId, `${emp.firstName} ${emp.lastName} clocked IN at ${timeStr}`, `${emp.firstName} ${emp.lastName}`, 'Staff');
 
     return { success: true, message: `Successfully clocked in at ${timeStr}`, employee: updatedEmp };
   };
@@ -1213,11 +1543,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     const s = elapsedSec % 60;
     const hmsFormatted = `${pad(h)}:${pad(m)}:${pad(s)}`;
 
+    let recordToSave: TimecardRecord | null = null;
+
     setTimecards(prev => {
       const existingIdx = prev.findIndex(t => t.id === emp.currentShiftId || (t.employeeId === emp.id && t.status === 'CLOCKED_IN'));
       if (existingIdx >= 0) {
         const updated = [...prev];
-        updated[existingIdx] = {
+        const updatedRec: TimecardRecord = {
           ...updated[existingIdx],
           clockOut: timeStr,
           clockOutTimestamp: nowMs,
@@ -1227,6 +1559,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           overtimeHours: overtime,
           status: 'COMPLETED'
         };
+        updated[existingIdx] = updatedRec;
+        recordToSave = updatedRec;
         return updated;
       } else {
         const newRecord: TimecardRecord = {
@@ -1246,6 +1580,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           overtimeHours: overtime,
           status: 'COMPLETED'
         };
+        recordToSave = newRecord;
         return [newRecord, ...prev];
       }
     });
@@ -1258,6 +1593,31 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       currentShiftId: undefined
     };
     setEmployees(prev => prev.map(e => e.id === emp.id ? updatedEmp : e));
+
+    // MySQL Backend Sync: Timecard + Employee status
+    try {
+      if (recordToSave) {
+        fetch('/api/timecards', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(recordToSave),
+        }).catch(err => console.warn('Timecard DB sync skipped:', err));
+      }
+
+      fetch('/api/employees', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: emp.id,
+          updates: {
+            clockState: 'CLOCKED_OUT',
+            lastClockOut: now.toISOString(),
+            clockInTimestamp: null,
+            currentShiftId: null,
+          }
+        }),
+      }).catch(err => console.warn('Employee clock-out DB sync skipped:', err));
+    } catch (e) {}
 
     // Instant SuperAdmin Notification
     const newNotif: NotificationItem = {
@@ -1272,7 +1632,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setNotifications(prev => [newNotif, ...prev]);
 
     addToast('Clock-Out Successful', `Goodbye ${emp.firstName}! Shift recorded: ${hmsFormatted} (${totalHours.toFixed(2)} hrs).`, 'success');
-    addAudit('KIOSK_CLOCK_OUT', 'Timecard', emp.currentShiftId || 'tc', `${emp.firstName} ${emp.lastName} clocked OUT at ${timeStr} (${hmsFormatted})`, `${emp.firstName} ${emp.lastName}`, 'Staff');
+    addAudit('SHIFT_CLOCK_OUT', 'Timecard', emp.currentShiftId || 'tc', `${emp.firstName} ${emp.lastName} clocked OUT at ${timeStr} (${hmsFormatted})`, `${emp.firstName} ${emp.lastName}`, 'Staff');
 
     return { success: true, message: `Shift ended: ${hmsFormatted} (${totalHours.toFixed(2)} hrs)`, employee: updatedEmp, totalHours };
   };
@@ -1280,27 +1640,57 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const updateStaffKioskPin = (empId: string, newPin: string) => {
     const cleanPin = newPin.trim();
     if (cleanPin.length !== 4 || !/^\d{4}$/.test(cleanPin)) {
-      addToast('Invalid PIN', 'The Kiosk PIN must be exactly 4 numeric digits.', 'error');
+      addToast('Invalid PIN', 'The PIN must be exactly 4 numeric digits.', 'error');
       return;
     }
     setEmployees(prev => prev.map(e => e.id === empId ? { ...e, kioskPin: cleanPin } : e));
-    addToast('PIN Updated', `4-digit Kiosk PIN successfully changed to ${cleanPin}.`, 'success');
-    addAudit('UPDATE_KIOSK_PIN', 'Employee', empId, `Updated 4-digit Kiosk PIN to ${cleanPin}`);
+
+    // MySQL Backend Sync
+    try {
+      fetch('/api/employees', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: empId,
+          updates: { kioskPin: cleanPin },
+        }),
+      }).catch(err => console.warn('PIN DB sync skipped:', err));
+    } catch (e) {}
+
+    addToast('PIN Updated', `4-digit PIN successfully changed to ${cleanPin}.`, 'success');
+    addAudit('UPDATE_PIN', 'Employee', empId, `Updated 4-digit PIN to ${cleanPin}`);
   };
 
   const adminAdjustTimecard = (id: string, updates: Partial<TimecardRecord>) => {
+    const finalUpdates = {
+      ...updates,
+      status: 'MANUALLY_ADJUSTED' as const,
+      adjustedBy: currentUser?.name || 'Super Admin',
+      adjustedAt: new Date().toLocaleDateString('en-AU')
+    };
+
     setTimecards(prev => prev.map(t => {
       if (t.id === id) {
         return { 
           ...t, 
-          ...updates, 
-          status: 'MANUALLY_ADJUSTED', 
-          adjustedBy: currentUser?.name || 'Super Admin', 
-          adjustedAt: new Date().toLocaleDateString('en-AU') 
+          ...finalUpdates,
         };
       }
       return t;
     }));
+
+    // MySQL Backend Sync
+    try {
+      fetch('/api/timecards', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id,
+          updates: finalUpdates,
+        }),
+      }).catch(err => console.warn('Timecard adjust DB sync skipped:', err));
+    } catch (e) {}
+
     addToast('Timecard Adjusted', 'Timecard record updated with administrative audit stamp.', 'success');
     addAudit('ADJUST_TIMECARD', 'Timecard', id, `Superadmin manually adjusted shift`);
   };
@@ -1314,18 +1704,143 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       adjustedAt: new Date().toLocaleDateString('en-AU')
     };
     setTimecards(prev => [newRecord, ...prev]);
+
+    // MySQL Backend Sync
+    try {
+      fetch('/api/timecards', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newRecord),
+      }).catch(err => console.warn('Manual timecard DB sync skipped:', err));
+    } catch (e) {}
+
     addToast('Shift Record Created', `Manual shift entry logged for ${record.employeeName}.`, 'success');
     addAudit('CREATE_TIMECARD', 'Timecard', newRecord.id, `Superadmin manually logged shift for ${record.employeeName}`);
   };
 
   const adminDeleteTimecard = (id: string) => {
     setTimecards(prev => prev.filter(t => t.id !== id));
+
+    // MySQL Backend Sync
+    try {
+      fetch(`/api/timecards?id=${encodeURIComponent(id)}`, {
+        method: 'DELETE',
+      }).catch(err => console.warn('Timecard delete DB sync skipped:', err));
+    } catch (e) {}
+
     addToast('Shift Deleted', 'Timecard record deleted.', 'info');
   };
 
   const deleteAnnouncement = (id: string) => {
     setAnnouncements(prev => prev.filter(a => a.id !== id));
+
+    // MySQL Backend Sync
+    try {
+      fetch(`/api/announcements?id=${encodeURIComponent(id)}`, {
+        method: 'DELETE',
+      }).catch(err => console.warn('Announcement delete DB sync skipped:', err));
+    } catch (e) {}
+
     addToast('Announcement Removed', 'Company announcement deleted.', 'info');
+  };
+
+  const updateExpirySettings = (updates: Partial<ExpiryReminderSettings>) => {
+    setExpirySettings(prev => {
+      const updated = { ...prev, ...updates };
+      return updated;
+    });
+    addToast('Expiry Settings Updated', 'Compliance reminder intervals & thresholds saved.', 'success');
+    addAudit(
+      'EXPIRY_SETTINGS_UPDATED',
+      'Settings',
+      'compliance',
+      `Updated visa/license alert thresholds & reminder frequencies`,
+      currentUser?.name || 'Admin',
+      currentUser?.role || 'SuperAdmin'
+    );
+  };
+
+  const sendInstantExpiryNotification = async (params: {
+    employeeId: string;
+    documentType: 'VISA' | 'LICENSE';
+    documentName?: string;
+    documentNumber?: string;
+    expiryDate?: string;
+    daysRemaining: number;
+    severity?: 'WARNING' | 'CRITICAL';
+  }) => {
+    const emp = employees.find(e => e.id === params.employeeId);
+    if (!emp) {
+      addToast('Error', 'Employee record not found', 'error');
+      return { success: false, message: 'Employee not found' };
+    }
+
+    const severity = params.severity || (params.daysRemaining <= (params.documentType === 'VISA' ? expirySettings.visaCriticalDays : expirySettings.licenseCriticalDays) ? 'CRITICAL' : 'WARNING');
+    const docLabel = params.documentName || (params.documentType === 'VISA' ? (emp.visaType || 'Subclass 482 Visa') : `Driver Licence (${emp.licenseCountry || 'NSW'})`);
+    const expiryDate = params.expiryDate || (params.documentType === 'VISA' ? emp.visaExpiryDate : emp.licenseExpiryDate) || 'Pending';
+
+    // 1. Create Staff in-app notification
+    const staffNotif: NotificationItem = {
+      id: `notif-exp-${Date.now()}`,
+      recipient: 'STAFF',
+      recipientId: emp.id,
+      title: `${severity === 'CRITICAL' ? '🚨 CRITICAL' : '⚠️ REMINDER'}: ${docLabel} Expiry Action Required`,
+      message: `Your ${docLabel} (Ref: ${params.documentNumber || emp.employeeNumber}) is scheduled to expire on ${expiryDate} (${params.daysRemaining} days remaining). Please submit updated documentation.`,
+      type: params.documentType === 'VISA' ? 'VISA_EXPIRY' : 'LICENSE_EXPIRY',
+      timestamp: new Date().toLocaleDateString('en-AU', { day: '2-digit', month: 'short', year: 'numeric' }),
+      read: false,
+    };
+
+    // 2. Create Admin audit alert notification
+    const adminNotif: NotificationItem = {
+      id: `notif-exp-admin-${Date.now()}`,
+      recipient: 'ADMIN',
+      title: `Dispatched Expiry Alert: ${emp.firstName} ${emp.lastName}`,
+      message: `Sent ${severity} ${docLabel} notification to ${emp.firstName} ${emp.lastName} (${emp.email}). Due: ${expiryDate}.`,
+      type: params.documentType === 'VISA' ? 'VISA_EXPIRY' : 'LICENSE_EXPIRY',
+      timestamp: new Date().toLocaleDateString('en-AU', { day: '2-digit', month: 'short', year: 'numeric' }),
+      read: false,
+    };
+
+    setNotifications(prev => [staffNotif, adminNotif, ...prev]);
+
+    // 3. Add Toast & Audit Log
+    addToast(
+      'Instant Notice Dispatched',
+      `Sent ${severity} expiry alert via email & Staff Portal to ${emp.firstName} ${emp.lastName}.`,
+      'success'
+    );
+    addAudit(
+      'EXPIRY_ALERT_DISPATCHED',
+      'Compliance Alerts',
+      emp.id,
+      `Dispatched instant ${severity} reminder email & portal alert to ${emp.firstName} ${emp.lastName} for ${docLabel} (${params.daysRemaining}d remaining)`,
+      currentUser?.name || 'Admin',
+      currentUser?.role || 'SuperAdmin'
+    );
+
+    // 4. Trigger Email API
+    try {
+      await fetch('/api/notifications/send-expiry-email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          employeeName: `${emp.firstName} ${emp.lastName}`,
+          employeeEmail: emp.email,
+          documentType: params.documentType,
+          documentName: docLabel,
+          documentNumber: params.documentNumber || (params.documentType === 'VISA' ? emp.employeeNumber : emp.licenseNumber),
+          expiryDate,
+          daysRemaining: params.daysRemaining,
+          severity,
+          workRestrictions: emp.workRestrictions,
+        }),
+      });
+    } catch (err) {
+      console.warn('Instant expiry email trigger error:', err);
+    }
+
+    return { success: true, message: `Notification dispatched to ${emp.firstName} ${emp.lastName}` };
   };
 
   return (
@@ -1371,6 +1886,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       promoteUserRole,
       addEmployee,
       updateEmployee,
+      deleteEmployee,
+      archiveEmployee,
       submitLeaveRequest,
       reviewLeaveRequest,
       uploadMedicalCertificate,
@@ -1386,6 +1903,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       addAudit,
       removeToast,
       triggerSimulatedRealtimeEvent,
+      expirySettings,
+      updateExpirySettings,
+      sendInstantExpiryNotification,
     }}>
       {children}
     </AppContext.Provider>

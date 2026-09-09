@@ -97,41 +97,6 @@ export default function AdminComplianceManagement({
   return (
     <div className="space-y-6 animate-in fade-in duration-200 font-sans text-xs">
       
-      {/* Top Metric Header */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="p-5 rounded-2xl bg-white border border-slate-200/80 shadow-xs flex items-center justify-between">
-          <div>
-            <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">Visa Holders</span>
-            <span className="text-2xl font-bold text-slate-900 mt-1 block">{totalVisaHolders}</span>
-            <span className="text-[10px] text-slate-500 font-medium">Active Visa workforce</span>
-          </div>
-        </div>
-
-        <div className="p-5 rounded-2xl bg-white border border-slate-200/80 shadow-xs flex items-center justify-between">
-          <div>
-            <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">Visas Expiring &lt;30d</span>
-            <span className="text-2xl font-bold text-amber-600 mt-1 block">{criticalVisas}</span>
-            <span className="text-[10px] text-amber-700 font-medium">Requires immediate renewal</span>
-          </div>
-        </div>
-
-        <div className="p-5 rounded-2xl bg-white border border-slate-200/80 shadow-xs flex items-center justify-between">
-          <div>
-            <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">Licensed Drivers</span>
-            <span className="text-2xl font-bold text-emerald-600 mt-1 block">{totalLicenses}</span>
-            <span className="text-[10px] text-emerald-700 font-medium">Verified Australia / State</span>
-          </div>
-        </div>
-
-        <div className="p-5 rounded-2xl bg-white border border-slate-200/80 shadow-xs flex items-center justify-between">
-          <div>
-            <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">Forklift &amp; Press QA</span>
-            <span className="text-2xl font-bold text-purple-600 mt-1 block">{forkliftOperators}</span>
-            <span className="text-[10px] text-purple-700 font-medium">High risk plant staff</span>
-          </div>
-        </div>
-      </div>
-
       {/* Main Compliance Management Container */}
       <div className="bg-white rounded-3xl border border-slate-200/80 shadow-xs overflow-hidden">
         

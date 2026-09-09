@@ -204,81 +204,7 @@ export default function PendingLeaveApprovals({
   return (
     <div className="space-y-6 animate-in fade-in duration-150 text-xs font-sans">
       
-      {/* 1. Top Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <div className="flex items-center gap-2">
-            <h2 className="text-xl font-bold text-slate-900 tracking-tight">Leave Approvals &amp; Records Management</h2>
-            <span className="px-2 py-0.5 rounded-full bg-slate-100 text-slate-700 text-[10px] font-bold border border-slate-200">
-              {approvedRequests.length} Approved Records
-            </span>
-          </div>
-          <p className="text-slate-500 mt-0.5">
-            Review pending applications and manage historical records of approved staff leaves across Sydney plants.
-          </p>
-        </div>
-
-        <div className="flex items-center gap-2.5">
-          <button
-            onClick={exportApprovedLeavesCSV}
-            className="px-3.5 py-2 rounded-xl bg-white border border-slate-300 text-slate-700 font-bold hover:bg-slate-50 transition cursor-pointer shadow-xs"
-          >
-            Export Leaves (CSV)
-          </button>
-        </div>
-      </div>
-
-      {/* 2. Key Metrics Overview */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <div className="p-5 rounded-2xl bg-white border border-slate-200/80 shadow-xs flex items-center justify-between">
-          <div>
-            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Pending Review</span>
-            <span className="text-2xl font-black text-amber-600 mt-1 block flex items-center gap-1.5">
-              <span>{pendingRequests.length}</span>
-              {pendingRequests.length > 0 && <span className="w-2 h-2 rounded-full bg-rose-500 animate-ping" />}
-            </span>
-            <span className="text-[10px] text-amber-700 font-medium">Requires Admin action</span>
-          </div>
-          <div className="text-[10px] font-bold text-amber-600 uppercase">
-            Pending
-          </div>
-        </div>
-
-        <div className="p-5 rounded-2xl bg-white border border-slate-200/80 shadow-xs flex items-center justify-between">
-          <div>
-            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Approved Leaves</span>
-            <span className="text-2xl font-bold text-emerald-600 mt-1 block">{approvedRequests.length}</span>
-            <span className="text-[10px] text-emerald-700 font-medium">Successfully processed</span>
-          </div>
-          <div className="text-[10px] font-bold text-emerald-600 uppercase">
-            Approved
-          </div>
-        </div>
-
-        <div className="p-5 rounded-2xl bg-white border border-slate-200/80 shadow-xs flex items-center justify-between">
-          <div>
-            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Total Days Approved</span>
-            <span className="text-2xl font-bold text-blue-600 mt-1 block">{totalApprovedDays} Days</span>
-            <span className="text-[10px] text-blue-700 font-medium">Annual, Sick &amp; Long Service</span>
-          </div>
-          <div className="text-[10px] font-bold text-blue-600 uppercase">
-            Days
-          </div>
-        </div>
-
-        <div className="p-5 rounded-2xl bg-white border border-slate-200/80 shadow-xs flex items-center justify-between">
-          <div>
-            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Currently on Leave</span>
-            <span className="text-2xl font-bold text-purple-600 mt-1 block">{staffOnLeaveCount}</span>
-            <span className="text-[10px] text-purple-700 font-medium">Off duty today</span>
-          </div>
-          <div className="text-[10px] font-bold text-purple-600 uppercase">
-            On Leave
-          </div>
-        </div>
-      </div>
-
-      {/* 3. Pending Staff Requests & Approvals Queue (Priority Action Box) */}
+      {/* 1. Pending Staff Requests & Approvals Queue (Priority Action Box) */}
       {pendingRequests.length > 0 && (
         <div className="bg-white rounded-3xl border border-amber-200/80 shadow-sm p-5 overflow-hidden">
           <div className="flex items-center justify-between mb-4">
@@ -364,7 +290,7 @@ export default function PendingLeaveApprovals({
         </div>
       )}
 
-      {/* 4. Approved Staff Leaves & Historical Records Directory */}
+      {/* 2. Approved Staff Leaves & Historical Records Directory */}
       <div className="bg-white rounded-3xl border border-slate-200/80 shadow-sm overflow-hidden">
         
         {/* Directory Controls Bar */}
@@ -379,6 +305,12 @@ export default function PendingLeaveApprovals({
           </div>
 
           <div className="flex flex-wrap items-center gap-2.5">
+            <button
+              onClick={exportApprovedLeavesCSV}
+              className="px-3.5 py-2 rounded-xl bg-white border border-slate-300 text-slate-700 font-bold hover:bg-slate-50 transition cursor-pointer shadow-xs text-xs"
+            >
+              Export Leaves (CSV)
+            </button>
             <input
               type="text"
               placeholder="Search staff, reason, type..."

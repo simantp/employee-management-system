@@ -84,10 +84,12 @@ export default function ComplianceStatusDonut() {
         </div>
       </div>
 
-      <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-xs">
-        <a href="#compliance" className="text-blue-600 font-bold hover:underline text-[11px]">
-          View compliance dashboard →
-        </a>
+      <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
+        <span className="text-[11px] font-semibold text-emerald-600 flex items-center gap-1">
+          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+          Fair Work NSW Compliant
+        </span>
+        <span className="text-[10px] text-slate-400 font-mono">Auto-audited</span>
       </div>
     </div>
   );

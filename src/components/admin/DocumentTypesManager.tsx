@@ -2,10 +2,13 @@
 
 import React, { useState } from 'react';
 import { useApp } from '@/lib/store';
+import { DocumentTypeConfig } from '@/types';
+import ConfirmDeleteModal from '@/components/common/ConfirmDeleteModal';
 
 export default function DocumentTypesManager() {
   const { documentTypes, addDocumentType, deleteDocumentType } = useApp();
   const [showAddModal, setShowAddModal] = useState(false);
+  const [deletingType, setDeletingType] = useState<DocumentTypeConfig | null>(null);
   const [newTypeName, setNewTypeName] = useState('');
   const [newTypeCategory, setNewTypeCategory] = useState('Identification');
   const [hasExpiry, setHasExpiry] = useState(true);
@@ -60,7 +63,8 @@ export default function DocumentTypesManager() {
             </div>
 
             <button
-              onClick={() => deleteDocumentType(dt.id)}
+              type="button"
+              onClick={() => setDeletingType(dt)}
               className="text-[11px] font-bold text-slate-400 hover:text-rose-600 px-2 py-1 rounded-lg transition cursor-pointer"
               title="Delete Document Type"
             >
@@ -144,6 +148,23 @@ export default function DocumentTypesManager() {
           </div>
         </div>
       )}
+
+      {/* Modern Delete Confirmation Modal */}
+      <ConfirmDeleteModal
+        isOpen={!!deletingType}
+        title="Delete Document Classification Type?"
+        itemName={deletingType?.name}
+        description={deletingType ? `Are you sure you want to delete "${deletingType.name}" (${deletingType.category}) from required compliance categories? It will no longer be available in the staff portal upload dropdown.` : undefined}
+        confirmButtonText="Delete Classification"
+        onConfirm={() => {
+          if (deletingType) {
+            deleteDocumentType(deletingType.id);
+            setDeletingType(null);
+          }
+        }}
+        onCancel={() => setDeletingType(null)}
+      />
+
     </div>
   );
 }

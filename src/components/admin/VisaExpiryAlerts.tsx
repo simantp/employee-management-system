@@ -3,7 +3,11 @@
 import React from 'react';
 import { useApp } from '@/lib/store';
 
-export default function VisaExpiryAlerts() {
+export default function VisaExpiryAlerts({
+  onOpenAlertsModal
+}: {
+  onOpenAlertsModal?: () => void;
+}) {
   const { alerts } = useApp();
   const visaAlerts = alerts.filter(a => a.type === 'VISA_EXPIRY');
 
@@ -11,12 +15,17 @@ export default function VisaExpiryAlerts() {
     <div className="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-xs flex flex-col h-full">
       <div className="flex items-center justify-between mb-3">
         <div>
-          <h3 className="text-sm font-bold text-slate-900">Visa Expiry Alerts</h3>
-          <p className="text-[11px] text-slate-500">Expiring within 30 days (Australian Law)</p>
+          <h3 className="text-sm font-bold text-slate-900">Visa &amp; License Alerts</h3>
+          <p className="text-[11px] text-slate-500">Expiring within 30–60 days (Australian Law)</p>
         </div>
-        <button className="text-xs font-bold text-blue-600 hover:underline">
-          View all
-        </button>
+        {onOpenAlertsModal && (
+          <button 
+            onClick={onOpenAlertsModal}
+            className="text-xs font-bold text-blue-600 hover:underline cursor-pointer"
+          >
+            View all
+          </button>
+        )}
       </div>
 
       <div className="space-y-2.5 flex-1 mt-2">
@@ -64,9 +73,13 @@ export default function VisaExpiryAlerts() {
 
       <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-xs">
         <span className="text-[11px] text-slate-500">Auto-alarms active</span>
-        <button className="text-blue-600 font-bold hover:underline text-[11px]">
-          Manage visa workflows
-        </button>
+        {onOpenAlertsModal ? (
+          <button onClick={onOpenAlertsModal} className="text-blue-600 font-bold hover:underline text-[11px] cursor-pointer">
+            Manage visa &amp; license workflows
+          </button>
+        ) : (
+          <span className="text-[11px] text-slate-400 font-medium">Sydney Metro Plants</span>
+        )}
       </div>
     </div>
   );

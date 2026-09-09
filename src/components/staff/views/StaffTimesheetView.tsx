@@ -149,7 +149,7 @@ export default function StaffTimesheetView() {
             onClick={() => setShowPinModal(true)}
             className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-orange-50 border border-orange-200 text-orange-900 font-bold hover:bg-orange-100 transition cursor-pointer shadow-xs"
           >
-            <span>Kiosk PIN: <strong className="font-mono">{currentStaff.kioskPin || '4829'}</strong></span>
+            <span>Terminal PIN: <strong className="font-mono">{currentStaff.kioskPin || '4829'}</strong></span>
           </button>
 
           <button
@@ -178,7 +178,7 @@ export default function StaffTimesheetView() {
                 <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping" />
               </div>
               <p className="text-emerald-800 text-[11px]">
-                Shift active since <strong>{currentStaff.lastClockIn ? new Date(currentStaff.lastClockIn).toLocaleTimeString('en-AU', { hour: '2-digit', minute: '2-digit' }) : 'Today'} AEST</strong>. Remember to punch out via the Login Screen Kiosk at shift end.
+                Shift active since <strong>{currentStaff.lastClockIn ? new Date(currentStaff.lastClockIn).toLocaleTimeString('en-AU', { hour: '2-digit', minute: '2-digit' }) : 'Today'} AEST</strong>. Remember to punch out via the Login Screen Terminal at shift end.
               </p>
             </div>
           </div>
@@ -226,7 +226,7 @@ export default function StaffTimesheetView() {
               <span>Official Electronic Punch Card</span>
             </h3>
             <p className="text-slate-500 text-[11px]">
-              Tamper-proof record generated from Kiosk punches. Contact SuperAdmin for adjustments.
+              Tamper-proof record generated from electronic punches. Contact SuperAdmin for adjustments.
             </p>
           </div>
           <div className="flex items-center gap-2 text-[11px] text-slate-500">
@@ -352,7 +352,7 @@ export default function StaffTimesheetView() {
         <div className="space-y-1">
           <h4 className="font-black text-xs text-blue-900">Fair Work Australia Automated Attendance Record</h4>
           <p className="text-[11px] text-blue-800 leading-relaxed">
-            All hours recorded here reflect your biometric/electronic punches via the HsCreations Sydney Kiosk. Under Fair Work regulations, timesheets cannot be altered directly by staff. If you forgot to clock in/out or need shift adjustments, notify your SuperAdmin or HR Lead.
+            All hours recorded here reflect your biometric/electronic punches via the HsCreations Sydney Terminal. Under Fair Work regulations, timesheets cannot be altered directly by staff. If you forgot to clock in/out or need shift adjustments, notify your SuperAdmin or HR Lead.
           </p>
         </div>
       </div>
@@ -363,7 +363,7 @@ export default function StaffTimesheetView() {
           <div className="bg-white rounded-3xl p-6 max-w-sm w-full shadow-2xl border border-slate-200 space-y-4">
             <div className="flex items-center justify-between border-b border-slate-100 pb-3">
               <div className="flex items-center gap-2">
-                <h3 className="font-black text-sm text-slate-900">Change 4-Digit Kiosk PIN</h3>
+                <h3 className="font-black text-sm text-slate-900">Change 4-Digit Shift PIN</h3>
               </div>
               <button
                 type="button"
@@ -377,7 +377,7 @@ export default function StaffTimesheetView() {
             <form onSubmit={handleSavePin} className="space-y-4">
               <div className="p-3 bg-slate-50 rounded-2xl border border-slate-200 text-[11px] text-slate-600">
                 Current PIN: <strong className="font-mono text-orange-600 font-black">{currentStaff.kioskPin || '4829'}</strong>
-                <p className="text-[10px] text-slate-400 mt-0.5">Use your 4-digit PIN at the login page Kiosk to punch shifts.</p>
+                <p className="text-[10px] text-slate-400 mt-0.5">Use your 4-digit PIN at the login page Shift Terminal to punch shifts.</p>
               </div>
 
               {pinError && (

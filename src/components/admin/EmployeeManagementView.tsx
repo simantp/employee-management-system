@@ -4,19 +4,21 @@ import React, { useState } from 'react';
 import { useApp } from '@/lib/store';
 import { Employee, Department } from '@/types';
 import EmployeeDetailModal from './EmployeeDetailModal';
-import AddEmployeeModal from './AddEmployeeModal';
 
 export default function EmployeeManagementView({
   filterCategory = 'ALL'
 }: {
   filterCategory?: 'ALL' | 'PERSONAL' | 'EMPLOYMENT' | 'PAYROLL' | 'EMERGENCY';
 }) {
-  const { employees } = useApp();
+  const { employees, deleteEmployee, archiveEmployee } = useApp();
   const [search, setSearch] = useState('');
   const [selectedDept, setSelectedDept] = useState<string>('ALL');
   const [selectedStatus, setSelectedStatus] = useState<string>('ALL');
   const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
-  const [showAddModal, setShowAddModal] = useState(false);
+
+  // Modals for confirmation
+  const [employeeToDelete, setEmployeeToDelete] = useState<Employee | null>(null);
+  const [employeeToArchive, setEmployeeToArchive] = useState<Employee | null>(null);
 
   // Filtered staff list
   const filtered = employees.filter(emp => {
@@ -42,41 +44,9 @@ export default function EmployeeManagementView({
     return matchesSearch && matchesDept && matchesStatus;
   });
 
-  const totalStaff = employees.length;
-  const activeStaff = employees.filter(e => e.status === 'Active').length;
-  const onLeaveStaff = employees.filter(e => e.status === 'On Leave').length;
-  const unassignedDept = employees.filter(e => !e.department).length;
-
   return (
     <div className="space-y-6 animate-in fade-in duration-150 font-sans text-xs">
       
-      {/* Top Metric Header */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <div className="p-5 rounded-2xl bg-white border border-slate-200/80 shadow-xs">
-          <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">Total Staff</span>
-          <span className="text-2xl font-black text-slate-900 mt-1 block">{totalStaff}</span>
-          <span className="text-[10px] text-slate-500 font-medium">Registered in HsCreations</span>
-        </div>
-
-        <div className="p-5 rounded-2xl bg-white border border-slate-200/80 shadow-xs">
-          <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">Active Working</span>
-          <span className="text-2xl font-black text-emerald-600 mt-1 block">{activeStaff}</span>
-          <span className="text-[10px] text-emerald-700 font-medium">On site &amp; scheduled</span>
-        </div>
-
-        <div className="p-5 rounded-2xl bg-white border border-slate-200/80 shadow-xs">
-          <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">On Leave</span>
-          <span className="text-2xl font-black text-amber-600 mt-1 block">{onLeaveStaff}</span>
-          <span className="text-[10px] text-amber-700 font-medium">Annual / Sick leave</span>
-        </div>
-
-        <div className="p-5 rounded-2xl bg-white border border-slate-200/80 shadow-xs">
-          <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">Unassigned Dept</span>
-          <span className="text-2xl font-black text-orange-600 mt-1 block">{unassignedDept}</span>
-          <span className="text-[10px] text-orange-700 font-medium">Needs Admin setup</span>
-        </div>
-      </div>
-
       {/* Main Staff Management Directory Card */}
       <div className="bg-white rounded-3xl border border-slate-200/80 shadow-sm overflow-hidden">
         
@@ -127,16 +97,8 @@ export default function EmployeeManagementView({
                 <option value="Active">Active</option>
                 <option value="On Leave">On Leave</option>
                 <option value="Terminated">Terminated</option>
+                <option value="Archived">Archived</option>
               </select>
-            </div>
-
-            <div className="shrink-0 sm:ml-auto xl:ml-3">
-              <button
-                onClick={() => setShowAddModal(true)}
-                className="w-full sm:w-auto px-4 py-2 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-400 hover:to-amber-400 text-slate-950 rounded-xl text-xs font-black shadow-md shadow-orange-500/20 transition cursor-pointer shrink-0"
-              >
-                + Add Staff
-              </button>
             </div>
           </div>
         </div>
@@ -215,20 +177,50 @@ export default function EmployeeManagementView({
                           ? 'bg-emerald-50 text-emerald-700 border-emerald-200' 
                           : emp.status === 'On Leave' 
                           ? 'bg-amber-50 text-amber-700 border-amber-200' 
+                          : emp.status === 'Archived'
+                          ? 'bg-purple-50 text-purple-700 border-purple-200 font-black'
                           : 'bg-slate-100 text-slate-600 border-slate-200'
                       }`}>
                         {emp.status}
                       </span>
                     </td>
 
-                    {/* Actions */}
+                    {/* Actions: Manage, Archive/Restore, Delete */}
                     <td className="py-3.5 px-5 text-right" onClick={e => e.stopPropagation()}>
-                      <button
-                        onClick={() => setSelectedEmployee(emp)}
-                        className="px-3 py-1.5 rounded-xl bg-slate-900 hover:bg-orange-600 text-white font-bold text-[11px] transition inline-flex items-center shadow-xs cursor-pointer"
-                      >
-                        Manage &amp; Edit
-                      </button>
+                      <div className="flex items-center justify-end gap-1.5">
+                        <button
+                          type="button"
+                          onClick={() => setSelectedEmployee(emp)}
+                          className="px-2.5 py-1.5 rounded-xl bg-slate-900 hover:bg-orange-600 text-white font-bold text-[11px] transition inline-flex items-center shadow-xs cursor-pointer"
+                          title="Manage & Edit Profile"
+                        >
+                          Manage
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => setEmployeeToArchive(emp)}
+                          className={`px-2.5 py-1.5 rounded-xl font-bold text-[11px] transition inline-flex items-center gap-1 cursor-pointer border ${
+                            emp.status === 'Archived'
+                              ? 'bg-purple-50 hover:bg-purple-100 text-purple-700 border-purple-200'
+                              : 'bg-amber-50 hover:bg-amber-100 text-amber-800 border-amber-200'
+                          }`}
+                          title={emp.status === 'Archived' ? 'Restore / Unarchive staff member' : 'Archive staff member'}
+                        >
+                          <span>📦</span>
+                          <span>{emp.status === 'Archived' ? 'Restore' : 'Archive'}</span>
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => setEmployeeToDelete(emp)}
+                          className="px-2.5 py-1.5 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 font-bold text-[11px] transition inline-flex items-center gap-1 cursor-pointer"
+                          title="Permanently delete employee"
+                        >
+                          <span>🗑️</span>
+                          <span>Delete</span>
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 );
@@ -248,7 +240,7 @@ export default function EmployeeManagementView({
 
       </div>
 
-      {/* Modals */}
+      {/* Edit Profile Modal */}
       {selectedEmployee && (
         <EmployeeDetailModal
           employee={selectedEmployee}
@@ -256,10 +248,140 @@ export default function EmployeeManagementView({
         />
       )}
 
-      {showAddModal && (
-        <AddEmployeeModal
-          onClose={() => setShowAddModal(false)}
-        />
+      {/* Archive / Restore Confirmation Modal */}
+      {employeeToArchive && (
+        <div 
+          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 backdrop-blur-xs p-4 overflow-y-auto"
+          onClick={() => setEmployeeToArchive(null)}
+        >
+          <div 
+            className="bg-white rounded-3xl shadow-2xl border border-slate-200 max-w-md w-full p-6 text-xs animate-in fade-in zoom-in-95 space-y-4"
+            onClick={e => e.stopPropagation()}
+          >
+            <div className="flex items-center gap-3">
+              <div className={`w-10 h-10 rounded-2xl flex items-center justify-center text-lg font-bold ${
+                employeeToArchive.status === 'Archived' ? 'bg-purple-100 text-purple-700' : 'bg-amber-100 text-amber-700'
+              }`}>
+                📦
+              </div>
+              <div>
+                <h3 className="text-base font-bold text-slate-900">
+                  {employeeToArchive.status === 'Archived' ? 'Restore Staff Member' : 'Archive Staff Member'}
+                </h3>
+                <p className="text-[11px] text-slate-500">
+                  {employeeToArchive.status === 'Archived' ? 'Reactivate staff profile' : 'Preserve records in database'}
+                </p>
+              </div>
+            </div>
+
+            <div className="p-3.5 bg-slate-50 border border-slate-200 rounded-2xl flex items-center gap-3">
+              <img
+                src={employeeToArchive.avatarUrl || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150'}
+                alt={employeeToArchive.firstName}
+                className="w-11 h-11 rounded-xl object-cover ring-2 ring-slate-200"
+              />
+              <div className="min-w-0">
+                <p className="font-extrabold text-slate-900 text-sm truncate">
+                  {employeeToArchive.firstName} {employeeToArchive.lastName}
+                </p>
+                <p className="text-[11px] font-mono text-slate-500">ID: {employeeToArchive.employeeNumber}</p>
+                <p className="text-[11px] text-slate-600">{employeeToArchive.jobTitle} • {employeeToArchive.department || 'Operations'}</p>
+              </div>
+            </div>
+
+            <p className="text-slate-600 leading-relaxed">
+              {employeeToArchive.status === 'Archived'
+                ? `Restoring ${employeeToArchive.firstName} ${employeeToArchive.lastName} will set their status back to Active.`
+                : `Archiving will hide ${employeeToArchive.firstName} ${employeeToArchive.lastName} from active floor shifts. All historical timecards, leave requests, documents, and audit logs remain permanently stored in the MySQL database.`}
+            </p>
+
+            <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100">
+              <button
+                type="button"
+                onClick={() => setEmployeeToArchive(null)}
+                className="px-4 py-2 rounded-xl border border-slate-200 bg-white font-bold text-slate-700 hover:bg-slate-50 transition cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  archiveEmployee(employeeToArchive.id, employeeToArchive.status !== 'Archived');
+                  setEmployeeToArchive(null);
+                }}
+                className={`px-5 py-2 rounded-xl text-white font-bold transition shadow-xs cursor-pointer ${
+                  employeeToArchive.status === 'Archived'
+                    ? 'bg-purple-600 hover:bg-purple-700'
+                    : 'bg-amber-600 hover:bg-amber-700'
+                }`}
+              >
+                {employeeToArchive.status === 'Archived' ? 'Confirm Restore' : 'Confirm Archive'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {employeeToDelete && (
+        <div 
+          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 backdrop-blur-xs p-4 overflow-y-auto"
+          onClick={() => setEmployeeToDelete(null)}
+        >
+          <div 
+            className="bg-white rounded-3xl shadow-2xl border border-slate-200 max-w-md w-full p-6 text-xs animate-in fade-in zoom-in-95 space-y-4"
+            onClick={e => e.stopPropagation()}
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-2xl bg-rose-100 text-rose-600 flex items-center justify-center text-lg font-bold">
+                🗑️
+              </div>
+              <div>
+                <h3 className="text-base font-bold text-slate-900">Delete Employee Profile</h3>
+                <p className="text-[11px] text-slate-500">Permanent database removal</p>
+              </div>
+            </div>
+
+            <div className="p-3.5 bg-rose-50/70 border border-rose-100 rounded-2xl flex items-center gap-3">
+              <img
+                src={employeeToDelete.avatarUrl || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150'}
+                alt={employeeToDelete.firstName}
+                className="w-11 h-11 rounded-xl object-cover ring-2 ring-rose-200"
+              />
+              <div className="min-w-0">
+                <p className="font-extrabold text-slate-900 text-sm truncate">
+                  {employeeToDelete.firstName} {employeeToDelete.lastName}
+                </p>
+                <p className="text-[11px] font-mono text-slate-500">ID: {employeeToDelete.employeeNumber}</p>
+                <p className="text-[11px] text-slate-600">{employeeToDelete.jobTitle} • {employeeToDelete.department || 'Operations'}</p>
+              </div>
+            </div>
+
+            <p className="text-slate-600 leading-relaxed">
+              Are you sure you want to permanently delete this employee? This will remove their profile and records from the database. This action cannot be undone.
+            </p>
+
+            <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100">
+              <button
+                type="button"
+                onClick={() => setEmployeeToDelete(null)}
+                className="px-4 py-2 rounded-xl border border-slate-200 bg-white font-bold text-slate-700 hover:bg-slate-50 transition cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  deleteEmployee(employeeToDelete.id);
+                  setEmployeeToDelete(null);
+                }}
+                className="px-5 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-bold transition shadow-xs cursor-pointer"
+              >
+                Permanently Delete
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
     </div>

@@ -1,10 +1,15 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import { useApp } from '@/lib/store';
+import { Announcement } from '@/types';
+import ConfirmDeleteModal from '@/components/common/ConfirmDeleteModal';
 
 export default function StaffAnnouncementsView() {
-  const { announcements } = useApp();
+  const { announcements, deleteAnnouncement, activePortal, currentUser } = useApp();
+  const [deletingAnnouncement, setDeletingAnnouncement] = useState<Announcement | null>(null);
+
+  const isAdmin = activePortal === 'ADMIN' || currentUser?.role === 'SUPER_ADMIN' || currentUser?.role === 'ADMIN';
 
   return (
     <div className="p-6 lg:p-8 space-y-6 max-w-7xl mx-auto animate-in fade-in duration-150 text-xs font-sans">
@@ -27,15 +32,42 @@ export default function StaffAnnouncementsView() {
                   by {a.author}
                 </span>
               </div>
-              <span className="text-slate-400 text-[11px] font-medium">
-                {a.date}
-              </span>
+              <div className="flex items-center gap-3">
+                <span className="text-slate-400 text-[11px] font-medium">
+                  {a.date}
+                </span>
+                {isAdmin && (
+                  <button
+                    type="button"
+                    onClick={() => setDeletingAnnouncement(a)}
+                    className="text-slate-400 hover:text-rose-600 font-bold text-[11px] transition cursor-pointer px-2 py-0.5 rounded-lg hover:bg-rose-50"
+                  >
+                    Delete
+                  </button>
+                )}
+              </div>
             </div>
             <h3 className="font-extrabold text-base text-slate-900">{a.title}</h3>
             <p className="text-slate-600 leading-relaxed text-xs">{a.content}</p>
           </div>
         ))}
       </div>
+
+      {/* Modern Confirmation Modal for Deleting Announcement */}
+      <ConfirmDeleteModal
+        isOpen={!!deletingAnnouncement}
+        title="Delete Company Announcement?"
+        itemName={deletingAnnouncement?.title}
+        description={deletingAnnouncement ? `Are you sure you want to remove "${deletingAnnouncement.title}"? It will no longer appear on staff dashboards.` : undefined}
+        confirmButtonText="Delete Announcement"
+        onConfirm={() => {
+          if (deletingAnnouncement) {
+            deleteAnnouncement(deletingAnnouncement.id);
+            setDeletingAnnouncement(null);
+          }
+        }}
+        onCancel={() => setDeletingAnnouncement(null)}
+      />
     </div>
   );
 }

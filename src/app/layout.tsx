@@ -3,7 +3,7 @@ import { AppProvider } from '@/lib/store';
 import NotificationToast from '@/components/common/NotificationToast';
 
 export const metadata = {
-  title: 'Australian Employee Management System & Portals',
+  title: 'HsCreations Employee Records Management',
   description: 'Enterprise HR, Payroll, Leave Management, and Australian Compliance System',
 };
 

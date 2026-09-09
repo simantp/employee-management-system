@@ -13,6 +13,7 @@ const data = [
 ];
 
 export default function DepartmentDonutChart() {
+  const total = data.reduce((sum, d) => sum + d.value, 0);
   return (
     <div className="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-sm flex flex-col h-full">
       <div className="flex items-center justify-between mb-4">
@@ -72,10 +73,11 @@ export default function DepartmentDonutChart() {
         </div>
       </div>
 
-      <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-xs">
-        <a href="#employees" className="text-blue-600 font-bold hover:underline text-[11px]">
-          View full department report →
-        </a>
+      <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
+        <span className="text-[11px] font-semibold text-slate-600">
+          Total Headcount: <strong className="text-slate-900 font-bold">{total} Staff</strong>
+        </span>
+        <span className="text-[10px] text-slate-400 font-mono">Sydney Metro</span>
       </div>
     </div>
   );

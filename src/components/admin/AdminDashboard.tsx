@@ -2,10 +2,6 @@
 
 import React, { useState } from 'react';
 import KPICard from './KPICard';
-import DepartmentDonutChart from './DepartmentDonutChart';
-import VisaExpiryAlerts from './VisaExpiryAlerts';
-import ComplianceStatusDonut from './ComplianceStatusDonut';
-import EmployeeDirectoryTable from './EmployeeDirectoryTable';
 import PendingLeaveApprovals from './PendingLeaveApprovals';
 import PendingDocumentApprovals from './PendingDocumentApprovals';
 import AuditLogViewer from './AuditLogViewer';
@@ -13,9 +9,10 @@ import EmployeeDetailModal from './EmployeeDetailModal';
 import PostAnnouncementModal from './PostAnnouncementModal';
 import EmployeeManagementView from './EmployeeManagementView';
 import AdminTimecardManagement from './AdminTimecardManagement';
-import AdminComplianceManagement from './AdminComplianceManagement';
 import AdminAlertsReminders from './AdminAlertsReminders';
 import AdminSettingsHub from './AdminSettingsHub';
+import ActiveStaffModal from './ActiveStaffModal';
+import VisaLicenseAlertsModal from './VisaLicenseAlertsModal';
 import { Employee } from '@/types';
 import { useApp } from '@/lib/store';
 
@@ -24,22 +21,52 @@ export default function AdminDashboard({
 }: {
   activeTab?: string;
 }) {
-  const { leaveRequests, employees } = useApp();
+  const { employees, alerts, expirySettings } = useApp();
   const [showAnnouncementModal, setShowAnnouncementModal] = useState(false);
+  const [showActiveStaffModal, setShowActiveStaffModal] = useState(false);
+  const [showVisaLicenseAlertsModal, setShowVisaLicenseAlertsModal] = useState(false);
   const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
+  const [selectedEmployeeSection, setSelectedEmployeeSection] = useState<'EMPLOYMENT' | 'PERSONAL' | 'VISA_LICENCE_EMERGENCY' | 'BANKING' | 'DOCUMENTS'>('EMPLOYMENT');
 
-  const pendingApprovals = leaveRequests.filter(r => r.status === 'PENDING').length;
   const activeStaffOnDuty = employees.filter(e => e.clockState === 'CLOCKED_IN').length;
 
-  // Calculate pending documents
-  let pendingDocsCount = 0;
-  employees.forEach(emp => {
-    emp.documents?.forEach(d => {
-      if (d.status === 'Pending') pendingDocsCount++;
-    });
-  });
+  // Calculate Visa and License Warning & Critical alerts count
+  const parseDays = (dateStr?: string) => {
+    if (!dateStr) return null;
+    let expDate: Date | null = null;
+    if (dateStr.includes('/')) {
+      const parts = dateStr.split('/');
+      if (parts.length === 3) expDate = new Date(`${parts[2]}-${parts[1]}-${parts[0]}`);
+    } else {
+      expDate = new Date(dateStr);
+    }
+    if (!expDate || isNaN(expDate.getTime())) return null;
+    return Math.ceil((expDate.getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24));
+  };
 
-  const totalUrgentActions = pendingApprovals + pendingDocsCount;
+  let visaAndLicenseAlertCount = 0;
+  employees.forEach(emp => {
+    if (emp.visaExpiryDate && emp.citizenStatus !== 'CITIZEN' && emp.citizenStatus !== 'PERMANENT_RESIDENT') {
+      let days = parseDays(emp.visaExpiryDate);
+      if (days === null) {
+        const matching = alerts.find(a => a.employeeId === emp.id && a.type === 'VISA_EXPIRY');
+        if (matching) days = matching.daysRemaining;
+      }
+      if (days !== null && days <= expirySettings.visaWarningDays) {
+        visaAndLicenseAlertCount++;
+      }
+    }
+    if (emp.hasDriverLicense && emp.licenseExpiryDate) {
+      let days = parseDays(emp.licenseExpiryDate);
+      if (days === null) {
+        const matching = alerts.find(a => a.employeeId === emp.id && a.type === 'LICENSE_EXPIRY');
+        if (matching) days = matching.daysRemaining;
+      }
+      if (days !== null && days <= expirySettings.licenseWarningDays) {
+        visaAndLicenseAlertCount++;
+      }
+    }
+  });
 
   return (
     <div className="p-6 lg:p-8 space-y-6 max-w-7xl mx-auto animate-in fade-in duration-200">
@@ -50,9 +77,6 @@ export default function AdminDashboard({
             <h1 className="text-xl lg:text-2xl font-black text-slate-900 tracking-tight">
               Admin Command Center
             </h1>
-            <p className="text-xs text-slate-500 mt-0.5">
-              Sydney Plant &amp; Headquarters Management • Australian Compliance Hub
-            </p>
           </div>
 
           <div className="flex items-center gap-3">
@@ -72,10 +96,7 @@ export default function AdminDashboard({
       ) : activeTab === 'employees' ? (
         <EmployeeManagementView />
       ) : activeTab === 'approvals' ? (
-        <div className="space-y-6">
-          <PendingLeaveApprovals mode="full" />
-          <PendingDocumentApprovals />
-        </div>
+        <PendingLeaveApprovals mode="full" />
       ) : (activeTab === 'alerts' || activeTab === 'compliance' || activeTab === 'visa-alerts' || activeTab === 'license-alerts' || activeTab === 'whs-policies') ? (
         <AdminAlertsReminders defaultTab={activeTab === 'visa-alerts' ? 'visa' : activeTab === 'license-alerts' ? 'license' : 'all'} />
       ) : activeTab === 'settings' ? (
@@ -88,37 +109,21 @@ export default function AdminDashboard({
         <AuditLogViewer />
       ) : (
         <>
-          {/* 1. Core High-Impact KPI Metrics */}
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+          {/* 1. Core High-Impact KPI Metrics (2 Cards: Live on Shift & Visa/License Alerts) */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 lg:gap-6">
             <KPICard
               value={String(activeStaffOnDuty)}
               label="Live on Shift"
-              sublabel="Active floor staff"
+              sublabel="Active floor staff • Click to view list"
               colorScheme="green"
+              onClick={() => setShowActiveStaffModal(true)}
             />
             <KPICard
-              value={String(employees.length || 42)}
-              label="Total Employees"
-              sublabel="Active workforce"
-              colorScheme="blue"
-            />
-            <KPICard
-              value={String(totalUrgentActions)}
-              label="Pending Actions"
-              sublabel="Leave & docs review"
-              colorScheme="rose"
-            />
-            <KPICard
-              value="3"
-              label="Visa Expiry Alerts"
-              sublabel="Within 30–60 days"
+              value={String(visaAndLicenseAlertCount)}
+              label="Visa and License Expiry Alerts"
+              sublabel="Urgent & approaching renewals • Click to view"
               colorScheme="amber"
-            />
-            <KPICard
-              value="98.5%"
-              label="Fair Work Compliance"
-              sublabel="Audit score"
-              colorScheme="purple"
+              onClick={() => setShowVisaLicenseAlertsModal(true)}
             />
           </div>
 
@@ -127,28 +132,39 @@ export default function AdminDashboard({
             <PendingLeaveApprovals mode="compact" />
             <PendingDocumentApprovals />
           </div>
-
-          {/* 3. Visual Telemetry & Analytics Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <DepartmentDonutChart />
-            <VisaExpiryAlerts />
-            <ComplianceStatusDonut />
-          </div>
-
-          {/* 4. Staff Directory Table Overview */}
-          <EmployeeDirectoryTable 
-            onSelectEmployee={(emp) => setSelectedEmployee(emp)} 
-          />
         </>
       )}
 
+      {/* Broadcast Announcement Modal */}
       {showAnnouncementModal && (
         <PostAnnouncementModal onClose={() => setShowAnnouncementModal(false)} />
       )}
 
+      {/* Live Active On-Shift Staff Modal */}
+      <ActiveStaffModal
+        isOpen={showActiveStaffModal}
+        onClose={() => setShowActiveStaffModal(false)}
+        onSelectEmployee={(emp) => {
+          setSelectedEmployeeSection('EMPLOYMENT');
+          setSelectedEmployee(emp);
+        }}
+      />
+
+      {/* Visa and License Expiry Alerts Modal */}
+      <VisaLicenseAlertsModal
+        isOpen={showVisaLicenseAlertsModal}
+        onClose={() => setShowVisaLicenseAlertsModal(false)}
+        onSelectEmployee={(emp, section = 'DOCUMENTS') => {
+          setSelectedEmployeeSection(section);
+          setSelectedEmployee(emp);
+        }}
+      />
+
+      {/* Employee Detail & Edit Modal */}
       {selectedEmployee && (
         <EmployeeDetailModal 
           employee={selectedEmployee} 
+          initialSection={selectedEmployeeSection}
           onClose={() => setSelectedEmployee(null)} 
         />
       )}

@@ -17,9 +17,8 @@ export default function AdminSidebar({
   const navItems = [
     { id: 'dashboard', label: 'Dashboard', badge: null },
     { id: 'timecards', label: 'Timecard & Shifts', badge: activeWorkingStaffCount > 0 ? `${activeWorkingStaffCount} Active` : null },
-    { id: 'employees', label: 'Employees', badge: String(employees.length) },
-    { id: 'approvals', label: 'Leave Approvals', badge: pendingApprovals > 0 ? String(pendingApprovals) : null },
-    { id: 'alerts', label: 'Alerts & Reminders', badge: alerts.length > 0 ? String(alerts.length) : null },
+    { id: 'employees', label: 'Employees', badge: null },
+    { id: 'alerts', label: 'Visa and License Alerts', badge: null },
   ];
 
   const handleNav = (id: string) => {
@@ -44,9 +43,6 @@ export default function AdminSidebar({
                 ADMIN
               </span>
             </div>
-            <span className="text-[10px] font-semibold text-orange-400 tracking-wider uppercase">
-              Sydney Command Center
-            </span>
           </div>
         </div>
       </div>
@@ -72,8 +68,6 @@ export default function AdminSidebar({
                 <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold ${
                   isActive 
                     ? 'bg-white/20 text-white' 
-                    : item.id === 'approvals' 
-                    ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30 animate-pulse'
                     : 'bg-slate-800 text-slate-300'
                 }`}>
                   {item.badge}
@@ -84,7 +78,7 @@ export default function AdminSidebar({
         })}
       </div>
 
-      {/* Settings & Audit Log Section */}
+      {/* Settings, Leave Approval Records & Audit Log Section */}
       <div className="p-3 border-t border-slate-800/80 space-y-1.5">
         <button
           onClick={() => handleNav('settings')}
@@ -98,6 +92,29 @@ export default function AdminSidebar({
             {activeTab === 'settings' && <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />}
             <span>Settings</span>
           </div>
+        </button>
+
+        <button
+          onClick={() => handleNav('approvals')}
+          className={`w-full flex items-center justify-between px-4 py-2.5 rounded-xl text-xs transition-all duration-150 relative ${
+            activeTab === 'approvals'
+              ? 'bg-blue-600 text-white shadow-md shadow-blue-600/30 font-bold'
+              : 'text-slate-400 hover:text-white hover:bg-slate-800/60 font-semibold'
+          }`}
+        >
+          <div className="flex items-center gap-2.5">
+            {activeTab === 'approvals' && <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />}
+            <span>Leave Approval Records</span>
+          </div>
+          {pendingApprovals > 0 && (
+            <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold ${
+              activeTab === 'approvals'
+                ? 'bg-white/20 text-white'
+                : 'bg-amber-500/20 text-amber-400 border border-amber-500/30 animate-pulse'
+            }`}>
+              {pendingApprovals}
+            </span>
+          )}
         </button>
 
         <button

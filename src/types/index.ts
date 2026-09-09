@@ -137,7 +137,7 @@ export interface Employee {
   payslips: Payslip[];
   documents: EmployeeDocument[];
 
-  // Timecard & Kiosk Clock-in System
+  // Timecard & Shift Clock-in System
   kioskPin?: string; // 4-digit Quick PIN e.g. "4829"
   clockState?: 'CLOCKED_IN' | 'CLOCKED_OUT';
   lastClockIn?: string;
@@ -253,3 +253,12 @@ export interface Announcement {
   isPinned?: boolean;
 }
 
+export interface ExpiryReminderSettings {
+  autoReminderEnabled: boolean;
+  visaWarningDays: number;
+  visaCriticalDays: number;
+  licenseWarningDays: number;
+  licenseCriticalDays: number;
+  warningFrequencyDays: number;
+  criticalFrequencyDays: number;
+}

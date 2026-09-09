@@ -4,16 +4,20 @@ import React, { useState } from 'react';
 import { Employee, Department } from '@/types';
 import { decryptAES256, encryptAES256, maskSensitive } from '@/lib/crypto';
 import { useApp } from '@/lib/store';
+import EmployeeDocumentsTab from './EmployeeDocumentsTab';
 
 export default function EmployeeDetailModal({
   employee,
-  onClose
+  onClose,
+  initialSection = 'EMPLOYMENT'
 }: {
   employee: Employee;
   onClose: () => void;
+  initialSection?: 'EMPLOYMENT' | 'PERSONAL' | 'VISA_LICENCE_EMERGENCY' | 'BANKING' | 'DOCUMENTS';
 }) {
-  const { updateEmployee } = useApp();
-  const [activeSection, setActiveSection] = useState<'EMPLOYMENT' | 'PERSONAL' | 'VISA_LICENCE_EMERGENCY' | 'BANKING'>('EMPLOYMENT');
+  const { employees, updateEmployee } = useApp();
+  const currentEmp = employees.find(e => e.id === employee.id) || employee;
+  const [activeSection, setActiveSection] = useState<'EMPLOYMENT' | 'PERSONAL' | 'VISA_LICENCE_EMERGENCY' | 'BANKING' | 'DOCUMENTS'>(initialSection);
   const [isEditing, setIsEditing] = useState(false);
   const [showEncrypted, setShowEncrypted] = useState(false);
 
@@ -220,6 +224,25 @@ export default function EmployeeDetailModal({
           >
             Banking &amp; Super
           </button>
+
+          <button
+            type="button"
+            onClick={() => setActiveSection('DOCUMENTS')}
+            className={`px-3.5 py-2 rounded-t-xl font-bold text-xs border-b-2 transition flex items-center gap-1.5 cursor-pointer ${
+              activeSection === 'DOCUMENTS' 
+                ? 'border-slate-900 text-slate-900 bg-white' 
+                : 'border-transparent text-slate-500 hover:text-slate-900'
+            }`}
+          >
+            <span>Uploaded Documents</span>
+            <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-extrabold ${
+              (currentEmp.documents?.filter(d => d.status === 'Pending').length || 0) > 0 
+                ? 'bg-amber-100 text-amber-800 border border-amber-200' 
+                : 'bg-slate-200 text-slate-700'
+            }`}>
+              {currentEmp.documents?.length || 0}
+            </span>
+          </button>
         </div>
 
         {/* Content Body Form */}
@@ -286,7 +309,7 @@ export default function EmployeeDetailModal({
 
                   <div>
                     <label className="font-bold text-slate-700 block mb-1 flex items-center justify-between">
-                      <span>4-Digit Kiosk Punch PIN</span>
+                      <span>4-Digit Shift Punch PIN</span>
                       <span className="text-[10px] text-orange-600 font-black font-mono">Shift Punch</span>
                     </label>
                     <input
@@ -728,6 +751,11 @@ export default function EmployeeDetailModal({
                   </div>
                 </div>
               </div>
+            )}
+
+            {/* 5. UPLOADED DOCUMENTS & COMPLIANCE VAULT */}
+            {activeSection === 'DOCUMENTS' && (
+              <EmployeeDocumentsTab employeeId={employee.id} />
             )}
 
           </div>

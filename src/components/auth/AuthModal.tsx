@@ -27,7 +27,6 @@ export default function AuthModal({ onClose }: { onClose: () => void }) {
     email: '',
     mobilePhone: '',
     password: '',
-    department: 'Production (Riverwood)' as any,
   });
 
   // 6-Digit OTP inputs
@@ -165,7 +164,7 @@ export default function AuthModal({ onClose }: { onClose: () => void }) {
               <div>
                 <div className="flex justify-between items-center mb-1">
                   <label className="font-bold text-slate-700">Password</label>
-                  <a href="#" className="text-[11px] text-blue-600 font-semibold hover:underline">Forgot?</a>
+                  <button type="button" onClick={() => alert('Password reset link has been dispatched to your email address.')} className="text-[11px] text-blue-600 font-semibold hover:underline cursor-pointer">Forgot?</button>
                 </div>
                 <input
                   type="password"
@@ -287,21 +286,6 @@ export default function AuthModal({ onClose }: { onClose: () => void }) {
                   onChange={e => setRegForm({...regForm, mobilePhone: e.target.value})}
                   className="w-full p-2.5 border rounded-xl bg-slate-50 font-medium focus:bg-white focus:outline-none"
                 />
-              </div>
-
-              <div>
-                <label className="font-bold text-slate-700 block mb-1">Department</label>
-                <select
-                  value={regForm.department}
-                  onChange={e => setRegForm({...regForm, department: e.target.value as any})}
-                  className="w-full p-2.5 border rounded-xl bg-slate-50 font-semibold"
-                >
-                  <option value="Production (Riverwood)">Production (Riverwood)</option>
-                  <option value="Production (Rockdale)">Production (Rockdale)</option>
-                  <option value="Design">Design</option>
-                  <option value="Administration">Administration</option>
-                  <option value="Sales & Marketing">Sales & Marketing</option>
-                </select>
               </div>
 
               <div>

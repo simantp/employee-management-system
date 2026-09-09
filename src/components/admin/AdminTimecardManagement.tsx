@@ -1,52 +1,82 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useApp } from '@/lib/store';
 import { TimecardRecord, Employee, Department } from '@/types';
+import ConfirmDeleteModal from '@/components/common/ConfirmDeleteModal';
+
+// --- Month & Date Utility Helpers ---
+const MONTH_NAMES = [
+  'January', 'February', 'March', 'April', 'May', 'June',
+  'July', 'August', 'September', 'October', 'November', 'December'
+];
+const MONTH_NAMES_SHORT = [
+  'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+  'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
+];
+
+function parseDateFlexible(dateStr: string): Date | null {
+  if (!dateStr) return null;
+  const clean = dateStr.trim();
+
+  // Try standard parse
+  const t = Date.parse(clean);
+  if (!isNaN(t)) {
+    const d = new Date(t);
+    if (!isNaN(d.getTime())) return d;
+  }
+
+  // Handle "17 Aug 2026" or "17 August 2026" or "17-Aug-2026"
+  const parts = clean.split(/[\s,/-]+/);
+  if (parts.length >= 3) {
+    const day = parseInt(parts[0], 10);
+    const mStr = parts[1].toLowerCase();
+    const year = parseInt(parts[2], 10);
+    const mIdx = MONTH_NAMES_SHORT.findIndex(m => mStr.startsWith(m.toLowerCase()));
+    if (!isNaN(day) && mIdx !== -1 && !isNaN(year)) {
+      return new Date(year, mIdx, day);
+    }
+
+    const yVal = parseInt(parts[0], 10);
+    const mVal = parseInt(parts[1], 10) - 1;
+    const dVal = parseInt(parts[2], 10);
+    if (yVal > 1900 && mVal >= 0 && mVal <= 11 && dVal >= 1 && dVal <= 31) {
+      return new Date(yVal, mVal, dVal);
+    }
+  }
+  return null;
+}
 
 function getMonthKey(dateStr: string): string {
-  if (!dateStr) return 'August 2026';
-  try {
-    const d = new Date(dateStr);
-    if (!isNaN(d.getTime())) {
-      return d.toLocaleDateString('en-AU', { month: 'long', year: 'numeric' });
-    }
-  } catch (e) {}
-
-  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-  const fullMonths = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
-  for (let i = 0; i < months.length; i++) {
-    if (dateStr.includes(months[i]) || dateStr.includes(fullMonths[i])) {
-      const yearMatch = dateStr.match(/\d{4}/);
-      const year = yearMatch ? yearMatch[0] : '2026';
-      return `${fullMonths[i]} ${year}`;
-    }
+  const d = parseDateFlexible(dateStr);
+  if (d) {
+    return `${MONTH_NAMES[d.getMonth()]} ${d.getFullYear()}`;
   }
   return 'August 2026';
 }
 
 function getDayOfWeek(dateStr: string): string {
-  if (!dateStr) return 'Monday';
-  try {
-    const d = new Date(dateStr);
-    if (!isNaN(d.getTime())) {
-      return d.toLocaleDateString('en-AU', { weekday: 'long' });
-    }
-  } catch (e) {}
-
-  const parts = dateStr.trim().split(/[\s-]+/);
-  if (parts.length >= 3) {
-    const day = parseInt(parts[0], 10);
-    const monthStr = parts[1];
-    const year = parseInt(parts[2], 10);
-    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-    const mIdx = months.findIndex(m => monthStr.toLowerCase().startsWith(m.toLowerCase()));
-    if (mIdx !== -1 && !isNaN(day) && !isNaN(year)) {
-      const d = new Date(year, mIdx, day);
-      return d.toLocaleDateString('en-AU', { weekday: 'long' });
-    }
+  const d = parseDateFlexible(dateStr);
+  if (d) {
+    return d.toLocaleDateString('en-AU', { weekday: 'long' });
   }
   return 'Monday';
+}
+
+function isWeekend(dateStr: string): boolean {
+  const d = parseDateFlexible(dateStr);
+  if (d) {
+    const day = d.getDay();
+    return day === 0 || day === 6; // 0 = Sunday, 6 = Saturday
+  }
+  return false;
+}
+
+function formatDateDisplay(d: Date): string {
+  const day = String(d.getDate()).padStart(2, '0');
+  const month = MONTH_NAMES_SHORT[d.getMonth()];
+  const year = d.getFullYear();
+  return `${day} ${month} ${year}`;
 }
 
 function formatSecondsToHMS(totalSec: number): string {
@@ -89,7 +119,6 @@ function getShiftRunningSeconds(t: TimecardRecord, nowMs: number): number {
     return Math.max(0, Math.floor((nowMs - t.clockInTimestamp) / 1000));
   }
 
-  // If clockIn is string format e.g. "07:30 AM"
   try {
     const parts = (t.clockIn || '').match(/(\d+):(\d+)(?::(\d+))?\s*(AM|PM)?/i);
     if (!parts) return 0;
@@ -106,7 +135,7 @@ function getShiftRunningSeconds(t: TimecardRecord, nowMs: number): number {
     if (diffSec >= 0 && diffSec < 24 * 3600) {
       return diffSec;
     }
-    return 0; // Starts clean from 00:00:00!
+    return 0;
   } catch (e) {
     return 0;
   }
@@ -129,7 +158,6 @@ export default function AdminTimecardManagement() {
   const { 
     timecards, 
     employees, 
-    leaveRequests, 
     adminAdjustTimecard, 
     adminAddTimecard, 
     adminDeleteTimecard,
@@ -144,14 +172,30 @@ export default function AdminTimecardManagement() {
     return () => clearInterval(timer);
   }, []);
 
+  // --- Selected Month & Date State (Auto-selects Today's Date) ---
+  const [selectedYear, setSelectedYear] = useState<number>(() => new Date().getFullYear());
+  const [selectedMonthIndex, setSelectedMonthIndex] = useState<number>(() => new Date().getMonth());
+  const [selectedDateString, setSelectedDateString] = useState<string>(() => formatDateDisplay(new Date()));
+
+  useEffect(() => {
+    const today = new Date();
+    setSelectedYear(today.getFullYear());
+    setSelectedMonthIndex(today.getMonth());
+    setSelectedDateString(formatDateDisplay(today));
+  }, []);
+  
+  // Search & Filter state
   const [search, setSearch] = useState('');
   const [staffFilter, setStaffFilter] = useState('ALL');
-  const [monthFilter, setMonthFilter] = useState('ALL');
+  const [departmentFilter, setDepartmentFilter] = useState('ALL');
 
+  // Modals state
   const [editingRecord, setEditingRecord] = useState<TimecardRecord | null>(null);
+  const [deletingTimecard, setDeletingTimecard] = useState<TimecardRecord | null>(null);
   const [showAddModal, setShowAddModal] = useState(false);
-  const [showReportModal, setShowReportModal] = useState(false);
+  const [showPdfModal, setShowPdfModal] = useState(false);
 
+  // Manual Add Form State
   const [formEmployeeId, setFormEmployeeId] = useState('');
   const [formDate, setFormDate] = useState('');
   const [formClockIn, setFormClockIn] = useState('07:30 AM');
@@ -159,41 +203,160 @@ export default function AdminTimecardManagement() {
   const [formBreak, setFormBreak] = useState<number>(30);
   const [formNotes, setFormNotes] = useState('');
 
+  // --- PDF Summary Modal Filter State ---
+  const [pdfStaffScope, setPdfStaffScope] = useState<'ALL' | 'SPECIFIC'>('ALL');
+  const [pdfSelectedStaffId, setPdfSelectedStaffId] = useState<string>('');
+  const [pdfTimeframeType, setPdfTimeframeType] = useState<'MONTH' | 'CUSTOM' | 'DATE'>('MONTH');
+  const [pdfSelectedMonth, setPdfSelectedMonth] = useState<string>('August 2026');
+  const [pdfCustomStartDate, setPdfCustomStartDate] = useState<string>('2026-08-01');
+  const [pdfCustomEndDate, setPdfCustomEndDate] = useState<string>('2026-08-31');
+  const [pdfIncludeOTBreakdown, setPdfIncludeOTBreakdown] = useState<boolean>(true);
+  const [pdfIncludeSignoff, setPdfIncludeSignoff] = useState<boolean>(true);
+
+  // Active Floor Staff
   const activeStaff = employees.filter(e => e.clockState === 'CLOCKED_IN');
 
-  const availableMonths = Array.from(
-    new Set(timecards.map(t => getMonthKey(t.date)))
-  );
-  if (!availableMonths.includes('August 2026')) availableMonths.unshift('August 2026');
-  if (!availableMonths.includes('July 2026')) availableMonths.push('July 2026');
+  // Generate available months list from records + defaults
+  const availableMonthKeys = useMemo(() => {
+    const set = new Set<string>();
+    set.add('August 2026');
+    set.add('July 2026');
+    set.add('September 2026');
+    timecards.forEach(t => {
+      set.add(getMonthKey(t.date));
+    });
+    return Array.from(set);
+  }, [timecards]);
 
-  const filteredTimecards = timecards.filter(t => {
-    const q = search.toLowerCase();
-    const matchQuery = 
-      t.employeeName.toLowerCase().includes(q) ||
-      (t.department && t.department.toLowerCase().includes(q)) ||
-      t.date.toLowerCase().includes(q);
+  // Current Month Label (e.g. "August 2026")
+  const currentMonthLabel = `${MONTH_NAMES[selectedMonthIndex]} ${selectedYear}`;
 
-    const matchStaff = staffFilter === 'ALL' || t.employeeId === staffFilter;
-    const matchMonth = monthFilter === 'ALL' || getMonthKey(t.date) === monthFilter;
+  // Days in selected Month
+  const daysInMonth = useMemo(() => {
+    const totalDays = new Date(selectedYear, selectedMonthIndex + 1, 0).getDate();
+    const days = [];
+    for (let day = 1; day <= totalDays; day++) {
+      const d = new Date(selectedYear, selectedMonthIndex, day);
+      const dateKey = formatDateDisplay(d);
+      const dayName = d.toLocaleDateString('en-AU', { weekday: 'short' });
+      const dayFullName = d.toLocaleDateString('en-AU', { weekday: 'long' });
+      const weekend = d.getDay() === 0 || d.getDay() === 6;
 
-    return matchQuery && matchStaff && matchMonth;
-  });
+      // Count shifts for this day
+      const shiftsOnDay = timecards.filter(t => {
+        const tDate = parseDateFlexible(t.date);
+        if (!tDate) return false;
+        return (
+          tDate.getFullYear() === selectedYear &&
+          tDate.getMonth() === selectedMonthIndex &&
+          tDate.getDate() === day
+        );
+      });
 
-  // Group filtered timecards month-wise
-  const timecardsByMonth = filteredTimecards.reduce<Record<string, TimecardRecord[]>>((acc, curr) => {
-    const m = getMonthKey(curr.date);
-    if (!acc[m]) acc[m] = [];
-    acc[m].push(curr);
-    return acc;
-  }, {});
+      days.push({
+        dayNumber: day,
+        dateKey,
+        dayName,
+        dayFullName,
+        isWeekend: weekend,
+        shiftCount: shiftsOnDay.length,
+        dateObj: d,
+      });
+    }
+    return days;
+  }, [selectedYear, selectedMonthIndex, timecards]);
 
-  const monthKeys = Object.keys(timecardsByMonth);
+  // Month navigation
+  const handlePrevMonth = () => {
+    if (selectedMonthIndex === 0) {
+      setSelectedMonthIndex(11);
+      setSelectedYear(selectedYear - 1);
+    } else {
+      setSelectedMonthIndex(selectedMonthIndex - 1);
+    }
+  };
 
-  const totalCompanyHours = filteredTimecards.reduce((acc, curr) => acc + (curr.totalHours || 0), 0);
-  const totalCompanyOvertime = filteredTimecards.reduce((acc, curr) => acc + (curr.overtimeHours || 0), 0);
-  const totalCompletedShifts = filteredTimecards.filter(t => t.status === 'COMPLETED' || t.status === 'MANUALLY_ADJUSTED').length;
+  const handleNextMonth = () => {
+    if (selectedMonthIndex === 11) {
+      setSelectedMonthIndex(0);
+      setSelectedYear(selectedYear + 1);
+    } else {
+      setSelectedMonthIndex(selectedMonthIndex + 1);
+    }
+  };
 
+  const handleSelectMonth = (monthLabel: string) => {
+    const parts = monthLabel.split(' ');
+    if (parts.length >= 2) {
+      const mIdx = MONTH_NAMES.indexOf(parts[0]);
+      const y = parseInt(parts[1], 10);
+      if (mIdx !== -1 && !isNaN(y)) {
+        setSelectedMonthIndex(mIdx);
+        setSelectedYear(y);
+      }
+    }
+  };
+
+  // Filtered Timecards for main view
+  const filteredTimecards = useMemo(() => {
+    return timecards.filter(t => {
+      const tDate = parseDateFlexible(t.date);
+      if (!tDate) return false;
+
+      // Month match
+      const matchMonth = (
+        tDate.getFullYear() === selectedYear &&
+        tDate.getMonth() === selectedMonthIndex
+      );
+      if (!matchMonth) return false;
+
+      // Specific Date match
+      if (selectedDateString !== 'ALL') {
+        const selDate = parseDateFlexible(selectedDateString);
+        if (selDate) {
+          const matchDay = (
+            tDate.getFullYear() === selDate.getFullYear() &&
+            tDate.getMonth() === selDate.getMonth() &&
+            tDate.getDate() === selDate.getDate()
+          );
+          if (!matchDay) return false;
+        }
+      }
+
+      // Staff filter
+      if (staffFilter !== 'ALL' && t.employeeId !== staffFilter) {
+        return false;
+      }
+
+      // Department filter
+      if (departmentFilter !== 'ALL' && t.department !== departmentFilter) {
+        return false;
+      }
+
+      // Search query
+      if (search.trim()) {
+        const q = search.toLowerCase();
+        const matchQ = 
+          t.employeeName.toLowerCase().includes(q) ||
+          (t.department && t.department.toLowerCase().includes(q)) ||
+          t.date.toLowerCase().includes(q) ||
+          (t.notes && t.notes.toLowerCase().includes(q));
+        if (!matchQ) return false;
+      }
+
+      return true;
+    });
+  }, [timecards, selectedYear, selectedMonthIndex, selectedDateString, staffFilter, departmentFilter, search]);
+
+  // Selected date object & details
+  const selectedDateObj = useMemo(() => {
+    if (selectedDateString === 'ALL') return null;
+    return parseDateFlexible(selectedDateString);
+  }, [selectedDateString]);
+
+  const isSelectedDateWeekend = selectedDateObj ? (selectedDateObj.getDay() === 0 || selectedDateObj.getDay() === 6) : false;
+
+  // Manual Adjustment Save
   const handleSaveAdjustment = (e: React.FormEvent) => {
     e.preventDefault();
     if (!editingRecord) return;
@@ -213,19 +376,22 @@ export default function AdminTimecardManagement() {
     setEditingRecord(null);
   };
 
+  // Manual Shift Save
   const handleSaveNewShift = (e: React.FormEvent) => {
     e.preventDefault();
-    const targetEmp = employees.find(e => e.id === formEmployeeId);
+    const targetEmp = employees.find(emp => emp.id === formEmployeeId);
     if (!targetEmp) return;
 
     const { totalHours, durationSeconds, overtimeHours } = calculateShiftDuration(formClockIn, formClockOut, Number(formBreak) || 0);
+
+    const shiftDateToUse = formDate || (selectedDateString !== 'ALL' ? selectedDateString : new Date().toLocaleDateString('en-AU', { day: '2-digit', month: 'short', year: 'numeric' }));
 
     adminAddTimecard({
       employeeId: targetEmp.id,
       employeeName: `${targetEmp.firstName} ${targetEmp.lastName}`,
       employeeAvatar: targetEmp.avatarUrl,
       department: targetEmp.department || 'Production (Riverwood)',
-      date: formDate || new Date().toLocaleDateString('en-AU', { day: '2-digit', month: 'short', year: 'numeric' }),
+      date: shiftDateToUse,
       clockIn: formClockIn,
       clockOut: formClockOut,
       breakMinutes: Number(formBreak) || 0,
@@ -241,37 +407,57 @@ export default function AdminTimecardManagement() {
     setFormNotes('');
   };
 
-  const exportCompanyReportCSV = () => {
-    const headers = ['Record ID', 'Employee ID', 'Employee Name', 'Department', 'Day', 'Shift Date', 'Clock In', 'Clock Out', 'Break (min)', 'Paid Hours', 'Overtime', 'Status', 'Notes', 'Adjusted By'];
-    const rows = filteredTimecards.map(t => [
-      `"${t.id}"`,
-      `"${t.employeeId}"`,
-      `"${t.employeeName}"`,
-      `"${t.department || ''}"`,
-      `"${getDayOfWeek(t.date)}"`,
-      `"${t.date}"`,
-      `"${t.clockIn}"`,
-      `"${t.clockOut || 'Active'}"`,
-      t.breakMinutes,
-      t.totalHours,
-      t.overtimeHours,
-      `"${t.status}"`,
-      `"${t.notes || ''}"`,
-      `"${t.adjustedBy || ''}"`
-    ]);
+  // --- PDF Summary Computation ---
+  const pdfRecords = useMemo(() => {
+    return timecards.filter(t => {
+      // 1. Staff Scope
+      if (pdfStaffScope === 'SPECIFIC' && pdfSelectedStaffId) {
+        if (t.employeeId !== pdfSelectedStaffId) return false;
+      }
 
-    const csvContent = 'data:text/csv;charset=utf-8,' + [headers.join(','), ...rows.map(e => e.join(','))].join('\n');
-    const encodedUri = encodeURI(csvContent);
-    const link = document.createElement('a');
-    link.setAttribute('href', encodedUri);
-    link.setAttribute('download', `HsCreations_Payroll_Timecard_Report_${new Date().toISOString().slice(0, 10)}.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+      // 2. Timeframe
+      const tDate = parseDateFlexible(t.date);
+      if (!tDate) return false;
+
+      if (pdfTimeframeType === 'MONTH') {
+        const mKey = getMonthKey(t.date);
+        if (mKey !== pdfSelectedMonth) return false;
+      } else if (pdfTimeframeType === 'CUSTOM') {
+        const start = new Date(pdfCustomStartDate);
+        const end = new Date(pdfCustomEndDate);
+        end.setHours(23, 59, 59, 999);
+        if (tDate < start || tDate > end) return false;
+      } else if (pdfTimeframeType === 'DATE') {
+        if (selectedDateString !== 'ALL') {
+          const selDate = parseDateFlexible(selectedDateString);
+          if (selDate) {
+            const match = (
+              tDate.getFullYear() === selDate.getFullYear() &&
+              tDate.getMonth() === selDate.getMonth() &&
+              tDate.getDate() === selDate.getDate()
+            );
+            if (!match) return false;
+          }
+        }
+      }
+
+      return true;
+    });
+  }, [timecards, pdfStaffScope, pdfSelectedStaffId, pdfTimeframeType, pdfSelectedMonth, pdfCustomStartDate, pdfCustomEndDate, selectedDateString]);
+
+  const pdfTotalHours = pdfRecords.reduce((acc, curr) => acc + (curr.totalHours || 0), 0);
+  const pdfTotalOvertime = pdfRecords.reduce((acc, curr) => acc + (curr.overtimeHours || 0), 0);
+  const pdfTotalBreaks = pdfRecords.reduce((acc, curr) => acc + (curr.breakMinutes || 0), 0);
+  const pdfSelectedStaffObj = employees.find(e => e.id === pdfSelectedStaffId);
+
+  // Trigger browser printing with custom styling
+  const handlePrintReport = () => {
+    window.print();
   };
 
   return (
     <div className="space-y-6 animate-in fade-in duration-150 text-xs font-sans">
+      {/* Top Header Bar */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-2">
@@ -281,157 +467,221 @@ export default function AdminTimecardManagement() {
             </span>
           </div>
           <p className="text-slate-500 mt-0.5">
-            Real-time biometric &amp; electronic Kiosk punch logs across Riverwood, Rockdale, and Sydney plants.
+            Biometric punch logs, manual adjustments &amp; Fair Work compliant payroll tracking.
           </p>
         </div>
 
         <div className="flex flex-wrap items-center gap-2.5">
           <button
-            onClick={() => setShowAddModal(true)}
-            className="px-3.5 py-2 rounded-xl bg-slate-900 text-white font-bold hover:bg-slate-800 transition cursor-pointer shadow-xs"
+            onClick={() => {
+              setFormDate(selectedDateString !== 'ALL' ? selectedDateString : formatDateDisplay(new Date()));
+              setShowAddModal(true);
+            }}
+            className="px-3.5 py-2 rounded-xl bg-slate-900 text-white font-bold hover:bg-slate-800 transition cursor-pointer shadow-xs flex items-center gap-1.5"
           >
-            Manual Shift Entry
+            <span>+ Manual Shift Entry</span>
           </button>
 
           <button
-            onClick={exportCompanyReportCSV}
-            className="px-3.5 py-2 rounded-xl bg-white border border-slate-300 text-slate-700 font-bold hover:bg-slate-50 transition cursor-pointer shadow-xs"
+            onClick={() => setShowPdfModal(true)}
+            className="px-3.5 py-2 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-bold hover:from-blue-700 hover:to-indigo-700 transition cursor-pointer shadow-xs flex items-center gap-1.5"
           >
-            Export Report (CSV)
-          </button>
-
-          <button
-            onClick={() => setShowReportModal(true)}
-            className="px-3.5 py-2 rounded-xl bg-white border border-slate-300 text-slate-700 font-bold hover:bg-slate-50 transition cursor-pointer shadow-xs"
-          >
-            Generate PDF Summary
+            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            </svg>
+            <span>Generate PDF Summary</span>
           </button>
         </div>
       </div>
 
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <div className="p-5 rounded-2xl bg-white border border-slate-200/80 shadow-xs flex items-center justify-between">
-          <div>
-            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Currently Working</span>
-            <span className="text-2xl font-bold text-emerald-600 mt-1 block flex items-center gap-1.5">
-              <span>{activeStaff.length}</span>
-              {activeStaff.length > 0 && <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping" />}
-            </span>
-            <span className="text-[10px] text-emerald-700 font-medium">Clocked in via Kiosk</span>
+      {/* ========================================================================= */}
+      {/* 1. INTERACTIVE MONTH & DATE PICKER STRIP */}
+      {/* ========================================================================= */}
+      <div className="bg-white rounded-3xl border border-slate-200/90 shadow-xs overflow-hidden">
+        {/* Month Selector Bar */}
+        <div className="px-5 py-4 bg-slate-900 text-white flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <div className="flex items-center bg-slate-800 rounded-xl p-1 border border-slate-700">
+              <button
+                onClick={handlePrevMonth}
+                className="p-1.5 rounded-lg hover:bg-slate-700 text-slate-300 hover:text-white transition cursor-pointer"
+                title="Previous Month"
+              >
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 19l-7-7 7-7" />
+                </svg>
+              </button>
+
+              <span className="px-3 py-1 font-black text-sm text-white tracking-wide min-w-[130px] text-center">
+                {currentMonthLabel}
+              </span>
+
+              <button
+                onClick={handleNextMonth}
+                className="p-1.5 rounded-lg hover:bg-slate-700 text-slate-300 hover:text-white transition cursor-pointer"
+                title="Next Month"
+              >
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
+                </svg>
+              </button>
+            </div>
+
+            <button
+              onClick={() => {
+                const now = new Date();
+                setSelectedYear(now.getFullYear());
+                setSelectedMonthIndex(now.getMonth());
+                setSelectedDateString(formatDateDisplay(now));
+              }}
+              className="px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-[11px] font-bold border border-slate-700 transition cursor-pointer"
+            >
+              Today
+            </button>
           </div>
-          <div className="text-[10px] font-bold text-emerald-600 uppercase">
-            Active
+
+          <div className="flex items-center gap-3 text-xs">
+            <div className="flex items-center gap-2">
+              <span className="inline-flex items-center gap-1 text-[11px] text-slate-300">
+                <span className="w-2 h-2 rounded-full bg-emerald-400" />
+                <span>Working Day (Mon–Fri)</span>
+              </span>
+              <span className="inline-flex items-center gap-1 text-[11px] text-amber-300/90 ml-2">
+                <span className="w-2 h-2 rounded-full bg-amber-400" />
+                <span>Office Closed (Weekend)</span>
+              </span>
+            </div>
           </div>
         </div>
 
-        <div className="p-5 rounded-2xl bg-white border border-slate-200/80 shadow-xs flex items-center justify-between">
-          <div>
-            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Total Logged Hours</span>
-            <span className="text-2xl font-bold text-slate-900 mt-1 block">{totalCompanyHours.toFixed(1)} hrs</span>
-            <span className="text-[10px] text-slate-500 font-medium">Across {totalCompletedShifts} logged shifts</span>
-          </div>
-          <div className="text-[10px] font-bold text-blue-600 uppercase">
-            Hours
-          </div>
-        </div>
+        {/* Date Selector Strip (Day 1 to Last Day + "All Month" Pill) */}
+        <div className="p-4 bg-slate-50/70 border-b border-slate-200/80">
+          <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-thin">
+            {/* "All Days in Month" Button */}
+            <button
+              onClick={() => setSelectedDateString('ALL')}
+              className={`px-4 py-2.5 rounded-2xl font-bold text-xs whitespace-nowrap transition cursor-pointer shrink-0 flex flex-col items-center justify-center border shadow-2xs ${
+                selectedDateString === 'ALL'
+                  ? 'bg-slate-900 text-white border-slate-900 ring-2 ring-slate-900/30'
+                  : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-100'
+              }`}
+            >
+              <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">View Entire</span>
+              <span className="text-xs font-black">All Month</span>
+            </button>
 
-        <div className="p-5 rounded-2xl bg-white border border-slate-200/80 shadow-xs flex items-center justify-between">
-          <div>
-            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Total Overtime Hours</span>
-            <span className="text-2xl font-bold text-amber-600 mt-1 block">{totalCompanyOvertime.toFixed(1)} hrs</span>
-            <span className="text-[10px] text-amber-700 font-medium">Fair Work 1.5x/2.0x audit</span>
-          </div>
-          <div className="text-[10px] font-bold text-amber-600 uppercase">
-            Overtime
-          </div>
-        </div>
+            <div className="w-[1px] h-9 bg-slate-300 shrink-0 mx-1" />
 
-        <div className="p-5 rounded-2xl bg-white border border-slate-200/80 shadow-xs flex items-center justify-between">
-          <div>
-            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Payroll Integrity</span>
-            <span className="text-2xl font-bold text-purple-600 mt-1 block">100%</span>
-            <span className="text-[10px] text-purple-700 font-medium">Fair Work NSW Compliant</span>
-          </div>
-          <div className="text-[10px] font-bold text-purple-600 uppercase">
-            Compliant
-          </div>
-        </div>
-      </div>
+            {/* Individual Day Cards */}
+            {daysInMonth.map(day => {
+              const isSelected = selectedDateString === day.dateKey;
+              const hasShifts = day.shiftCount > 0;
 
-      <div className="p-5 rounded-3xl bg-slate-900 text-white shadow-xl border border-slate-800 space-y-4">
-        <div className="flex items-center justify-between border-b border-slate-800 pb-3">
-          <div className="flex items-center gap-2.5">
-            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-            <h3 className="font-bold text-sm text-white">Live Floor Active Shifts (On Duty)</h3>
-            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
-              {activeStaff.length} On Duty
-            </span>
-          </div>
-          <span className="text-[11px] text-slate-400 font-mono">Sydney Facility Telemetry</span>
-        </div>
-
-        {activeStaff.length === 0 ? (
-          <div className="py-6 text-center text-slate-400 text-xs">
-            <p className="font-bold text-slate-300">No staff currently punched in on floor</p>
-            <p className="text-slate-500 text-[11px]">Staff will appear here automatically when they punch in via the Kiosk.</p>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5">
-            {activeStaff.map(emp => (
-              <div key={emp.id} className="p-3.5 rounded-2xl bg-slate-950 border border-slate-800 flex items-center justify-between gap-3">
-                <div className="flex items-center gap-2.5">
-                  <img
-                    src={emp.avatarUrl || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150'}
-                    alt={emp.firstName}
-                    className="w-10 h-10 rounded-xl object-cover ring-1 ring-slate-700"
-                  />
-                  <div>
-                    <h4 className="font-bold text-white text-xs">{emp.firstName} {emp.lastName}</h4>
-                    <span className="text-[10px] text-slate-400 block">{emp.department || 'Production'}</span>
-                    <div className="flex items-center gap-2 mt-1">
-                      <span className="text-[10px] font-mono text-emerald-400 font-bold">
-                        In: {emp.lastClockIn ? new Date(emp.lastClockIn).toLocaleTimeString('en-AU', { hour: '2-digit', minute: '2-digit' }) : 'Today'}
-                      </span>
-                      <span className="text-[10px] font-mono font-bold text-emerald-300 bg-emerald-950/80 px-2 py-0.5 rounded-md border border-emerald-700/60 flex items-center gap-1">
-                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
-                        <span>{formatSecondsToHMS(emp.clockInTimestamp ? Math.max(0, Math.floor((currentTime - emp.clockInTimestamp) / 1000)) : (emp.lastClockIn ? Math.max(0, Math.floor((currentTime - new Date(emp.lastClockIn).getTime()) / 1000)) : 0))}</span>
-                      </span>
-                    </div>
-                  </div>
-                </div>
-
+              return (
                 <button
-                  type="button"
-                  onClick={() => clockOutWithKiosk(emp.kioskPin || '', undefined, 30)}
-                  className="px-2.5 py-1.5 rounded-xl bg-rose-500/20 hover:bg-rose-500 text-rose-300 hover:text-white border border-rose-500/30 text-[10px] font-bold transition cursor-pointer"
-                  title="Force clock-out if staff forgot"
+                  key={day.dayNumber}
+                  onClick={() => setSelectedDateString(day.dateKey)}
+                  className={`px-3 py-2 rounded-2xl text-center transition cursor-pointer shrink-0 min-w-[58px] flex flex-col items-center justify-center border relative ${
+                    isSelected
+                      ? 'bg-blue-600 text-white border-blue-600 ring-2 ring-blue-500/40 shadow-sm'
+                      : day.isWeekend
+                      ? 'bg-slate-100/90 text-slate-600 border-slate-200 hover:bg-slate-200/70'
+                      : 'bg-white text-slate-800 border-slate-200 hover:bg-slate-100'
+                  }`}
                 >
-                  Clock Out
+                  <span className={`text-[10px] font-bold uppercase tracking-wider ${
+                    isSelected 
+                      ? 'text-blue-100' 
+                      : day.isWeekend 
+                      ? 'text-amber-700 font-black' 
+                      : 'text-slate-400'
+                  }`}>
+                    {day.dayName}
+                  </span>
+
+                  <span className="text-base font-black leading-tight mt-0.5">
+                    {String(day.dayNumber).padStart(2, '0')}
+                  </span>
+
+                  {/* Weekend Closed Pill / Shift Count Indicator */}
+                  {day.isWeekend ? (
+                    <span className={`mt-1 px-1.5 py-0.2 rounded text-[8px] font-black uppercase tracking-tight ${
+                      isSelected 
+                        ? 'bg-white/20 text-white' 
+                        : hasShifts 
+                        ? 'bg-amber-200 text-amber-900 border border-amber-300' 
+                        : 'bg-slate-200 text-slate-600'
+                    }`}>
+                      {hasShifts ? `${day.shiftCount} OT` : 'Closed'}
+                    </span>
+                  ) : (
+                    <span className={`mt-1 px-1.5 py-0.2 rounded text-[8px] font-bold ${
+                      isSelected
+                        ? 'bg-white/20 text-white'
+                        : hasShifts
+                        ? 'bg-emerald-100 text-emerald-800 border border-emerald-200'
+                        : 'text-slate-400'
+                    }`}>
+                      {hasShifts ? `${day.shiftCount} shf` : '—'}
+                    </span>
+                  )}
                 </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Selected Date Context & Filters Header */}
+        <div className="p-4 sm:p-5 flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <div className="p-3 rounded-2xl bg-blue-50 border border-blue-100 text-blue-700 shrink-0">
+              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+              </svg>
+            </div>
+
+            <div>
+              <div className="flex items-center gap-2">
+                <h3 className="text-base font-black text-slate-900 tracking-tight">
+                  {selectedDateString === 'ALL' ? (
+                    `All Recorded Shifts in ${currentMonthLabel}`
+                  ) : (
+                    `${getDayOfWeek(selectedDateString)}, ${selectedDateString}`
+                  )}
+                </h3>
+
+                {selectedDateString !== 'ALL' && isSelectedDateWeekend && (
+                  <span className="px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-800 text-[10px] font-black border border-amber-300 flex items-center gap-1">
+                    <span>🏢 Weekend • Office Closed</span>
+                  </span>
+                )}
+
+                {selectedDateString !== 'ALL' && !isSelectedDateWeekend && (
+                  <span className="px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-bold border border-emerald-200">
+                    Standard Operations
+                  </span>
+                )}
               </div>
-            ))}
-          </div>
-        )}
-      </div>
 
-      <div className="bg-white rounded-3xl border border-slate-200/80 shadow-sm overflow-hidden">
-        <div className="p-5 border-b border-slate-100 flex flex-col md:flex-row md:items-center justify-between gap-4 bg-slate-50/50">
-          <div>
-            <h3 className="text-base font-bold text-slate-900 tracking-tight">
-              Month-Wise Staff Timecard Records ({filteredTimecards.length})
-            </h3>
-            <p className="text-[11px] text-slate-500 mt-0.5">
-              Electronic punch logs organized by month. Real-time active duration timers &amp; Fair Work audit breakdown.
-            </p>
+              <p className="text-[11px] text-slate-500 mt-0.5">
+                {selectedDateString === 'ALL'
+                  ? `Showing all shifts across ${currentMonthLabel}. Filter by staff or department below.`
+                  : isSelectedDateWeekend
+                  ? 'Office & production floor are normally closed on Saturday and Sunday. Any shifts shown below are approved weekend overtime.'
+                  : `Review clock in/out times, meal breaks, and live punch duration for ${selectedDateString}.`
+                }
+              </p>
+            </div>
           </div>
 
+          {/* Search & Select Filters */}
           <div className="flex flex-wrap items-center gap-2.5">
             <input
               type="text"
-              placeholder="Search staff, date..."
+              placeholder="Search staff, notes..."
               value={search}
               onChange={e => setSearch(e.target.value)}
-              className="px-3 py-2 text-xs bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 text-slate-800 w-44 sm:w-52 font-medium"
+              className="px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 text-slate-800 w-40 sm:w-48 font-medium"
             />
 
             {/* Staff Filter */}
@@ -440,7 +690,7 @@ export default function AdminTimecardManagement() {
               onChange={e => setStaffFilter(e.target.value)}
               className="text-xs font-bold bg-white border border-slate-200 rounded-xl px-3 py-2 text-slate-700 cursor-pointer focus:outline-none max-w-xs"
             >
-              <option value="ALL">All Staff Members ({employees.length})</option>
+              <option value="ALL">All Staff ({employees.length})</option>
               {employees.map(emp => (
                 <option key={emp.id} value={emp.id}>
                   {emp.firstName} {emp.lastName} ({emp.employeeNumber})
@@ -448,199 +698,243 @@ export default function AdminTimecardManagement() {
               ))}
             </select>
 
-            {/* Month Filter */}
+            {/* Department Filter */}
             <select
-              value={monthFilter}
-              onChange={e => setMonthFilter(e.target.value)}
+              value={departmentFilter}
+              onChange={e => setDepartmentFilter(e.target.value)}
               className="text-xs font-bold bg-white border border-slate-200 rounded-xl px-3 py-2 text-slate-700 cursor-pointer focus:outline-none"
             >
-              <option value="ALL">All Recorded Months</option>
-              {availableMonths.map(m => (
-                <option key={m} value={m}>{m}</option>
-              ))}
+              <option value="ALL">All Departments</option>
+              <option value="Production (Riverwood)">Production (Riverwood)</option>
+              <option value="Production (Rockdale)">Production (Rockdale)</option>
+              <option value="Design">Design</option>
+              <option value="Administration">Administration</option>
+              <option value="Sales & Marketing">Sales & Marketing</option>
             </select>
           </div>
         </div>
 
-        {monthKeys.length === 0 ? (
-          <div className="p-12 text-center text-slate-500 space-y-2">
-            <h4 className="font-bold text-slate-800 text-sm">No Timecard Records Found</h4>
-            <p className="text-[11px] text-slate-400 max-w-sm mx-auto">
-              No shifts match the selected staff or month filter. Adjust your filter selection above.
-            </p>
+        {/* Weekend Notice Banner (If Weekend Date is Selected) */}
+        {selectedDateString !== 'ALL' && isSelectedDateWeekend && (
+          <div className="mx-5 mb-4 p-4 rounded-2xl bg-amber-50/80 border border-amber-200 text-amber-900 flex items-start justify-between gap-3">
+            <div className="flex items-start gap-2.5">
+              <span className="text-base">⚠️</span>
+              <div>
+                <h4 className="font-bold text-xs text-amber-950">
+                  Weekend Office &amp; Plant Policy
+                </h4>
+                <p className="text-[11px] text-amber-800 mt-0.5 leading-relaxed">
+                  HsCreations official operations are <strong>Closed on Saturday &amp; Sunday</strong>. Standard shifts are not scheduled. 
+                  Any work performed is treated as <strong>Fair Work Australia Overtime (2.0x Double Time)</strong>.
+                </p>
+              </div>
+            </div>
+
+            <button
+              onClick={() => {
+                setFormDate(selectedDateString);
+                setShowAddModal(true);
+              }}
+              className="px-3 py-1.5 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-bold text-[11px] transition cursor-pointer shrink-0 shadow-2xs"
+            >
+              + Log Weekend Shift
+            </button>
+          </div>
+        )}
+
+        {/* ========================================================================= */}
+        {/* 2. SHIFTS TABLE OR CLEAN EMPTY STATE */}
+        {/* ========================================================================= */}
+        {filteredTimecards.length === 0 ? (
+          <div className="p-12 text-center text-slate-500 space-y-3 bg-slate-50/40 border-t border-slate-100">
+            <div className="w-12 h-12 rounded-2xl bg-slate-100 text-slate-400 flex items-center justify-center mx-auto text-xl">
+              {isSelectedDateWeekend ? '🏢' : '📋'}
+            </div>
+            <div>
+              <h4 className="font-bold text-slate-800 text-sm">
+                {selectedDateString !== 'ALL' && isSelectedDateWeekend
+                  ? `Office Closed — No Shifts Recorded for ${selectedDateString}`
+                  : `No Timecard Records for this Selection`
+                }
+              </h4>
+              <p className="text-[11px] text-slate-400 max-w-md mx-auto mt-1">
+                {selectedDateString !== 'ALL' && isSelectedDateWeekend
+                  ? 'No staff clocked in on this weekend day. If emergency or production overtime occurred, use Manual Shift Entry.'
+                  : 'No employee shift records match the selected date or search filter. You can log a shift manually.'
+                }
+              </p>
+            </div>
+            <button
+              onClick={() => {
+                setFormDate(selectedDateString !== 'ALL' ? selectedDateString : formatDateDisplay(new Date()));
+                setShowAddModal(true);
+              }}
+              className="px-4 py-2 rounded-xl bg-slate-900 text-white font-bold text-xs hover:bg-slate-800 transition cursor-pointer shadow-xs inline-block"
+            >
+              + Add Shift for {selectedDateString !== 'ALL' ? selectedDateString : 'Today'}
+            </button>
           </div>
         ) : (
-          <div className="space-y-6 p-4 sm:p-5">
-            {monthKeys.map(monthName => {
-              const monthRecords = timecardsByMonth[monthName];
-              const monthHours = monthRecords.reduce((sum, r) => sum + (r.totalHours || 0), 0);
-              const monthOT = monthRecords.reduce((sum, r) => sum + (r.overtimeHours || 0), 0);
+          <div className="overflow-x-auto border-t border-slate-100">
+            <table className="w-full text-left text-xs text-slate-600">
+              <thead className="bg-slate-50 text-[10px] font-bold text-slate-400 uppercase tracking-wider border-b border-slate-100">
+                <tr>
+                  <th className="py-3 px-4">Staff Member</th>
+                  <th className="py-3 px-4">Department</th>
+                  <th className="py-3 px-4">Day &amp; Date</th>
+                  <th className="py-3 px-4">Clock In</th>
+                  <th className="py-3 px-4">Clock Out</th>
+                  <th className="py-3 px-4">Break</th>
+                  <th className="py-3 px-4">Total Hours (Live)</th>
+                  <th className="py-3 px-4">Status</th>
+                  <th className="py-3 px-4 text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100 bg-white">
+                {filteredTimecards.map(t => {
+                  const isClockedIn = t.status === 'CLOCKED_IN' || !t.clockOut;
+                  const shiftIsWeekend = isWeekend(t.date);
 
-              return (
-                <div key={monthName} className="rounded-2xl border border-slate-200/90 overflow-hidden shadow-2xs">
-                  {/* Month Header Banner */}
-                  <div className="px-5 py-3.5 bg-slate-900 text-white flex flex-wrap items-center justify-between gap-3">
-                    <div className="flex items-center gap-2.5">
-                      <span className="font-bold text-xs text-white">{monthName}</span>
-                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-800 text-slate-300">
-                        {monthRecords.length} Shifts
-                      </span>
-                    </div>
+                  return (
+                    <tr key={t.id} className="hover:bg-slate-50/70 transition-colors">
+                      {/* Staff Member */}
+                      <td className="py-3.5 px-4 font-bold text-slate-900">
+                        <div className="flex items-center gap-2.5">
+                          <img
+                            src={t.employeeAvatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150'}
+                            alt={t.employeeName}
+                            className="w-8 h-8 rounded-xl object-cover ring-1 ring-slate-200"
+                          />
+                          <div>
+                            <span className="font-bold text-slate-900 block">{t.employeeName}</span>
+                            <span className="text-[10px] font-mono text-slate-400 font-bold">ID: {t.employeeId}</span>
+                          </div>
+                        </div>
+                      </td>
 
-                    <div className="flex items-center gap-3 text-[11px]">
-                      <span className="text-slate-300 font-medium">
-                        Total Paid: <strong className="text-emerald-400 font-mono font-bold">{monthHours.toFixed(1)}h</strong>
-                      </span>
-                      {monthOT > 0 && (
-                        <span className="text-slate-300 font-medium">
-                          OT: <strong className="text-amber-400 font-mono font-bold">+{monthOT.toFixed(1)}h</strong>
+                      {/* Department */}
+                      <td className="py-3.5 px-4 font-semibold text-slate-700">
+                        {t.department || 'Production'}
+                      </td>
+
+                      {/* Day & Date */}
+                      <td className="py-3.5 px-4">
+                        <div className="flex items-center gap-1.5">
+                          <span className={`px-2 py-0.5 rounded-lg text-[10px] font-bold border ${
+                            shiftIsWeekend 
+                              ? 'bg-amber-50 text-amber-800 border-amber-200' 
+                              : 'bg-slate-100 text-slate-700 border-slate-200/80'
+                          }`}>
+                            {getDayOfWeek(t.date).slice(0, 3)}
+                          </span>
+                          <span className="font-mono font-medium text-slate-800">
+                            {t.date}
+                          </span>
+                          {shiftIsWeekend && (
+                            <span className="text-[9px] font-black text-amber-600 uppercase">
+                              (Wknd)
+                            </span>
+                          )}
+                        </div>
+                      </td>
+
+                      {/* Clock In */}
+                      <td className="py-3.5 px-4 font-mono font-bold text-emerald-700">
+                        {t.clockIn}
+                      </td>
+
+                      {/* Clock Out */}
+                      <td className="py-3.5 px-4 font-mono font-bold text-slate-700">
+                        {t.clockOut || (
+                          <span className="px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 text-[10px] font-bold animate-pulse">
+                            ● Clocked In
+                          </span>
+                        )}
+                      </td>
+
+                      {/* Break */}
+                      <td className="py-3.5 px-4 font-medium text-slate-600">
+                        {t.breakMinutes}m
+                      </td>
+
+                      {/* Total Hours */}
+                      <td className="py-3.5 px-4">
+                        {isClockedIn ? (
+                          <div className="flex items-center gap-1.5 font-mono text-xs font-bold text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-xl border border-emerald-200 w-fit shadow-2xs">
+                            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                            <span>{formatRunningDuration(t, currentTime)}</span>
+                            <span className="text-[9px] text-emerald-600 uppercase font-sans font-bold ml-0.5">LIVE</span>
+                          </div>
+                        ) : (
+                          <div>
+                            <span className="font-mono font-bold text-slate-900 text-xs block">
+                              {formatCompletedDuration(t)}
+                            </span>
+                            <span className="text-[10px] text-slate-400 font-semibold font-mono">
+                              ({t.totalHours >= 1 ? `${t.totalHours.toFixed(1)}h` : `${(t.totalHours * 60).toFixed(0)}m`})
+                            </span>
+                            {t.overtimeHours > 0 && (
+                              <span className="text-[9px] text-amber-600 block font-bold">+{t.overtimeHours}h OT</span>
+                            )}
+                          </div>
+                        )}
+                      </td>
+
+                      {/* Status */}
+                      <td className="py-3.5 px-4">
+                        <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold border ${
+                          t.status === 'COMPLETED' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' :
+                          t.status === 'CLOCKED_IN' ? 'bg-blue-50 text-blue-700 border-blue-200' :
+                          t.status === 'MANUALLY_ADJUSTED' ? 'bg-purple-50 text-purple-700 border-purple-200' :
+                          'bg-slate-100 text-slate-600 border-slate-200'
+                        }`}>
+                          {t.status === 'MANUALLY_ADJUSTED' ? 'Admin Adjusted' : t.status === 'CLOCKED_IN' ? 'Live on Shift' : t.status}
                         </span>
-                      )}
-                    </div>
-                  </div>
+                        {t.notes && (
+                          <span className="text-[9px] text-slate-400 block mt-0.5 max-w-[140px] truncate" title={t.notes}>
+                            {t.notes}
+                          </span>
+                        )}
+                      </td>
 
-                  {/* Shift Records Table */}
-                  <div className="overflow-x-auto bg-white">
-                    <table className="w-full text-left text-xs text-slate-600">
-                      <thead className="bg-slate-50 text-[10px] font-bold text-slate-400 uppercase tracking-wider border-b border-slate-100">
-                        <tr>
-                          <th className="py-3 px-4">Staff Member</th>
-                          <th className="py-3 px-4">Department</th>
-                          <th className="py-3 px-4">Day</th>
-                          <th className="py-3 px-4">Shift Date</th>
-                          <th className="py-3 px-4">Clock In</th>
-                          <th className="py-3 px-4">Clock Out</th>
-                          <th className="py-3 px-4">Break</th>
-                          <th className="py-3 px-4">Total Hours (Live)</th>
-                          <th className="py-3 px-4">Status</th>
-                          <th className="py-3 px-4 text-right">Actions</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-slate-100">
-                        {monthRecords.map(t => {
-                          const isClockedIn = t.status === 'CLOCKED_IN' || !t.clockOut;
+                      {/* Actions */}
+                      <td className="py-3.5 px-4 text-right">
+                        <div className="flex items-center justify-end gap-1.5">
+                          <button
+                            onClick={() => {
+                              setEditingRecord(t);
+                              setFormClockIn(t.clockIn);
+                              setFormClockOut(t.clockOut || '04:00 PM');
+                              setFormBreak(t.breakMinutes);
+                              setFormNotes(t.notes || '');
+                            }}
+                            className="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-[11px] transition cursor-pointer"
+                          >
+                            Adjust
+                          </button>
 
-                          return (
-                            <tr key={t.id} className="hover:bg-slate-50/60 transition-colors">
-                              <td className="py-3 px-4 font-bold text-slate-900">
-                                <div className="flex items-center gap-2.5">
-                                  <img
-                                    src={t.employeeAvatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150'}
-                                    alt={t.employeeName}
-                                    className="w-8 h-8 rounded-xl object-cover ring-1 ring-slate-200"
-                                  />
-                                  <div>
-                                    <span className="font-bold text-slate-900 block">{t.employeeName}</span>
-                                    <span className="text-[10px] font-mono text-slate-400 font-bold">ID: {t.employeeId}</span>
-                                  </div>
-                                </div>
-                              </td>
-                              <td className="py-3 px-4 font-semibold text-slate-700">
-                                {t.department || 'Production'}
-                              </td>
-
-                              {/* Day Column */}
-                              <td className="py-3 px-4">
-                                <span className="px-2 py-0.5 rounded-lg bg-slate-100 text-slate-800 font-bold text-[11px] inline-block border border-slate-200/80">
-                                  {getDayOfWeek(t.date)}
-                                </span>
-                              </td>
-
-                              {/* Date Column */}
-                              <td className="py-3 px-4 font-medium text-slate-800 font-mono">
-                                {t.date}
-                              </td>
-
-                              <td className="py-3 px-4 font-mono font-bold text-emerald-700">
-                                {t.clockIn}
-                              </td>
-
-                              <td className="py-3 px-4 font-mono font-bold text-slate-700">
-                                {t.clockOut || (
-                                  <span className="px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 text-[10px] font-bold">
-                                    Clocked In
-                                  </span>
-                                )}
-                              </td>
-
-                              <td className="py-3 px-4 font-medium">
-                                {t.breakMinutes}m
-                              </td>
-
-                              {/* Total Hours with Live hrs:min:sec */}
-                              <td className="py-3 px-4">
-                                {isClockedIn ? (
-                                  <div className="flex items-center gap-1.5 font-mono text-xs font-bold text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-xl border border-emerald-200 w-fit shadow-2xs">
-                                    <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                                    <span>{formatRunningDuration(t, currentTime)}</span>
-                                    <span className="text-[9px] text-emerald-600 uppercase font-sans font-bold ml-0.5">LIVE</span>
-                                  </div>
-                                ) : (
-                                  <div>
-                                    <span className="font-mono font-bold text-slate-900 text-xs block">
-                                      {formatCompletedDuration(t)}
-                                    </span>
-                                    <span className="text-[10px] text-slate-400 font-semibold font-mono">
-                                      ({t.totalHours >= 1 ? `${t.totalHours.toFixed(1)}h` : `${(t.totalHours * 60).toFixed(0)}m`})
-                                    </span>
-                                    {t.overtimeHours > 0 && (
-                                      <span className="text-[9px] text-amber-600 block font-bold">+{t.overtimeHours}h OT</span>
-                                    )}
-                                  </div>
-                                )}
-                              </td>
-
-                              <td className="py-3 px-4">
-                                <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold border ${
-                                  t.status === 'COMPLETED' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' :
-                                  t.status === 'CLOCKED_IN' ? 'bg-amber-50 text-amber-700 border-amber-200' :
-                                  t.status === 'MANUALLY_ADJUSTED' ? 'bg-purple-50 text-purple-700 border-purple-200' :
-                                  'bg-slate-100 text-slate-600 border-slate-200'
-                                }`}>
-                                  {t.status === 'MANUALLY_ADJUSTED' ? 'Admin Adjusted' : t.status}
-                                </span>
-                                {t.adjustedBy && (
-                                  <span className="text-[9px] text-slate-400 block mt-0.5">By {t.adjustedBy}</span>
-                                )}
-                              </td>
-                            <td className="py-3 px-4 text-right">
-                              <div className="flex items-center justify-end gap-1.5">
-                                <button
-                                  onClick={() => {
-                                    setEditingRecord(t);
-                                    setFormClockIn(t.clockIn);
-                                    setFormClockOut(t.clockOut || '04:00 PM');
-                                    setFormBreak(t.breakMinutes);
-                                    setFormNotes(t.notes || '');
-                                  }}
-                                  className="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-[11px] transition cursor-pointer"
-                                >
-                                  Adjust
-                                </button>
-
-                                <button
-                                  onClick={() => adminDeleteTimecard(t.id)}
-                                  className="px-2 py-1 rounded-lg hover:bg-rose-50 text-slate-400 hover:text-rose-600 font-bold text-[11px] transition cursor-pointer"
-                                  title="Delete Shift"
-                                >
-                                  Delete
-                                </button>
-                              </div>
-                            </td>
-                          </tr>
-                        );
-                      })}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-              );
-            })}
+                          <button
+                            type="button"
+                            onClick={() => setDeletingTimecard(t)}
+                            className="px-2 py-1 rounded-lg hover:bg-rose-50 text-slate-400 hover:text-rose-600 font-bold text-[11px] transition cursor-pointer"
+                            title="Delete Shift"
+                          >
+                            Delete
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
           </div>
         )}
       </div>
 
-      {/* MODAL 1: SUPERADMIN ADJUST */}
+      {/* ========================================================================= */}
+      {/* MODAL 1: SUPERADMIN ADJUST TIMECARD */}
+      {/* ========================================================================= */}
       {editingRecord && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-sm animate-in fade-in">
           <div className="bg-white rounded-3xl p-6 max-w-md w-full shadow-2xl border border-slate-200 space-y-4">
@@ -727,12 +1021,17 @@ export default function AdminTimecardManagement() {
         </div>
       )}
 
-      {/* MODAL 2: MANUAL SHIFT */}
+      {/* ========================================================================= */}
+      {/* MODAL 2: MANUAL SHIFT ENTRY */}
+      {/* ========================================================================= */}
       {showAddModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-sm animate-in fade-in">
           <div className="bg-white rounded-3xl p-6 max-w-md w-full shadow-2xl border border-slate-200 space-y-4">
             <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-              <h3 className="font-bold text-sm text-slate-900">Manual Shift Entry</h3>
+              <div>
+                <h3 className="font-bold text-sm text-slate-900">Manual Shift Entry</h3>
+                <p className="text-[10px] text-slate-500">Log an authorised shift or weekend overtime</p>
+              </div>
               <button
                 type="button"
                 onClick={() => setShowAddModal(false)}
@@ -765,10 +1064,11 @@ export default function AdminTimecardManagement() {
                 <input
                   type="date"
                   required
+                  value={formDate ? (parseDateFlexible(formDate)?.toISOString().slice(0, 10) || '') : ''}
                   onChange={e => {
                     if (e.target.value) {
-                      const d = new Date(e.target.value);
-                      setFormDate(d.toLocaleDateString('en-AU', { day: '2-digit', month: 'short', year: 'numeric' }));
+                      const d = new Date(e.target.value + 'T00:00:00');
+                      setFormDate(formatDateDisplay(d));
                     }
                   }}
                   className="w-full p-2.5 border border-slate-300 rounded-xl bg-white font-bold text-slate-900"
@@ -811,12 +1111,12 @@ export default function AdminTimecardManagement() {
               </div>
 
               <div>
-                <label className="font-bold text-slate-700 block mb-1">Notes / Plant Line</label>
+                <label className="font-bold text-slate-700 block mb-1">Notes / Plant Line / Overtime Authorization</label>
                 <input
                   type="text"
                   value={formNotes}
                   onChange={e => setFormNotes(e.target.value)}
-                  placeholder="e.g. Riverwood Roland Press Shift"
+                  placeholder="e.g. Riverwood Roland Press Overtime"
                   className="w-full p-2.5 border border-slate-300 rounded-xl bg-white text-slate-900"
                 />
               </div>
@@ -841,80 +1141,453 @@ export default function AdminTimecardManagement() {
         </div>
       )}
 
-      {/* MODAL 3: REPORT SUMMARY */}
-      {showReportModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-sm animate-in fade-in">
-          <div className="bg-white rounded-3xl p-6 max-w-2xl w-full shadow-2xl border border-slate-200 space-y-4 max-h-[85vh] overflow-y-auto">
-            <div className="flex items-center justify-between border-b border-slate-200 pb-3">
-              <div>
-                <h3 className="font-bold text-base text-slate-900">HsCreations Payroll &amp; Attendance Report</h3>
-                <p className="text-[11px] text-slate-500">Fair Work Australia Certified Timecard Summary</p>
+      {/* ========================================================================= */}
+      {/* MODAL 3: FULL-FEATURED GENERATE PDF SUMMARY POPUP MODAL */}
+      {/* ========================================================================= */}
+      {showPdfModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-slate-950/75 backdrop-blur-sm animate-in fade-in">
+          <div className="bg-white rounded-3xl max-w-4xl w-full shadow-2xl border border-slate-200 flex flex-col max-h-[92vh] overflow-hidden">
+            
+            {/* Modal Header */}
+            <div className="p-5 border-b border-slate-200 flex items-center justify-between bg-slate-900 text-white">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-2xl bg-blue-600/30 border border-blue-400/40 text-blue-300 flex items-center justify-center">
+                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                </div>
+                <div>
+                  <h3 className="font-black text-base text-white">Generate PDF Summary &amp; Payroll Report</h3>
+                  <p className="text-[11px] text-slate-400">
+                    Fair Work Australia compliant timecard summary with customizable staff &amp; timeframe scope.
+                  </p>
+                </div>
               </div>
+
               <div className="flex items-center gap-2">
                 <button
-                  onClick={() => window.print()}
-                  className="px-3 py-1.5 rounded-xl bg-slate-900 text-white font-bold text-xs cursor-pointer"
+                  onClick={handlePrintReport}
+                  className="px-4 py-2 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-black text-xs cursor-pointer shadow-md flex items-center gap-1.5"
                 >
-                  Print
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+                  </svg>
+                  <span>Print / Save as PDF</span>
                 </button>
+
                 <button
-                  onClick={() => setShowReportModal(false)}
-                  className="text-slate-400 hover:text-slate-700 font-bold text-xs px-2 cursor-pointer"
+                  onClick={() => setShowPdfModal(false)}
+                  className="p-2 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition cursor-pointer"
+                >
+                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+
+            {/* Modal Body with Filter Controls & Live Print Preview */}
+            <div className="flex-1 overflow-y-auto p-5 space-y-6 bg-slate-50/50">
+              
+              {/* 1. REPORT CONFIGURATION CONTROLS */}
+              <div className="p-4 rounded-2xl bg-white border border-slate-200/90 shadow-2xs space-y-4">
+                <div className="font-bold text-xs text-slate-900 border-b border-slate-100 pb-2 flex items-center justify-between">
+                  <span>1. Configure Report Scope &amp; Timeframe</span>
+                  <span className="text-[10px] text-blue-600 font-bold uppercase">Dynamic Filtering</span>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {/* Left Column: Staff Scope */}
+                  <div className="space-y-2">
+                    <label className="font-bold text-slate-700 block text-xs">Staff Scope</label>
+                    <div className="grid grid-cols-2 gap-2">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setPdfStaffScope('ALL');
+                          setPdfSelectedStaffId('');
+                        }}
+                        className={`p-2.5 rounded-xl text-center font-bold text-xs transition cursor-pointer border ${
+                          pdfStaffScope === 'ALL'
+                            ? 'bg-blue-50 border-blue-500 text-blue-800 ring-1 ring-blue-500/30'
+                            : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
+                        }`}
+                      >
+                        All Staff ({employees.length})
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setPdfStaffScope('SPECIFIC');
+                          if (!pdfSelectedStaffId && employees.length > 0) {
+                            setPdfSelectedStaffId(employees[0].id);
+                          }
+                        }}
+                        className={`p-2.5 rounded-xl text-center font-bold text-xs transition cursor-pointer border ${
+                          pdfStaffScope === 'SPECIFIC'
+                            ? 'bg-blue-50 border-blue-500 text-blue-800 ring-1 ring-blue-500/30'
+                            : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
+                        }`}
+                      >
+                        Single Staff Member
+                      </button>
+                    </div>
+
+                    {pdfStaffScope === 'SPECIFIC' && (
+                      <div className="pt-1 animate-in fade-in">
+                        <select
+                          value={pdfSelectedStaffId}
+                          onChange={e => setPdfSelectedStaffId(e.target.value)}
+                          className="w-full p-2.5 border border-slate-300 rounded-xl bg-white font-bold text-slate-800 text-xs"
+                        >
+                          {employees.map(emp => (
+                            <option key={emp.id} value={emp.id}>
+                              {emp.firstName} {emp.lastName} ({emp.department || 'Production'}) - ID: {emp.employeeNumber}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Right Column: Timeframe Scope */}
+                  <div className="space-y-2">
+                    <label className="font-bold text-slate-700 block text-xs">Timeframe Period</label>
+                    <div className="grid grid-cols-3 gap-1.5">
+                      <button
+                        type="button"
+                        onClick={() => setPdfTimeframeType('MONTH')}
+                        className={`p-2 rounded-xl text-center font-bold text-[11px] transition cursor-pointer border ${
+                          pdfTimeframeType === 'MONTH'
+                            ? 'bg-blue-50 border-blue-500 text-blue-800 ring-1 ring-blue-500/30'
+                            : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
+                        }`}
+                      >
+                        Calendar Month
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => setPdfTimeframeType('CUSTOM')}
+                        className={`p-2 rounded-xl text-center font-bold text-[11px] transition cursor-pointer border ${
+                          pdfTimeframeType === 'CUSTOM'
+                            ? 'bg-blue-50 border-blue-500 text-blue-800 ring-1 ring-blue-500/30'
+                            : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
+                        }`}
+                      >
+                        Custom Range
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => setPdfTimeframeType('DATE')}
+                        className={`p-2 rounded-xl text-center font-bold text-[11px] transition cursor-pointer border ${
+                          pdfTimeframeType === 'DATE'
+                            ? 'bg-blue-50 border-blue-500 text-blue-800 ring-1 ring-blue-500/30'
+                            : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
+                        }`}
+                      >
+                        Selected Date
+                      </button>
+                    </div>
+
+                    {pdfTimeframeType === 'MONTH' && (
+                      <div className="pt-1 animate-in fade-in">
+                        <select
+                          value={pdfSelectedMonth}
+                          onChange={e => setPdfSelectedMonth(e.target.value)}
+                          className="w-full p-2.5 border border-slate-300 rounded-xl bg-white font-bold text-slate-800 text-xs"
+                        >
+                          {availableMonthKeys.map(m => (
+                            <option key={m} value={m}>{m}</option>
+                          ))}
+                        </select>
+                      </div>
+                    )}
+
+                    {pdfTimeframeType === 'CUSTOM' && (
+                      <div className="grid grid-cols-2 gap-2 pt-1 animate-in fade-in">
+                        <div>
+                          <span className="text-[10px] text-slate-500 font-bold block mb-0.5">Start Date</span>
+                          <input
+                            type="date"
+                            value={pdfCustomStartDate}
+                            onChange={e => setPdfCustomStartDate(e.target.value)}
+                            className="w-full p-2 border border-slate-300 rounded-xl bg-white text-xs font-bold"
+                          />
+                        </div>
+                        <div>
+                          <span className="text-[10px] text-slate-500 font-bold block mb-0.5">End Date</span>
+                          <input
+                            type="date"
+                            value={pdfCustomEndDate}
+                            onChange={e => setPdfCustomEndDate(e.target.value)}
+                            className="w-full p-2 border border-slate-300 rounded-xl bg-white text-xs font-bold"
+                          />
+                        </div>
+                      </div>
+                    )}
+
+                    {pdfTimeframeType === 'DATE' && (
+                      <div className="p-2.5 rounded-xl bg-slate-100 text-slate-700 font-medium text-xs">
+                        Using main screen selected date: <strong>{selectedDateString}</strong>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                <div className="flex flex-wrap items-center justify-between gap-3 pt-2 border-t border-slate-100 text-slate-700">
+                  <div className="flex items-center gap-4">
+                    <label className="flex items-center gap-1.5 cursor-pointer text-xs font-medium">
+                      <input
+                        type="checkbox"
+                        checked={pdfIncludeOTBreakdown}
+                        onChange={e => setPdfIncludeOTBreakdown(e.target.checked)}
+                        className="rounded text-blue-600 focus:ring-blue-500"
+                      />
+                      <span>Include Fair Work Overtime Details</span>
+                    </label>
+
+                    <label className="flex items-center gap-1.5 cursor-pointer text-xs font-medium">
+                      <input
+                        type="checkbox"
+                        checked={pdfIncludeSignoff}
+                        onChange={e => setPdfIncludeSignoff(e.target.checked)}
+                        className="rounded text-blue-600 focus:ring-blue-500"
+                      />
+                      <span>Include Certification &amp; Signature Lines</span>
+                    </label>
+                  </div>
+
+                  <span className="text-slate-500 text-[11px] font-bold">
+                    Found <strong>{pdfRecords.length}</strong> matching shift records
+                  </span>
+                </div>
+              </div>
+
+              {/* 2. PRINTABLE REPORT DOCUMENT CONTAINER */}
+              <div id="printable-timecard-report" className="p-6 sm:p-8 rounded-3xl bg-white border border-slate-300/80 shadow-md text-slate-900 space-y-6">
+                
+                {/* Printable Letterhead */}
+                <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 border-b-2 border-slate-900 pb-5">
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-xl font-black tracking-tight text-slate-900 uppercase">HsCreations Pty Ltd</span>
+                      <span className="px-2 py-0.5 rounded bg-slate-900 text-white text-[10px] font-black uppercase">
+                        Official Payroll Record
+                      </span>
+                    </div>
+                    <p className="text-xs text-slate-600 mt-1">
+                      Advanced Manufacturing &amp; Packaging Facility • Sydney NSW Australia
+                    </p>
+                    <p className="text-[10px] text-slate-400 font-mono">
+                      ABN: 84 928 102 443 • Fair Work Manufacturing Award 2020 Compliance
+                    </p>
+                  </div>
+
+                  <div className="text-left sm:text-right text-xs space-y-0.5 font-sans">
+                    <p className="font-bold text-slate-900">
+                      Report Period: <span className="font-mono text-blue-700 font-bold">
+                        {pdfTimeframeType === 'MONTH' ? pdfSelectedMonth : pdfTimeframeType === 'CUSTOM' ? `${pdfCustomStartDate} to ${pdfCustomEndDate}` : selectedDateString}
+                      </span>
+                    </p>
+                    <p className="text-[11px] text-slate-500">
+                      Staff Scope: <strong className="text-slate-800">{pdfStaffScope === 'ALL' ? `All Staff Members (${employees.length})` : `${pdfSelectedStaffObj?.firstName} ${pdfSelectedStaffObj?.lastName} (ID: ${pdfSelectedStaffObj?.employeeNumber})`}</strong>
+                    </p>
+                    <p className="text-[10px] text-slate-400">
+                      Generated: {new Date().toLocaleDateString('en-AU', { day: '2-digit', month: 'short', year: 'numeric' })} at {new Date().toLocaleTimeString('en-AU', { hour: '2-digit', minute: '2-digit' })}
+                    </p>
+                  </div>
+                </div>
+
+                {/* KPI Summary Metrics Banner */}
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 p-4 rounded-2xl bg-slate-50 border border-slate-200 text-xs">
+                  <div>
+                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Total Shifts</span>
+                    <span className="text-xl font-black text-slate-900 mt-0.5 block">{pdfRecords.length} Shifts</span>
+                    <span className="text-[10px] text-slate-500 font-medium">Logged in timeframe</span>
+                  </div>
+
+                  <div>
+                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Total Logged Hours</span>
+                    <span className="text-xl font-black text-emerald-700 mt-0.5 block">{pdfTotalHours.toFixed(1)} hrs</span>
+                    <span className="text-[10px] text-emerald-600 font-medium">Gross work duration</span>
+                  </div>
+
+                  <div>
+                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Total Overtime</span>
+                    <span className="text-xl font-black text-amber-600 mt-0.5 block">{pdfTotalOvertime.toFixed(1)} hrs</span>
+                    <span className="text-[10px] text-amber-700 font-medium">1.5x / 2.0x audit</span>
+                  </div>
+
+                  <div>
+                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Total Meal Breaks</span>
+                    <span className="text-xl font-black text-blue-600 mt-0.5 block">{pdfTotalBreaks} mins</span>
+                    <span className="text-[10px] text-blue-700 font-medium">Unpaid meal allowances</span>
+                  </div>
+                </div>
+
+                {/* Detailed Printable Shift Table */}
+                <div className="border border-slate-200 rounded-2xl overflow-hidden">
+                  <table className="w-full text-left text-xs text-slate-700">
+                    <thead className="bg-slate-100 text-[10px] font-bold text-slate-600 uppercase tracking-wider border-b border-slate-200">
+                      <tr>
+                        <th className="py-2.5 px-3">Employee Name &amp; ID</th>
+                        <th className="py-2.5 px-3">Department</th>
+                        <th className="py-2.5 px-3">Day &amp; Date</th>
+                        <th className="py-2.5 px-3">Clock In</th>
+                        <th className="py-2.5 px-3">Clock Out</th>
+                        <th className="py-2.5 px-3">Break</th>
+                        <th className="py-2.5 px-3">Paid Hours</th>
+                        <th className="py-2.5 px-3">OT (hrs)</th>
+                        <th className="py-2.5 px-3">Status</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100 bg-white font-sans">
+                      {pdfRecords.length === 0 ? (
+                        <tr>
+                          <td colSpan={9} className="py-8 text-center text-slate-400 text-xs">
+                            No shift records found matching this timeframe criteria.
+                          </td>
+                        </tr>
+                      ) : (
+                        pdfRecords.map(t => {
+                          const shiftIsWeekend = isWeekend(t.date);
+                          return (
+                            <tr key={t.id} className={shiftIsWeekend ? 'bg-amber-50/30' : ''}>
+                              <td className="py-2 px-3 font-bold text-slate-900">
+                                <div>{t.employeeName}</div>
+                                <span className="text-[10px] text-slate-400 font-mono">ID: {t.employeeId}</span>
+                              </td>
+                              <td className="py-2 px-3 font-medium text-slate-700 text-[11px]">
+                                {t.department || 'Production'}
+                              </td>
+                              <td className="py-2 px-3">
+                                <span className="font-bold text-slate-800">{getDayOfWeek(t.date).slice(0, 3)}</span>, {t.date}
+                                {shiftIsWeekend && <span className="text-[9px] text-amber-700 font-bold block">(Weekend Closed)</span>}
+                              </td>
+                              <td className="py-2 px-3 font-mono text-emerald-700 font-bold">{t.clockIn}</td>
+                              <td className="py-2 px-3 font-mono text-slate-800 font-bold">{t.clockOut || 'Active'}</td>
+                              <td className="py-2 px-3 font-mono">{t.breakMinutes}m</td>
+                              <td className="py-2 px-3 font-mono font-bold text-slate-900">{t.totalHours.toFixed(1)}h</td>
+                              <td className="py-2 px-3 font-mono font-bold text-amber-700">
+                                {t.overtimeHours > 0 ? `+${t.overtimeHours.toFixed(1)}h` : '0.0h'}
+                              </td>
+                              <td className="py-2 px-3 text-[10px]">
+                                <span className="font-semibold text-slate-700">
+                                  {t.status === 'MANUALLY_ADJUSTED' ? 'Admin Adj' : t.status}
+                                </span>
+                              </td>
+                            </tr>
+                          );
+                        })
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+
+                {/* Fair Work Certified Signature Block */}
+                {pdfIncludeSignoff && (
+                  <div className="pt-4 border-t-2 border-slate-200 space-y-4">
+                    <p className="text-[10px] text-slate-500 italic leading-relaxed">
+                      <strong>Fair Work Australia Statutory Compliance Declaration:</strong> This report represents an authentic electronic summary of hours worked, meal breaks taken, and overtime calculated in accordance with the Fair Work Act 2009 (Cth) and Modern Manufacturing Award. All records are maintained in the secure HsCreations cloud database.
+                    </p>
+
+                    <div className="grid grid-cols-2 gap-8 pt-4">
+                      <div className="border-t border-slate-400 pt-2">
+                        <span className="text-[10px] font-bold text-slate-500 uppercase block">Authorized Administrator Signature</span>
+                        <p className="font-bold text-slate-900 text-xs mt-1">SuperAdmin Operations Manager</p>
+                        <p className="text-[10px] text-slate-400 font-mono">HsCreations Plant Operations • Sydney</p>
+                      </div>
+
+                      <div className="border-t border-slate-400 pt-2">
+                        <span className="text-[10px] font-bold text-slate-500 uppercase block">Payroll Verification &amp; Date</span>
+                        <p className="font-bold text-slate-900 text-xs mt-1">
+                          Date: {new Date().toLocaleDateString('en-AU', { day: '2-digit', month: 'long', year: 'numeric' })}
+                        </p>
+                        <p className="text-[10px] text-emerald-600 font-bold">Status: Verified for Pay Run</p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+              </div>
+            </div>
+
+            {/* Modal Footer */}
+            <div className="p-4 border-t border-slate-200 bg-white flex items-center justify-between">
+              <span className="text-[11px] text-slate-500">
+                Print summary automatically applies high-resolution A4 document formatting.
+              </span>
+
+              <div className="flex items-center gap-2.5">
+                <button
+                  type="button"
+                  onClick={() => setShowPdfModal(false)}
+                  className="px-4 py-2 rounded-xl border border-slate-300 bg-white text-slate-700 font-bold hover:bg-slate-50 cursor-pointer text-xs"
                 >
                   Close
                 </button>
+
+                <button
+                  type="button"
+                  onClick={handlePrintReport}
+                  className="px-5 py-2 rounded-xl bg-slate-900 text-white font-bold hover:bg-slate-800 cursor-pointer text-xs flex items-center gap-1.5 shadow-md"
+                >
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+                  </svg>
+                  <span>Print / Save PDF</span>
+                </button>
               </div>
             </div>
 
-            <div className="grid grid-cols-3 gap-3 p-4 bg-slate-50 rounded-2xl border border-slate-200 text-xs">
-              <div>
-                <span className="text-slate-400 text-[10px] font-bold block uppercase">Total Records</span>
-                <span className="text-lg font-bold text-slate-900">{filteredTimecards.length} Shifts</span>
-              </div>
-              <div>
-                <span className="text-slate-400 text-[10px] font-bold block uppercase">Total Hours Logged</span>
-                <span className="text-lg font-bold text-emerald-600">{totalCompanyHours.toFixed(1)} hrs</span>
-              </div>
-              <div>
-                <span className="text-slate-400 text-[10px] font-bold block uppercase">Total Overtime Hours</span>
-                <span className="text-lg font-bold text-amber-600">{totalCompanyOvertime.toFixed(1)} hrs</span>
-              </div>
-            </div>
-
-            <table className="w-full text-left text-xs border border-slate-200 rounded-xl overflow-hidden">
-              <thead className="bg-slate-100 text-[10px] font-bold text-slate-500 uppercase">
-                <tr>
-                  <th className="p-2">Employee</th>
-                  <th className="p-2">Day</th>
-                  <th className="p-2">Shift Date</th>
-                  <th className="p-2">In / Out</th>
-                  <th className="p-2">Hours (Live)</th>
-                  <th className="p-2">Status</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                {filteredTimecards.map(t => {
-                  const isClockedIn = t.status === 'CLOCKED_IN' || !t.clockOut;
-
-                  return (
-                    <tr key={t.id}>
-                      <td className="p-2 font-bold text-slate-900">{t.employeeName}</td>
-                      <td className="p-2 font-semibold text-slate-700">{getDayOfWeek(t.date)}</td>
-                      <td className="p-2 font-mono">{t.date}</td>
-                      <td className="p-2 font-mono">{t.clockIn} – {t.clockOut || 'Active'}</td>
-                      <td className="p-2 font-bold font-mono">
-                        {isClockedIn ? formatRunningDuration(t, currentTime) : `${formatCompletedDuration(t)} (${t.totalHours.toFixed(1)}h)`}
-                      </td>
-                      <td className="p-2 font-semibold">{t.status}</td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
           </div>
         </div>
       )}
 
+      {/* ========================================================================= */}
+      {/* MODAL 4: CONFIRM DELETE MODAL */}
+      {/* ========================================================================= */}
+      <ConfirmDeleteModal
+        isOpen={!!deletingTimecard}
+        title="Delete Shift Timecard Record?"
+        itemName={deletingTimecard ? `${deletingTimecard.employeeName} (${deletingTimecard.date})` : undefined}
+        description={deletingTimecard ? `Are you sure you want to delete this timecard record for ${deletingTimecard.employeeName} on ${deletingTimecard.date} (${deletingTimecard.clockIn} – ${deletingTimecard.clockOut || 'Active'})? This will permanently deduct ${deletingTimecard.totalHours?.toFixed(2) || '0.00'} logged hours from company payroll records.` : undefined}
+        confirmButtonText="Delete Record"
+        onConfirm={() => {
+          if (deletingTimecard) {
+            adminDeleteTimecard(deletingTimecard.id);
+            setDeletingTimecard(null);
+          }
+        }}
+        onCancel={() => setDeletingTimecard(null)}
+      />
+
+      {/* Custom Scoped Print Styles */}
+      <style jsx global>{`
+        @media print {
+          body * {
+            visibility: hidden !important;
+          }
+          #printable-timecard-report, #printable-timecard-report * {
+            visibility: visible !important;
+          }
+          #printable-timecard-report {
+            position: absolute !important;
+            left: 0 !important;
+            top: 0 !important;
+            width: 100% !important;
+            border: none !important;
+            box-shadow: none !important;
+            padding: 0 !important;
+            margin: 0 !important;
+          }
+        }
+      `}</style>
+
     </div>
   );
 }
+

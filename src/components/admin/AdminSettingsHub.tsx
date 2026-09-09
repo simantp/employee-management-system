@@ -5,14 +5,14 @@ import { useApp } from '@/lib/store';
 import DocumentTypesManager from './DocumentTypesManager';
 import RolesManagement from './RolesManagement';
 
-export type SettingsTab = 'COMPANY' | 'SHIFTS' | 'LEAVE' | 'DOCUMENTS' | 'ROLES' | 'SECURITY' | 'NOTIFS' | 'BACKUP';
+export type SettingsTab = 'COMPANY' | 'SHIFTS' | 'LEAVE' | 'DOCUMENTS' | 'ROLES' | 'EXPIRY' | 'SECURITY' | 'NOTIFS' | 'BACKUP';
 
 export default function AdminSettingsHub({
   defaultTab = 'COMPANY'
 }: {
   defaultTab?: SettingsTab;
 }) {
-  const { addToast, addAudit, employees, timecards, leaveRequests } = useApp();
+  const { addToast, addAudit, employees, timecards, leaveRequests, expirySettings, updateExpirySettings } = useApp();
 
   const [activeTab, setActiveTab] = useState<SettingsTab>(defaultTab);
 
@@ -55,7 +55,16 @@ export default function AdminSettingsHub({
     blockLeaveOnPublicHolidays: true,
   });
 
-  // 4. Security & Cryptography State
+  // 4. Visa & License Expiry Compliance Rules State
+  const [expiryForm, setExpiryForm] = useState(expirySettings);
+
+  useEffect(() => {
+    if (expirySettings) {
+      setExpiryForm(expirySettings);
+    }
+  }, [expirySettings]);
+
+  // 5. Security & Cryptography State
   const [securitySettings, setSecuritySettings] = useState({
     enforceEmailOtp2FA: true,
     sessionTimeoutMinutes: 45,
@@ -64,7 +73,7 @@ export default function AdminSettingsHub({
     allowStaffPasswordResetSelfService: true,
   });
 
-  // 5. Notification Preferences
+  // 6. Notification Preferences
   const [notifPreferences, setNotifPreferences] = useState({
     notifyAdminOnClockIn: true,
     notifyAdminOnClockOut: true,
@@ -74,6 +83,10 @@ export default function AdminSettingsHub({
   });
 
   const handleSaveSettings = (section: string) => {
+    if (activeTab === 'EXPIRY') {
+      updateExpirySettings(expiryForm);
+      return;
+    }
     addToast('Settings Saved', `${section} preferences updated and persisted successfully.`, 'success');
     addAudit('SYSTEM_SETTINGS_UPDATED', 'Settings', 'global', `Updated ${section} configuration settings`, 'Admin', 'SuperAdmin');
   };
@@ -212,6 +225,17 @@ export default function AdminSettingsHub({
           </button>
 
           <button
+            onClick={() => setActiveTab('EXPIRY')}
+            className={`w-full text-left p-2.5 rounded-xl text-xs font-bold transition cursor-pointer ${
+              activeTab === 'EXPIRY' 
+                ? 'bg-slate-900 text-white font-bold' 
+                : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
+            }`}
+          >
+            Visa &amp; License Expiry
+          </button>
+
+          <button
             onClick={() => setActiveTab('SECURITY')}
             className={`w-full text-left p-2.5 rounded-xl text-xs font-bold transition cursor-pointer ${
               activeTab === 'SECURITY' 
@@ -325,7 +349,7 @@ export default function AdminSettingsHub({
             <div className="space-y-5">
               <div className="border-b border-slate-100 pb-3">
                 <h3 className="font-black text-sm text-slate-900">Shift &amp; Timecard Attendance Rules</h3>
-                <p className="text-slate-500 text-[11px]">Fair Work Australia standard full-time hours, breaks, and Kiosk parameters</p>
+                <p className="text-slate-500 text-[11px]">Fair Work Australia standard full-time hours, breaks, and shift parameters</p>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -363,7 +387,7 @@ export default function AdminSettingsHub({
                 </div>
 
                 <div>
-                  <label className="font-bold text-slate-700 block mb-1">Kiosk Clock-In Grace Window (Minutes)</label>
+                  <label className="font-bold text-slate-700 block mb-1">Clock-In Grace Window (Minutes)</label>
                   <input
                     type="number"
                     value={shiftRules.gracePeriodMinutes}
@@ -461,7 +485,254 @@ export default function AdminSettingsHub({
             <RolesManagement />
           )}
 
-          {/* TAB 6: SECURITY & CRYPTOGRAPHY */}
+          {/* TAB 6: VISA & LICENSE EXPIRY COMPLIANCE */}
+          {activeTab === 'EXPIRY' && (
+            <div className="space-y-6">
+              <div className="border-b border-slate-100 pb-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                <div>
+                  <h3 className="font-bold text-sm text-slate-900">Visa &amp; Driver License Expiry Compliance Rules</h3>
+                  <p className="text-slate-500 text-[11px]">Configure warning and critical days thresholds, auto-reminder intervals, and staff portal notifications</p>
+                </div>
+                <button
+                  onClick={() => updateExpirySettings(expiryForm)}
+                  className="px-3.5 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs shadow-xs transition cursor-pointer self-start sm:self-auto"
+                >
+                  Save Compliance Rules
+                </button>
+              </div>
+
+              {/* Master Auto-Reminder Toggle Card */}
+              <div className={`p-4 sm:p-5 rounded-2xl border transition-all ${
+                expiryForm.autoReminderEnabled 
+                  ? 'bg-gradient-to-r from-blue-50/70 via-indigo-50/40 to-slate-50 border-blue-200 shadow-xs' 
+                  : 'bg-slate-50 border-slate-200'
+              }`}>
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2">
+                      <h4 className="font-bold text-xs text-slate-900">Automated Expiry Reminders Engine</h4>
+                      <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold border ${
+                        expiryForm.autoReminderEnabled
+                          ? 'bg-emerald-100 text-emerald-800 border-emerald-300'
+                          : 'bg-slate-200 text-slate-600 border-slate-300'
+                      }`}>
+                        {expiryForm.autoReminderEnabled ? 'ENABLED & ACTIVE' : 'PAUSED'}
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-slate-600 max-w-xl">
+                      When enabled, automated email reminders and staff portal notifications are sent to employees:
+                      <strong className="text-slate-800"> 1 reminder every {expiryForm.warningFrequencyDays} days</strong> during Warning status, and
+                      <strong className="text-rose-700"> 1 reminder every {expiryForm.criticalFrequencyDays} days</strong> during Critical status.
+                    </p>
+                  </div>
+
+                  <label className="relative inline-flex items-center cursor-pointer shrink-0">
+                    <input
+                      type="checkbox"
+                      checked={expiryForm.autoReminderEnabled}
+                      onChange={e => {
+                        const updated = { ...expiryForm, autoReminderEnabled: e.target.checked };
+                        setExpiryForm(updated);
+                        updateExpirySettings(updated);
+                      }}
+                      className="sr-only peer"
+                    />
+                    <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                  </label>
+                </div>
+              </div>
+
+              {/* Thresholds Configuration: Visa & Driver License */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* Visa Expiry Thresholds */}
+                <div className="bg-slate-50/70 p-4.5 rounded-2xl border border-slate-200 space-y-4">
+                  <div className="flex items-center justify-between border-b border-slate-200 pb-2.5">
+                    <div className="flex items-center gap-2">
+                      <span className="w-2.5 h-2.5 rounded-full bg-blue-500" />
+                      <h4 className="font-bold text-xs text-slate-900">Visa Expiration Thresholds</h4>
+                    </div>
+                    <span className="text-[10px] text-slate-500 font-mono">Subclass 482/485/500</span>
+                  </div>
+
+                  <div className="space-y-3">
+                    <div>
+                      <label className="text-slate-700 font-bold text-xs flex items-center justify-between mb-1">
+                        <span>Visa Warning Threshold</span>
+                        <span className="text-amber-700 font-bold text-[11px]">{expiryForm.visaWarningDays} Days Before Expiry</span>
+                      </label>
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="number"
+                          min="1"
+                          max="180"
+                          value={expiryForm.visaWarningDays}
+                          onChange={e => setExpiryForm({...expiryForm, visaWarningDays: Math.max(1, parseInt(e.target.value) || 1)})}
+                          className="w-full px-3 py-2 border border-slate-300 rounded-xl bg-white text-xs font-bold text-slate-800 focus:ring-2 focus:ring-blue-500/20"
+                        />
+                        <span className="text-xs font-medium text-slate-500 whitespace-nowrap">days before</span>
+                      </div>
+                      <p className="text-[10px] text-slate-500 mt-1">Triggers Warning status in Alerts hub &amp; starts automated cycle</p>
+                    </div>
+
+                    <div>
+                      <label className="text-slate-700 font-bold text-xs flex items-center justify-between mb-1">
+                        <span>Visa Critical Threshold</span>
+                        <span className="text-rose-700 font-bold text-[11px]">{expiryForm.visaCriticalDays} Days Before Expiry</span>
+                      </label>
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="number"
+                          min="1"
+                          max="90"
+                          value={expiryForm.visaCriticalDays}
+                          onChange={e => setExpiryForm({...expiryForm, visaCriticalDays: Math.max(1, parseInt(e.target.value) || 1)})}
+                          className="w-full px-3 py-2 border border-slate-300 rounded-xl bg-white text-xs font-bold text-slate-800 focus:ring-2 focus:ring-rose-500/20"
+                        />
+                        <span className="text-xs font-medium text-slate-500 whitespace-nowrap">days before</span>
+                      </div>
+                      <p className="text-[10px] text-slate-500 mt-1">Triggers Urgent Red Critical breach alert &amp; accelerated dispatch</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Driver License Expiry Thresholds */}
+                <div className="bg-slate-50/70 p-4.5 rounded-2xl border border-slate-200 space-y-4">
+                  <div className="flex items-center justify-between border-b border-slate-200 pb-2.5">
+                    <div className="flex items-center gap-2">
+                      <span className="w-2.5 h-2.5 rounded-full bg-indigo-500" />
+                      <h4 className="font-bold text-xs text-slate-900">Driver License Thresholds</h4>
+                    </div>
+                    <span className="text-[10px] text-slate-500 font-mono">NSW &amp; Interstate</span>
+                  </div>
+
+                  <div className="space-y-3">
+                    <div>
+                      <label className="text-slate-700 font-bold text-xs flex items-center justify-between mb-1">
+                        <span>License Warning Threshold</span>
+                        <span className="text-amber-700 font-bold text-[11px]">{expiryForm.licenseWarningDays} Days Before Expiry</span>
+                      </label>
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="number"
+                          min="1"
+                          max="180"
+                          value={expiryForm.licenseWarningDays}
+                          onChange={e => setExpiryForm({...expiryForm, licenseWarningDays: Math.max(1, parseInt(e.target.value) || 1)})}
+                          className="w-full px-3 py-2 border border-slate-300 rounded-xl bg-white text-xs font-bold text-slate-800 focus:ring-2 focus:ring-blue-500/20"
+                        />
+                        <span className="text-xs font-medium text-slate-500 whitespace-nowrap">days before</span>
+                      </div>
+                      <p className="text-[10px] text-slate-500 mt-1">Triggers upcoming license renewal reminder</p>
+                    </div>
+
+                    <div>
+                      <label className="text-slate-700 font-bold text-xs flex items-center justify-between mb-1">
+                        <span>License Critical Threshold</span>
+                        <span className="text-rose-700 font-bold text-[11px]">{expiryForm.licenseCriticalDays} Days Before Expiry</span>
+                      </label>
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="number"
+                          min="1"
+                          max="90"
+                          value={expiryForm.licenseCriticalDays}
+                          onChange={e => setExpiryForm({...expiryForm, licenseCriticalDays: Math.max(1, parseInt(e.target.value) || 1)})}
+                          className="w-full px-3 py-2 border border-slate-300 rounded-xl bg-white text-xs font-bold text-slate-800 focus:ring-2 focus:ring-rose-500/20"
+                        />
+                        <span className="text-xs font-medium text-slate-500 whitespace-nowrap">days before</span>
+                      </div>
+                      <p className="text-[10px] text-slate-500 mt-1">Triggers Critical alert to ensure valid driving authorisation</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Dispatch Frequency Configuration */}
+              <div className="bg-slate-50/70 p-4.5 rounded-2xl border border-slate-200 space-y-4">
+                <div className="border-b border-slate-200 pb-2.5">
+                  <h4 className="font-bold text-xs text-slate-900">Automated Reminder Dispatch Frequency</h4>
+                  <p className="text-slate-500 text-[11px]">Set how often reminder emails &amp; staff portal alerts are dispatched to affected employees</p>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="p-3.5 bg-amber-50/60 rounded-xl border border-amber-200 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="font-bold text-xs text-amber-900">Warning State Frequency</span>
+                      <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800 border border-amber-300">
+                        Every {expiryForm.warningFrequencyDays} Days
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs text-slate-600">Send 1 notice every</span>
+                      <input
+                        type="number"
+                        min="1"
+                        max="30"
+                        value={expiryForm.warningFrequencyDays}
+                        onChange={e => setExpiryForm({...expiryForm, warningFrequencyDays: Math.max(1, parseInt(e.target.value) || 1)})}
+                        className="w-20 px-2.5 py-1.5 border border-amber-300 rounded-lg bg-white text-xs font-bold text-slate-800 text-center"
+                      />
+                      <span className="text-xs text-slate-600">days</span>
+                    </div>
+                    <p className="text-[10px] text-amber-800">1 email + 1 staff portal notification sent every {expiryForm.warningFrequencyDays} days during warning window.</p>
+                  </div>
+
+                  <div className="p-3.5 bg-rose-50/60 rounded-xl border border-rose-200 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="font-bold text-xs text-rose-900">Critical State Frequency</span>
+                      <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-100 text-rose-800 border border-rose-300">
+                        Every {expiryForm.criticalFrequencyDays} Days
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs text-slate-600">Send 1 notice every</span>
+                      <input
+                        type="number"
+                        min="1"
+                        max="14"
+                        value={expiryForm.criticalFrequencyDays}
+                        onChange={e => setExpiryForm({...expiryForm, criticalFrequencyDays: Math.max(1, parseInt(e.target.value) || 1)})}
+                        className="w-20 px-2.5 py-1.5 border border-rose-300 rounded-lg bg-white text-xs font-bold text-slate-800 text-center"
+                      />
+                      <span className="text-xs text-slate-600">days</span>
+                    </div>
+                    <p className="text-[10px] text-rose-800">1 email + 1 staff portal notification sent every {expiryForm.criticalFrequencyDays} days during critical window.</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Buttons */}
+              <div className="flex items-center justify-end gap-2 pt-2">
+                <button
+                  onClick={() => {
+                    const reset = {
+                      autoReminderEnabled: true,
+                      visaWarningDays: 60,
+                      visaCriticalDays: 30,
+                      licenseWarningDays: 60,
+                      licenseCriticalDays: 30,
+                      warningFrequencyDays: 5,
+                      criticalFrequencyDays: 3,
+                    };
+                    setExpiryForm(reset);
+                    updateExpirySettings(reset);
+                  }}
+                  className="px-3.5 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs transition cursor-pointer"
+                >
+                  Reset to Defaults (60d/30d)
+                </button>
+
+                <button
+                  onClick={() => updateExpirySettings(expiryForm)}
+                  className="px-4 py-2 rounded-xl bg-slate-900 text-white font-bold text-xs hover:bg-slate-800 shadow-xs transition cursor-pointer"
+                >
+                  Save Compliance Configuration
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* TAB 7: SECURITY & CRYPTOGRAPHY */}
           {activeTab === 'SECURITY' && (
             <div className="space-y-5">
               <div className="border-b border-slate-100 pb-3">
