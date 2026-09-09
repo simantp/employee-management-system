@@ -1,7 +1,6 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { UserCheck } from 'lucide-react';
 import { useApp } from '@/lib/store';
 import CompanyLatestAnnouncementBanner from './CompanyLatestAnnouncementBanner';
 import BankDetailsModal from './BankDetailsModal';
@@ -145,7 +144,6 @@ export default function StaffDashboard({
 
             <h1 className="text-2xl sm:text-3xl font-black text-white tracking-tight flex items-center gap-2.5">
               <span>{greeting}, {currentStaff.firstName}</span>
-              <span className="text-2xl animate-bounce">👋</span>
             </h1>
 
             {/* Subtitle below greeting: ONLY show assigned department and confirmed hours */}
@@ -171,7 +169,6 @@ export default function StaffDashboard({
               onClick={() => setShowWorkRightsModal(true)}
               className="flex items-center gap-2 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-400 hover:to-amber-400 text-slate-950 px-4 py-2.5 rounded-2xl text-xs font-black shadow-lg shadow-orange-500/20 transition-all hover:scale-[1.02] active:scale-[0.98] cursor-pointer"
             >
-              <UserCheck className="w-4 h-4" />
               <span>Update Visa &amp; Working Hours</span>
             </button>
           </div>

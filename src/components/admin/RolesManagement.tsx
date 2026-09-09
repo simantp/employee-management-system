@@ -1,19 +1,8 @@
 'use client';
 
 import React, { useState } from 'react';
-import { 
-  KeyRound, 
-  UserPlus, 
-  ShieldCheck, 
-  CheckCircle2, 
-  AlertCircle, 
-  MoreVertical, 
-  X,
-  Lock,
-  UserCheck
-} from 'lucide-react';
 import { useApp } from '@/lib/store';
-import { UserRole, AuthUser } from '@/types';
+import { UserRole } from '@/types';
 
 export default function RolesManagement() {
   const { users, currentUser, createAdminUser, promoteUserRole } = useApp();
@@ -38,38 +27,32 @@ export default function RolesManagement() {
   const isSuperAdmin = currentUser?.role === 'SUPER_ADMIN';
 
   return (
-    <div className="bg-white rounded-2xl border border-slate-200/80 shadow-sm p-5 mb-6" id="roles">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
-        <div className="flex items-center gap-2.5">
-          <div className="w-9 h-9 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center border border-blue-100">
-            <KeyRound className="w-5 h-5" />
-          </div>
-          <div>
-            <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
-              <span>Admin Roles & User Permissions</span>
-              <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-blue-100 text-blue-700">
-                Super Admin Access
-              </span>
-            </h3>
-            <p className="text-[11px] text-slate-500">
-              Only Super Admin can create or promote users to Admin / HR Manager roles
-            </p>
-          </div>
+    <div className="space-y-5 text-xs" id="roles">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-100 pb-3">
+        <div>
+          <h3 className="font-bold text-sm text-slate-900 flex items-center gap-2">
+            <span>Admin Roles & User Permissions</span>
+            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-100 text-blue-700">
+              Super Admin Access
+            </span>
+          </h3>
+          <p className="text-[11px] text-slate-500">
+            Only Super Admin can create or promote users to Admin / HR Manager roles
+          </p>
         </div>
 
         {isSuperAdmin && (
           <button
             onClick={() => setShowCreateModal(true)}
-            className="flex items-center gap-2 bg-navy-950 hover:bg-slate-900 text-white px-3.5 py-2 rounded-xl text-xs font-bold shadow-xs transition"
+            className="bg-slate-900 hover:bg-slate-800 text-white px-3.5 py-2 rounded-xl text-xs font-bold transition cursor-pointer"
           >
-            <UserPlus className="w-3.5 h-3.5 text-cyan-400" />
-            <span>+ Create Admin User</span>
+            Create Admin User
           </button>
         )}
       </div>
 
       {/* Users & Roles Table */}
-      <div className="overflow-x-auto">
+      <div className="overflow-x-auto border border-slate-200/80 rounded-2xl">
         <table className="w-full text-left text-xs text-slate-600">
           <thead className="bg-slate-50 text-[11px] font-bold text-slate-400 uppercase tracking-wider border-b border-slate-100">
             <tr>
@@ -99,7 +82,7 @@ export default function RolesManagement() {
                 </td>
                 <td className="py-3 px-4 font-mono text-[11px] text-slate-700">{u.email}</td>
                 <td className="py-3 px-4">
-                  <span className={`px-2 py-0.5 rounded-full text-[10px] font-extrabold ${
+                  <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
                     u.role === 'SUPER_ADMIN' ? 'bg-purple-100 text-purple-800 border border-purple-200' :
                     u.role === 'ADMIN' ? 'bg-blue-100 text-blue-800 border border-blue-200' :
                     u.role === 'HR_MANAGER' ? 'bg-cyan-100 text-cyan-800 border border-cyan-200' :
@@ -109,8 +92,8 @@ export default function RolesManagement() {
                   </span>
                 </td>
                 <td className="py-3 px-4">
-                  <span className="flex items-center gap-1 text-[11px] text-emerald-600 font-semibold">
-                    <CheckCircle2 className="w-3.5 h-3.5" /> Verified
+                  <span className="text-[11px] text-emerald-600 font-semibold">
+                    Verified
                   </span>
                 </td>
                 <td className="py-3 px-4 text-slate-500 text-[11px]">{u.createdAt}</td>
@@ -137,15 +120,15 @@ export default function RolesManagement() {
 
       {/* Modal to Create New Admin */}
       {showCreateModal && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/20 p-4">
-      <div className="bg-white rounded-2xl shadow-2xl border max-w-md w-full p-6 text-xs animate-in zoom-in-95" onClick={(e) => e.stopPropagation()}>
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 backdrop-blur-xs p-4">
+          <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 max-w-md w-full p-6 text-xs animate-in zoom-in-95" onClick={(e) => e.stopPropagation()}>
             <div className="flex justify-between items-center pb-3 border-b">
               <div>
                 <h4 className="font-bold text-base text-slate-900">Grant Admin Role</h4>
                 <p className="text-slate-500">Add or provision an Admin / HR Manager account</p>
               </div>
-              <button onClick={() => setShowCreateModal(false)} className="p-1 text-slate-400 hover:text-slate-700">
-                <X className="w-4 h-4" />
+              <button onClick={() => setShowCreateModal(false)} className="text-xs font-bold text-slate-400 hover:text-slate-700 cursor-pointer">
+                Close
               </button>
             </div>
 
@@ -158,7 +141,7 @@ export default function RolesManagement() {
                   placeholder="e.g. Rachel Adams"
                   value={form.name}
                   onChange={e => setForm({...form, name: e.target.value})}
-                  className="w-full p-2.5 border rounded-xl bg-slate-50"
+                  className="w-full p-2.5 border rounded-xl bg-slate-50 font-medium"
                 />
               </div>
 
@@ -167,10 +150,10 @@ export default function RolesManagement() {
                 <input
                   type="email"
                   required
-                  placeholder="rachel.adams@company.com.au"
+                  placeholder="rachel.adams@hscreations.com.au"
                   value={form.email}
                   onChange={e => setForm({...form, email: e.target.value})}
-                  className="w-full p-2.5 border rounded-xl bg-slate-50"
+                  className="w-full p-2.5 border rounded-xl bg-slate-50 font-medium"
                 />
               </div>
 
@@ -191,13 +174,13 @@ export default function RolesManagement() {
                 <button
                   type="button"
                   onClick={() => setShowCreateModal(false)}
-                  className="px-4 py-2 border rounded-xl font-bold text-slate-600"
+                  className="px-4 py-2 border rounded-xl font-bold text-slate-600 hover:bg-slate-50 cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold shadow-md shadow-blue-600/25"
+                  className="px-5 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-xl font-bold transition cursor-pointer"
                 >
                   Create Admin Account
                 </button>

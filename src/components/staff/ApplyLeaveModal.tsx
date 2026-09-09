@@ -1,7 +1,6 @@
 'use client';
 
 import React, { useState } from 'react';
-import { X, Calendar, AlertCircle, ShieldAlert, Sparkles, CheckCircle2 } from 'lucide-react';
 import { useApp } from '@/lib/store';
 import { LeaveType } from '@/types';
 import { getSydneyTimeParts, calculateDaysBetween, getDaysUntil } from '@/lib/utils';
@@ -56,17 +55,12 @@ export default function ApplyLeaveModal({ onClose }: { onClose: () => void }) {
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/20 p-4 overflow-y-auto" onClick={onClose}>
       <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 max-w-lg w-full overflow-hidden animate-in fade-in zoom-in-95" onClick={(e) => e.stopPropagation()}>
         <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50">
-          <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-xl bg-blue-100 text-blue-700 flex items-center justify-center font-bold">
-              <Calendar className="w-4 h-4" />
-            </div>
-            <div>
-              <h3 className="text-sm font-bold text-slate-900">Apply for Leave</h3>
-              <p className="text-[11px] text-slate-500">Australian standard advance notice rules applied</p>
-            </div>
+          <div>
+            <h3 className="text-sm font-bold text-slate-900">Apply for Leave</h3>
+            <p className="text-[11px] text-slate-500">Australian standard advance notice rules applied</p>
           </div>
-          <button onClick={onClose} className="text-slate-400 hover:text-slate-700 p-1.5 rounded-lg hover:bg-slate-100">
-            <X className="w-4 h-4" />
+          <button onClick={onClose} className="text-xs font-semibold text-slate-500 hover:text-slate-800 px-2 py-1 rounded-lg border border-slate-200 cursor-pointer">
+            Close
           </button>
         </div>
 
@@ -123,7 +117,6 @@ export default function ApplyLeaveModal({ onClose }: { onClose: () => void }) {
           <div className={`p-3 rounded-xl border flex items-start gap-2.5 ${
             isAdvanceMet ? 'bg-emerald-50 border-emerald-200 text-emerald-800' : 'bg-amber-50 border-amber-200 text-amber-800'
           }`}>
-            {isAdvanceMet ? <CheckCircle2 className="w-4 h-4 text-emerald-600 flex-shrink-0 mt-0.5" /> : <AlertCircle className="w-4 h-4 text-amber-600 flex-shrink-0 mt-0.5" />}
             <div>
               <p className="font-bold text-xs">Advance Notice: {advanceRule.label}</p>
               <p className="text-[11px] opacity-90">
@@ -145,12 +138,12 @@ export default function ApplyLeaveModal({ onClose }: { onClose: () => void }) {
           </div>
 
           <div className="flex items-center justify-between pt-3 border-t border-slate-100">
-            <span className="text-[11px] text-slate-400">⚡ Real-time alert dispatched to Admin</span>
+            <span className="text-[11px] text-slate-400">Real-time alert dispatched to Admin</span>
             <div className="flex items-center gap-2">
-              <button type="button" onClick={onClose} className="px-5 py-3 rounded-2xl border border-slate-200 text-slate-700 font-bold hover:bg-slate-100 transition-all text-xs">Cancel</button>
+              <button type="button" onClick={onClose} className="px-5 py-3 rounded-2xl border border-slate-200 text-slate-700 font-bold hover:bg-slate-100 transition-all text-xs cursor-pointer">Cancel</button>
               <button
                 type="submit"
-                className="px-5 py-2 rounded-xl bg-cyan-600 hover:bg-cyan-700 text-white font-bold shadow-md shadow-cyan-600/25 transition"
+                className="px-5 py-2 rounded-xl bg-cyan-600 hover:bg-cyan-700 text-white font-bold shadow-md shadow-cyan-600/25 transition cursor-pointer"
               >
                 Submit Request
               </button>

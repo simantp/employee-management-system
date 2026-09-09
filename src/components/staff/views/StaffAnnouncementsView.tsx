@@ -1,7 +1,6 @@
 'use client';
 
 import React from 'react';
-import { Megaphone, FileText, Download, Calendar, ShieldCheck, User } from 'lucide-react';
 import { useApp } from '@/lib/store';
 
 export default function StaffAnnouncementsView() {
@@ -24,14 +23,12 @@ export default function StaffAnnouncementsView() {
                 <span className="text-[10px] font-black px-2.5 py-0.5 rounded-full bg-orange-100 text-orange-800 border border-orange-200">
                   {a.category || 'Company Announcement'}
                 </span>
-                <span className="text-slate-500 text-[11px] font-medium flex items-center gap-1">
-                  <User className="w-3 h-3 text-slate-400" />
-                  <span>{a.author}</span>
+                <span className="text-slate-500 text-[11px] font-medium">
+                  by {a.author}
                 </span>
               </div>
-              <span className="text-slate-400 text-[11px] font-medium flex items-center gap-1">
-                <Calendar className="w-3 h-3 text-slate-400" />
-                <span>{a.date}</span>
+              <span className="text-slate-400 text-[11px] font-medium">
+                {a.date}
               </span>
             </div>
             <h3 className="font-extrabold text-base text-slate-900">{a.title}</h3>

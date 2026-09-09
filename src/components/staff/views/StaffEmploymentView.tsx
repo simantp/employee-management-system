@@ -1,7 +1,6 @@
 'use client';
 
 import React from 'react';
-import { Briefcase, Clock, Calendar, ShieldCheck, MapPin, User } from 'lucide-react';
 import { useApp } from '@/lib/store';
 
 export default function StaffEmploymentView() {
@@ -19,7 +18,6 @@ export default function StaffEmploymentView() {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div className="bg-white rounded-3xl p-6 border border-slate-200/80 shadow-xs space-y-4">
           <h3 className="font-extrabold text-sm text-slate-900 border-b border-slate-100 pb-2.5 flex items-center gap-2">
-            <Briefcase className="w-4 h-4 text-orange-600" />
             <span>Position &amp; Department Specifications</span>
           </h3>
 
@@ -62,7 +60,6 @@ export default function StaffEmploymentView() {
 
         <div className="bg-white rounded-3xl p-6 border border-slate-200/80 shadow-xs space-y-4">
           <h3 className="font-extrabold text-sm text-slate-900 border-b border-slate-100 pb-2.5 flex items-center gap-2">
-            <Clock className="w-4 h-4 text-cyan-600" />
             <span>Hours &amp; Work Guidelines</span>
           </h3>
 

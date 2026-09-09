@@ -1,29 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { 
-  X, 
-  Lock, 
-  Unlock, 
-  ShieldAlert, 
-  Phone, 
-  Mail, 
-  MapPin, 
-  Calendar, 
-  FileText, 
-  CheckCircle2, 
-  ShieldCheck,
-  Edit3,
-  Save,
-  Check,
-  Briefcase,
-  UserCheck,
-  Palmtree,
-  CreditCard,
-  User,
-  HeartHandshake
-} from 'lucide-react';
-import { Employee, Department, LeaveBalance } from '@/types';
+import { Employee, Department } from '@/types';
 import { decryptAES256, encryptAES256, maskSensitive } from '@/lib/crypto';
 import { useApp } from '@/lib/store';
 
@@ -35,7 +13,7 @@ export default function EmployeeDetailModal({
   onClose: () => void;
 }) {
   const { updateEmployee } = useApp();
-  const [activeSection, setActiveSection] = useState<'EMPLOYMENT' | 'LEAVE' | 'PERSONAL' | 'BANKING' | 'VISA_EMERGENCY'>('EMPLOYMENT');
+  const [activeSection, setActiveSection] = useState<'EMPLOYMENT' | 'PERSONAL' | 'VISA_LICENCE_EMERGENCY' | 'BANKING'>('EMPLOYMENT');
   const [isEditing, setIsEditing] = useState(false);
   const [showEncrypted, setShowEncrypted] = useState(false);
 
@@ -59,13 +37,7 @@ export default function EmployeeDetailModal({
   const [workingHours, setWorkingHours] = useState<number>(employee.workingHours || 38);
   const [kioskPin, setKioskPin] = useState(employee.kioskPin || '4829');
 
-  // 3. Leave Balances Management
-  const [annualLeave, setAnnualLeave] = useState<number>(employee.leaveBalance?.annual ?? 20);
-  const [sickLeave, setSickLeave] = useState<number>(employee.leaveBalance?.sick ?? 10);
-  const [carersLeave, setCarersLeave] = useState<number>(employee.leaveBalance?.carers ?? 5);
-  const [longServiceLeave, setLongServiceLeave] = useState<number>(employee.leaveBalance?.longService ?? 0);
-
-  // 4. Banking & Super
+  // 3. Banking & Super
   const decryptedTFN = employee.tfnEncrypted ? decryptAES256(employee.tfnEncrypted) : (employee.tfnMasked || '');
   const decryptedBSB = employee.bsbEncrypted ? decryptAES256(employee.bsbEncrypted) : (employee.bsbMasked || '');
   const decryptedAcc = employee.accountNumberEncrypted ? decryptAES256(employee.accountNumberEncrypted) : (employee.accountNumberMasked || '');
@@ -79,23 +51,22 @@ export default function EmployeeDetailModal({
   const [superFundName, setSuperFundName] = useState(employee.superFundName || 'AustralianSuper');
   const [superMemberNumber, setSuperMemberNumber] = useState(employee.superMemberNumber || 'AUS-987654');
 
-  // 5. Visa & Emergency
+  // 4. Visa, Licence & Emergency
   const [citizenStatus, setCitizenStatus] = useState(employee.citizenStatus || 'Australian Citizen');
   const [visaType, setVisaType] = useState(employee.visaType || 'Subclass 482 (Temporary Skill Shortage)');
   const [visaExpiryDate, setVisaExpiryDate] = useState(employee.visaExpiryDate || '');
+  
+  const [hasDriverLicense, setHasDriverLicense] = useState<boolean>(employee.hasDriverLicense ?? true);
+  const [licenseCountry, setLicenseCountry] = useState(employee.licenseCountry || 'NSW (Australia)');
+  const [licenseNumber, setLicenseNumber] = useState(employee.licenseNumber || 'NSW-9482910');
+  const [licenseExpiryDate, setLicenseExpiryDate] = useState(employee.licenseExpiryDate || '2027-11-20');
+
   const [emergencyNextOfKin, setEmergencyNextOfKin] = useState(employee.emergencyNextOfKin || '');
   const [emergencyRelationship, setEmergencyRelationship] = useState(employee.emergencyRelationship || 'Spouse / Partner');
   const [emergencyMobile, setEmergencyMobile] = useState(employee.emergencyMobile || '');
 
   const handleSaveAll = (e: React.FormEvent) => {
     e.preventDefault();
-
-    const updatedLeaveBalance: LeaveBalance = {
-      annual: Number(annualLeave) || 0,
-      sick: Number(sickLeave) || 0,
-      carers: Number(carersLeave) || 0,
-      longService: Number(longServiceLeave) || 0,
-    };
 
     const bsbEnc = encryptAES256(bsbInput);
     const accEnc = encryptAES256(accInput);
@@ -123,7 +94,10 @@ export default function EmployeeDetailModal({
       workingHoursConfirmed: true,
       kioskPin: kioskPin.trim() || employee.kioskPin || '4829',
       visaStatusConfirmed: true,
-      leaveBalance: updatedLeaveBalance,
+      hasDriverLicense,
+      licenseCountry,
+      licenseNumber,
+      licenseExpiryDate,
       bankName,
       bankBranch,
       accountName,
@@ -151,24 +125,24 @@ export default function EmployeeDetailModal({
       <div className="bg-white rounded-3xl shadow-2xl border border-slate-200/90 max-w-4xl w-full my-8 overflow-hidden animate-in fade-in zoom-in-95 duration-150 text-xs shadow-black/20" onClick={(e) => e.stopPropagation()}>
         
         {/* Header */}
-        <div className="p-6 bg-gradient-to-r from-slate-950 via-slate-900 to-navy-950 text-white flex items-center justify-between">
+        <div className="p-6 bg-slate-900 text-white flex items-center justify-between">
           <div className="flex items-center gap-4">
             <img 
               src={employee.avatarUrl || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150'} 
               alt={employee.firstName} 
-              className="w-14 h-14 rounded-2xl object-cover ring-2 ring-orange-400 shadow-md"
+              className="w-14 h-14 rounded-2xl object-cover ring-2 ring-slate-700 shadow-md"
             />
             <div>
               <div className="flex items-center gap-2">
                 <h2 className="text-lg font-bold">{firstName} {lastName}</h2>
-                <span className={`text-[10px] font-extrabold px-2.5 py-0.5 rounded-full border ${
+                <span className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full border ${
                   status === 'Active' 
                     ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30' 
                     : 'bg-amber-500/20 text-amber-300 border-amber-500/30'
                 }`}>
                   {status}
                 </span>
-                <span className="text-[10px] font-bold text-orange-400 bg-orange-950/60 px-2 py-0.5 rounded border border-orange-800/40">
+                <span className="text-[10px] font-bold text-slate-300 bg-slate-800 px-2 py-0.5 rounded border border-slate-700">
                   {department || 'Unassigned Dept'}
                 </span>
               </div>
@@ -182,18 +156,17 @@ export default function EmployeeDetailModal({
             <button
               type="button"
               onClick={() => setIsEditing(!isEditing)}
-              className={`px-3.5 py-2 rounded-xl font-bold text-xs flex items-center gap-1.5 transition cursor-pointer ${
+              className={`px-3.5 py-2 rounded-xl font-bold text-xs transition cursor-pointer ${
                 isEditing 
-                  ? 'bg-amber-500 text-slate-950 font-black shadow-lg' 
+                  ? 'bg-amber-400 text-slate-950 shadow-sm' 
                   : 'bg-white/10 hover:bg-white/20 text-white border border-white/10'
               }`}
             >
-              <Edit3 className="w-3.5 h-3.5" />
-              <span>{isEditing ? 'Cancel Editing' : 'Edit All Details'}</span>
+              {isEditing ? 'Cancel Editing' : 'Edit All Details'}
             </button>
 
-            <button type="button" onClick={onClose} className="text-slate-400 hover:text-white p-2 rounded-xl hover:bg-white/10 transition cursor-pointer">
-              <X className="w-5 h-5" />
+            <button type="button" onClick={onClose} className="text-xs font-bold text-slate-400 hover:text-white px-2 py-1 transition cursor-pointer">
+              Close
             </button>
           </div>
         </div>
@@ -203,53 +176,49 @@ export default function EmployeeDetailModal({
           <button
             type="button"
             onClick={() => setActiveSection('EMPLOYMENT')}
-            className={`px-3.5 py-2 rounded-t-xl font-bold text-xs flex items-center gap-1.5 border-b-2 transition cursor-pointer ${
+            className={`px-3.5 py-2 rounded-t-xl font-bold text-xs border-b-2 transition cursor-pointer ${
               activeSection === 'EMPLOYMENT' 
-                ? 'border-orange-500 text-orange-600 bg-white shadow-xs' 
+                ? 'border-slate-900 text-slate-900 bg-white' 
                 : 'border-transparent text-slate-500 hover:text-slate-900'
             }`}
           >
-            <Briefcase className="w-3.5 h-3.5" />
-            <span>Employment &amp; Role</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setActiveSection('LEAVE')}
-            className={`px-3.5 py-2 rounded-t-xl font-bold text-xs flex items-center gap-1.5 border-b-2 transition cursor-pointer ${
-              activeSection === 'LEAVE' 
-                ? 'border-orange-500 text-orange-600 bg-white shadow-xs' 
-                : 'border-transparent text-slate-500 hover:text-slate-900'
-            }`}
-          >
-            <Palmtree className="w-3.5 h-3.5" />
-            <span>Leave Balances ({annualLeave + sickLeave + carersLeave + longServiceLeave}d)</span>
+            Employment &amp; Role
           </button>
 
           <button
             type="button"
             onClick={() => setActiveSection('PERSONAL')}
-            className={`px-3.5 py-2 rounded-t-xl font-bold text-xs flex items-center gap-1.5 border-b-2 transition cursor-pointer ${
+            className={`px-3.5 py-2 rounded-t-xl font-bold text-xs border-b-2 transition cursor-pointer ${
               activeSection === 'PERSONAL' 
-                ? 'border-orange-500 text-orange-600 bg-white shadow-xs' 
+                ? 'border-slate-900 text-slate-900 bg-white' 
                 : 'border-transparent text-slate-500 hover:text-slate-900'
             }`}
           >
-            <User className="w-3.5 h-3.5" />
-            <span>Personal &amp; Contact</span>
+            Personal &amp; Contact
           </button>
 
           <button
             type="button"
-            onClick={() => setActiveSection('VISA_EMERGENCY')}
-            className={`px-3.5 py-2 rounded-t-xl font-bold text-xs flex items-center gap-1.5 border-b-2 transition cursor-pointer ${
-              activeSection === 'VISA_EMERGENCY' 
-                ? 'border-orange-500 text-orange-600 bg-white shadow-xs' 
+            onClick={() => setActiveSection('VISA_LICENCE_EMERGENCY')}
+            className={`px-3.5 py-2 rounded-t-xl font-bold text-xs border-b-2 transition cursor-pointer ${
+              activeSection === 'VISA_LICENCE_EMERGENCY' 
+                ? 'border-slate-900 text-slate-900 bg-white' 
                 : 'border-transparent text-slate-500 hover:text-slate-900'
             }`}
           >
-            <ShieldAlert className="w-3.5 h-3.5" />
-            <span>Visa &amp; Emergency</span>
+            Visa, Licence &amp; Emergency
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setActiveSection('BANKING')}
+            className={`px-3.5 py-2 rounded-t-xl font-bold text-xs border-b-2 transition cursor-pointer ${
+              activeSection === 'BANKING' 
+                ? 'border-slate-900 text-slate-900 bg-white' 
+                : 'border-transparent text-slate-500 hover:text-slate-900'
+            }`}
+          >
+            Banking &amp; Super
           </button>
         </div>
 
@@ -385,110 +354,7 @@ export default function EmployeeDetailModal({
               </div>
             )}
 
-            {/* 2. LEAVE BALANCES MANAGEMENT */}
-            {activeSection === 'LEAVE' && (
-              <div className="space-y-4">
-                <div className="flex items-center justify-between border-b border-slate-100 pb-2">
-                  <div>
-                    <h3 className="font-extrabold text-sm text-slate-900">Fair Work Australia Statutory Leave Balances</h3>
-                    <p className="text-slate-500 text-[11px]">Adjusting these balances updates the staff member's live leave portal instantly</p>
-                  </div>
-                  <span className="text-[10px] font-black bg-emerald-100 text-emerald-800 px-2.5 py-0.5 rounded-full">
-                    Total: {annualLeave + sickLeave + carersLeave + longServiceLeave} Accrued Days
-                  </span>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                  
-                  {/* Annual Leave */}
-                  <div className="p-4 rounded-2xl bg-orange-50/60 border border-orange-200 space-y-2">
-                    <div className="flex items-center justify-between">
-                      <span className="font-bold text-orange-950 text-xs">Annual Leave</span>
-                      <span className="w-2.5 h-2.5 rounded-full bg-orange-500" />
-                    </div>
-                    <div>
-                      <input
-                        type="number"
-                        step="0.5"
-                        min="0"
-                        disabled={!isEditing}
-                        value={annualLeave}
-                        onChange={e => setAnnualLeave(parseFloat(e.target.value) || 0)}
-                        className="w-full p-2.5 text-lg font-black border border-orange-300 rounded-xl bg-white disabled:bg-orange-50/50 text-orange-950 focus:ring-2 focus:ring-orange-500/20"
-                      />
-                      <span className="text-[10px] text-orange-800 font-semibold block mt-1">Days accrued (NES 20 days/yr)</span>
-                    </div>
-                  </div>
-
-                  {/* Sick Leave */}
-                  <div className="p-4 rounded-2xl bg-amber-50/60 border border-amber-200 space-y-2">
-                    <div className="flex items-center justify-between">
-                      <span className="font-bold text-amber-950 text-xs">Sick Leave</span>
-                      <span className="w-2.5 h-2.5 rounded-full bg-amber-500" />
-                    </div>
-                    <div>
-                      <input
-                        type="number"
-                        step="0.5"
-                        min="0"
-                        disabled={!isEditing}
-                        value={sickLeave}
-                        onChange={e => setSickLeave(parseFloat(e.target.value) || 0)}
-                        className="w-full p-2.5 text-lg font-black border border-amber-300 rounded-xl bg-white disabled:bg-amber-50/50 text-amber-950 focus:ring-2 focus:ring-amber-500/20"
-                      />
-                      <span className="text-[10px] text-amber-800 font-semibold block mt-1">Days accrued (NES 10 days/yr)</span>
-                    </div>
-                  </div>
-
-                  {/* Personal / Carer's Leave */}
-                  <div className="p-4 rounded-2xl bg-emerald-50/60 border border-emerald-200 space-y-2">
-                    <div className="flex items-center justify-between">
-                      <span className="font-bold text-emerald-950 text-xs">Personal / Carers</span>
-                      <span className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
-                    </div>
-                    <div>
-                      <input
-                        type="number"
-                        step="0.5"
-                        min="0"
-                        disabled={!isEditing}
-                        value={carersLeave}
-                        onChange={e => setCarersLeave(parseFloat(e.target.value) || 0)}
-                        className="w-full p-2.5 text-lg font-black border border-emerald-300 rounded-xl bg-white disabled:bg-emerald-50/50 text-emerald-950 focus:ring-2 focus:ring-emerald-500/20"
-                      />
-                      <span className="text-[10px] text-emerald-800 font-semibold block mt-1">Days accrued (Fair Work NSW)</span>
-                    </div>
-                  </div>
-
-                  {/* Long Service Leave */}
-                  <div className="p-4 rounded-2xl bg-indigo-50/60 border border-indigo-200 space-y-2">
-                    <div className="flex items-center justify-between">
-                      <span className="font-bold text-indigo-950 text-xs">Long Service Leave</span>
-                      <span className="w-2.5 h-2.5 rounded-full bg-indigo-500" />
-                    </div>
-                    <div>
-                      <input
-                        type="number"
-                        step="0.5"
-                        min="0"
-                        disabled={!isEditing}
-                        value={longServiceLeave}
-                        onChange={e => setLongServiceLeave(parseFloat(e.target.value) || 0)}
-                        className="w-full p-2.5 text-lg font-black border border-indigo-300 rounded-xl bg-white disabled:bg-indigo-50/50 text-indigo-950 focus:ring-2 focus:ring-indigo-500/20"
-                      />
-                      <span className="text-[10px] text-indigo-800 font-semibold block mt-1">NSW 10-year tenure accrual</span>
-                    </div>
-                  </div>
-
-                </div>
-
-                <div className="p-3 bg-slate-50 rounded-2xl border border-slate-200 text-slate-600 text-[11px]">
-                  💡 <strong>Sync Guarantee:</strong> Saving changes here directly updates the staff member's live leave balances in their Staff Portal under the <strong>Leave Management</strong> section.
-                </div>
-              </div>
-            )}
-
-            {/* 3. PERSONAL & CONTACT */}
+            {/* 2. PERSONAL & CONTACT */}
             {activeSection === 'PERSONAL' && (
               <div className="space-y-4">
                 <div className="border-b border-slate-100 pb-2">
@@ -594,6 +460,163 @@ export default function EmployeeDetailModal({
               </div>
             )}
 
+            {/* 3. VISA, LICENCE & EMERGENCY */}
+            {activeSection === 'VISA_LICENCE_EMERGENCY' && (
+              <div className="space-y-6">
+                
+                {/* Visa & Citizenship */}
+                <div className="space-y-3">
+                  <div className="border-b border-slate-100 pb-2">
+                    <h3 className="font-extrabold text-sm text-slate-900">Legal Work Rights &amp; Visa Compliance</h3>
+                    <p className="text-slate-500 text-[11px]">Australian Citizenship, PR or VEVO tracked temporary visa</p>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div>
+                      <label className="font-bold text-slate-700 block mb-1">Citizenship / Residency Status</label>
+                      <select
+                        disabled={!isEditing}
+                        value={citizenStatus}
+                        onChange={e => setCitizenStatus(e.target.value)}
+                        className="w-full p-2.5 border border-slate-300 rounded-xl bg-white disabled:bg-slate-50 font-bold text-slate-900 cursor-pointer"
+                      >
+                        <option value="Australian Citizen">Australian Citizen</option>
+                        <option value="Permanent Resident">Permanent Resident</option>
+                        <option value="New Zealand Citizen">New Zealand Citizen (Special Category)</option>
+                        <option value="Temporary Resident (Visa)">Temporary Resident (Visa)</option>
+                        <option value="Student Visa">Student Visa (Work Limited)</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="font-bold text-slate-700 block mb-1">Visa Subclass / Type</label>
+                      <input
+                        type="text"
+                        disabled={!isEditing || citizenStatus === 'Australian Citizen' || citizenStatus === 'Permanent Resident'}
+                        value={visaType}
+                        onChange={e => setVisaType(e.target.value)}
+                        className="w-full p-2.5 border border-slate-300 rounded-xl bg-white disabled:bg-slate-50 font-bold text-slate-900"
+                        placeholder="e.g. Subclass 482 / TSS"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="font-bold text-slate-700 block mb-1">VEVO Expiry Date</label>
+                      <input
+                        type="date"
+                        disabled={!isEditing || citizenStatus === 'Australian Citizen' || citizenStatus === 'Permanent Resident'}
+                        value={visaExpiryDate}
+                        onChange={e => setVisaExpiryDate(e.target.value)}
+                        className="w-full p-2.5 border border-slate-300 rounded-xl bg-white disabled:bg-slate-50 font-bold text-slate-900"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Driver Licence & Operating Permits */}
+                <div className="space-y-3 pt-2">
+                  <div className="border-b border-slate-100 pb-2">
+                    <h3 className="font-extrabold text-sm text-slate-900">Driver Licence &amp; Operating Permits</h3>
+                    <p className="text-slate-500 text-[11px]">Australian or international driver licence, class and expiration tracking</p>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <div>
+                      <label className="font-bold text-slate-700 block mb-1">Driver Licence Status</label>
+                      <select
+                        disabled={!isEditing}
+                        value={hasDriverLicense ? 'YES' : 'NO'}
+                        onChange={e => setHasDriverLicense(e.target.value === 'YES')}
+                        className="w-full p-2.5 border border-slate-300 rounded-xl bg-white disabled:bg-slate-50 font-bold text-slate-900 cursor-pointer"
+                      >
+                        <option value="YES">Valid Driver Licence on File</option>
+                        <option value="NO">No Driver Licence</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="font-bold text-slate-700 block mb-1">Licence Number</label>
+                      <input
+                        type="text"
+                        disabled={!isEditing || !hasDriverLicense}
+                        value={licenseNumber}
+                        onChange={e => setLicenseNumber(e.target.value)}
+                        placeholder="e.g. 9482910"
+                        className="w-full p-2.5 border border-slate-300 rounded-xl bg-white disabled:bg-slate-50 font-mono font-bold text-slate-900"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="font-bold text-slate-700 block mb-1">Issuing State / Country</label>
+                      <input
+                        type="text"
+                        disabled={!isEditing || !hasDriverLicense}
+                        value={licenseCountry}
+                        onChange={e => setLicenseCountry(e.target.value)}
+                        placeholder="e.g. NSW (Australia)"
+                        className="w-full p-2.5 border border-slate-300 rounded-xl bg-white disabled:bg-slate-50 font-bold text-slate-900"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="font-bold text-slate-700 block mb-1">Licence Expiry Date</label>
+                      <input
+                        type="date"
+                        disabled={!isEditing || !hasDriverLicense}
+                        value={licenseExpiryDate}
+                        onChange={e => setLicenseExpiryDate(e.target.value)}
+                        className="w-full p-2.5 border border-slate-300 rounded-xl bg-white disabled:bg-slate-50 font-bold text-slate-900"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Emergency Contact */}
+                <div className="space-y-3 pt-2">
+                  <div className="border-b border-slate-100 pb-2">
+                    <h3 className="font-extrabold text-sm text-slate-900">Emergency Next of Kin</h3>
+                    <p className="text-slate-500 text-[11px]">Primary contact in case of workplace emergency</p>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div>
+                      <label className="font-bold text-slate-700 block mb-1">Next of Kin Full Name</label>
+                      <input
+                        type="text"
+                        disabled={!isEditing}
+                        value={emergencyNextOfKin}
+                        onChange={e => setEmergencyNextOfKin(e.target.value)}
+                        className="w-full p-2.5 border border-slate-300 rounded-xl bg-white disabled:bg-slate-50 font-bold text-slate-900"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="font-bold text-slate-700 block mb-1">Relationship</label>
+                      <input
+                        type="text"
+                        disabled={!isEditing}
+                        value={emergencyRelationship}
+                        onChange={e => setEmergencyRelationship(e.target.value)}
+                        className="w-full p-2.5 border border-slate-300 rounded-xl bg-white disabled:bg-slate-50 font-bold text-slate-900"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="font-bold text-slate-700 block mb-1">Emergency Mobile</label>
+                      <input
+                        type="text"
+                        disabled={!isEditing}
+                        value={emergencyMobile}
+                        onChange={e => setEmergencyMobile(e.target.value)}
+                        className="w-full p-2.5 border border-slate-300 rounded-xl bg-white disabled:bg-slate-50 font-bold text-slate-900"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+              </div>
+            )}
+
             {/* 4. BANKING & SUPERANNUATION */}
             {activeSection === 'BANKING' && (
               <div className="space-y-4">
@@ -605,13 +628,12 @@ export default function EmployeeDetailModal({
                   <button
                     type="button"
                     onClick={() => setShowEncrypted(!showEncrypted)}
-                    className={`px-3 py-1.5 rounded-xl font-bold text-xs flex items-center gap-1.5 transition cursor-pointer ${
+                    className={`px-3 py-1.5 rounded-xl font-bold text-xs transition cursor-pointer ${
                       showEncrypted 
-                        ? 'bg-rose-500/20 text-rose-700 border border-rose-300' 
-                        : 'bg-orange-500 text-slate-950 font-black hover:bg-orange-400'
+                        ? 'bg-rose-50 text-rose-700 border border-rose-200' 
+                        : 'bg-slate-900 text-white hover:bg-slate-800'
                     }`}
                   >
-                    {showEncrypted ? <Unlock className="w-3.5 h-3.5" /> : <Lock className="w-3.5 h-3.5" />}
                     <span>{showEncrypted ? 'Hide Plaintext (Logged)' : 'Decrypt Full Details'}</span>
                   </button>
                 </div>
@@ -708,113 +730,14 @@ export default function EmployeeDetailModal({
               </div>
             )}
 
-            {/* 5. VISA & EMERGENCY */}
-            {activeSection === 'VISA_EMERGENCY' && (
-              <div className="space-y-6">
-                
-                {/* Visa & Citizenship */}
-                <div className="space-y-3">
-                  <div className="border-b border-slate-100 pb-2">
-                    <h3 className="font-extrabold text-sm text-slate-900">Legal Work Rights &amp; Visa Compliance</h3>
-                    <p className="text-slate-500 text-[11px]">Australian Citizenship, PR or VEVO tracked temporary visa</p>
-                  </div>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                    <div>
-                      <label className="font-bold text-slate-700 block mb-1">Citizenship / Residency Status</label>
-                      <select
-                        disabled={!isEditing}
-                        value={citizenStatus}
-                        onChange={e => setCitizenStatus(e.target.value)}
-                        className="w-full p-2.5 border border-slate-300 rounded-xl bg-white disabled:bg-slate-50 font-bold text-slate-900 cursor-pointer"
-                      >
-                        <option value="Australian Citizen">Australian Citizen</option>
-                        <option value="Permanent Resident">Permanent Resident</option>
-                        <option value="New Zealand Citizen">New Zealand Citizen (Special Category)</option>
-                        <option value="Temporary Resident (Visa)">Temporary Resident (Visa)</option>
-                        <option value="Student Visa">Student Visa (Work Limited)</option>
-                      </select>
-                    </div>
-
-                    <div>
-                      <label className="font-bold text-slate-700 block mb-1">Visa Subclass / Type</label>
-                      <input
-                        type="text"
-                        disabled={!isEditing || citizenStatus === 'Australian Citizen' || citizenStatus === 'Permanent Resident'}
-                        value={visaType}
-                        onChange={e => setVisaType(e.target.value)}
-                        className="w-full p-2.5 border border-slate-300 rounded-xl bg-white disabled:bg-slate-50 font-bold text-slate-900"
-                        placeholder="e.g. Subclass 482 / TSS"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="font-bold text-slate-700 block mb-1">VEVO Expiry Date</label>
-                      <input
-                        type="date"
-                        disabled={!isEditing || citizenStatus === 'Australian Citizen' || citizenStatus === 'Permanent Resident'}
-                        value={visaExpiryDate}
-                        onChange={e => setVisaExpiryDate(e.target.value)}
-                        className="w-full p-2.5 border border-slate-300 rounded-xl bg-white disabled:bg-slate-50 font-bold text-slate-900"
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                {/* Emergency Contact */}
-                <div className="space-y-3 pt-2">
-                  <div className="border-b border-slate-100 pb-2">
-                    <h3 className="font-extrabold text-sm text-slate-900">Emergency Next of Kin</h3>
-                    <p className="text-slate-500 text-[11px]">Primary contact in case of workplace emergency</p>
-                  </div>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                    <div>
-                      <label className="font-bold text-slate-700 block mb-1">Next of Kin Full Name</label>
-                      <input
-                        type="text"
-                        disabled={!isEditing}
-                        value={emergencyNextOfKin}
-                        onChange={e => setEmergencyNextOfKin(e.target.value)}
-                        className="w-full p-2.5 border border-slate-300 rounded-xl bg-white disabled:bg-slate-50 font-bold text-slate-900"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="font-bold text-slate-700 block mb-1">Relationship</label>
-                      <input
-                        type="text"
-                        disabled={!isEditing}
-                        value={emergencyRelationship}
-                        onChange={e => setEmergencyRelationship(e.target.value)}
-                        className="w-full p-2.5 border border-slate-300 rounded-xl bg-white disabled:bg-slate-50 font-bold text-slate-900"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="font-bold text-slate-700 block mb-1">Emergency Mobile</label>
-                      <input
-                        type="text"
-                        disabled={!isEditing}
-                        value={emergencyMobile}
-                        onChange={e => setEmergencyMobile(e.target.value)}
-                        className="w-full p-2.5 border border-slate-300 rounded-xl bg-white disabled:bg-slate-50 font-bold text-slate-900"
-                      />
-                    </div>
-                  </div>
-                </div>
-
-              </div>
-            )}
-
           </div>
 
           {/* Footer Actions */}
           <div className="p-4 border-t border-slate-100 bg-slate-50 flex items-center justify-between">
             <div className="text-[11px] text-slate-500">
               {isEditing ? (
-                <span className="text-orange-700 font-bold flex items-center gap-1">
-                  <span>⚠️ Unsaved changes</span> — Click "Save All Changes" to broadcast updates to staff portal.
+                <span className="text-amber-800 font-bold">
+                  Unsaved changes — Click "Save All Changes" to broadcast updates to staff portal.
                 </span>
               ) : (
                 <span>All records synchronized with HsCreations NSW HR Vault.</span>
@@ -833,10 +756,9 @@ export default function EmployeeDetailModal({
                   </button>
                   <button
                     type="submit"
-                    className="px-6 py-2 rounded-xl bg-gradient-to-r from-orange-500 to-amber-500 text-slate-950 font-black flex items-center gap-2 shadow-lg shadow-orange-500/20 hover:from-orange-400 hover:to-amber-400 transition cursor-pointer"
+                    className="px-6 py-2 rounded-xl bg-slate-900 text-white font-bold transition hover:bg-slate-800 cursor-pointer"
                   >
-                    <Save className="w-4 h-4" />
-                    <span>Save All Changes &amp; Notify Staff</span>
+                    Save All Changes
                   </button>
                 </>
               ) : (

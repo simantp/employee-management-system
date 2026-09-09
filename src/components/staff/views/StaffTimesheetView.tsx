@@ -1,22 +1,6 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { 
-  Clock, 
-  CheckCircle2, 
-  Calendar, 
-  Send, 
-  FileSpreadsheet, 
-  Printer, 
-  KeyRound, 
-  ShieldCheck, 
-  Lock, 
-  AlertCircle, 
-  Palmtree, 
-  Download,
-  Info,
-  Timer
-} from 'lucide-react';
 import { useApp } from '@/lib/store';
 import { TimecardRecord } from '@/types';
 
@@ -165,7 +149,6 @@ export default function StaffTimesheetView() {
             onClick={() => setShowPinModal(true)}
             className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-orange-50 border border-orange-200 text-orange-900 font-bold hover:bg-orange-100 transition cursor-pointer shadow-xs"
           >
-            <KeyRound className="w-3.5 h-3.5 text-orange-600" />
             <span>Kiosk PIN: <strong className="font-mono">{currentStaff.kioskPin || '4829'}</strong></span>
           </button>
 
@@ -173,7 +156,6 @@ export default function StaffTimesheetView() {
             onClick={exportTimesheetCSV}
             className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-white border border-slate-300 text-slate-700 font-bold hover:bg-slate-50 transition cursor-pointer shadow-xs"
           >
-            <Download className="w-3.5 h-3.5 text-slate-500" />
             <span>Export CSV</span>
           </button>
 
@@ -181,7 +163,6 @@ export default function StaffTimesheetView() {
             onClick={() => window.print()}
             className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-slate-900 text-white font-bold hover:bg-slate-800 transition cursor-pointer shadow-xs"
           >
-            <Printer className="w-3.5 h-3.5" />
             <span>Print Timesheet</span>
           </button>
         </div>
@@ -191,9 +172,6 @@ export default function StaffTimesheetView() {
       {currentStaff.clockState === 'CLOCKED_IN' && (
         <div className="p-4 rounded-2xl bg-gradient-to-r from-emerald-500/15 via-teal-500/10 to-transparent border-2 border-emerald-500/40 flex items-center justify-between shadow-sm">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-emerald-500 text-slate-950 flex items-center justify-center font-bold shadow-md shadow-emerald-500/30 animate-pulse">
-              <Timer className="w-5 h-5" />
-            </div>
             <div>
               <div className="flex items-center gap-2">
                 <h4 className="font-extrabold text-emerald-950 text-sm">You are Currently CLOCKED IN</h4>
@@ -245,7 +223,6 @@ export default function StaffTimesheetView() {
         <div className="p-5 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-slate-50/50">
           <div>
             <h3 className="font-extrabold text-sm text-slate-900 flex items-center gap-2">
-              <Clock className="w-4 h-4 text-orange-600" />
               <span>Official Electronic Punch Card</span>
             </h3>
             <p className="text-slate-500 text-[11px]">
@@ -339,8 +316,7 @@ export default function StaffTimesheetView() {
                     <span className="text-[10px] text-indigo-600 font-bold">Approved Leave</span>
                   </td>
                   <td className="py-3.5 px-5">
-                    <span className="font-bold text-indigo-900 block flex items-center gap-1">
-                      <Palmtree className="w-3.5 h-3.5 text-indigo-600" />
+                    <span className="font-bold text-indigo-900 block">
                       <span>{l.leaveType} LEAVE</span>
                     </span>
                     <span className="text-[10px] text-indigo-700">{l.reason}</span>
@@ -361,7 +337,6 @@ export default function StaffTimesheetView() {
               {staffTimecards.length === 0 && staffLeaves.length === 0 && (
                 <tr>
                   <td colSpan={8} className="py-12 text-center text-slate-400">
-                    <Clock className="w-10 h-10 mx-auto text-slate-300 mb-2" />
                     <p className="font-bold text-slate-600">No punch records found for this period</p>
                     <p className="text-slate-400 text-[11px] mt-0.5">Clock in at the plant entrance using your 4-Digit PIN: <strong>{currentStaff.kioskPin || '4829'}</strong></p>
                   </td>
@@ -374,7 +349,6 @@ export default function StaffTimesheetView() {
 
       {/* Instructions & Fair Work Compliance Note */}
       <div className="p-4 rounded-2xl bg-blue-50/60 border border-blue-200 text-blue-950 flex items-start gap-3">
-        <Info className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
         <div className="space-y-1">
           <h4 className="font-black text-xs text-blue-900">Fair Work Australia Automated Attendance Record</h4>
           <p className="text-[11px] text-blue-800 leading-relaxed">
@@ -389,17 +363,14 @@ export default function StaffTimesheetView() {
           <div className="bg-white rounded-3xl p-6 max-w-sm w-full shadow-2xl border border-slate-200 space-y-4">
             <div className="flex items-center justify-between border-b border-slate-100 pb-3">
               <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-xl bg-orange-100 text-orange-600 flex items-center justify-center">
-                  <KeyRound className="w-4 h-4" />
-                </div>
                 <h3 className="font-black text-sm text-slate-900">Change 4-Digit Kiosk PIN</h3>
               </div>
               <button
                 type="button"
                 onClick={() => setShowPinModal(false)}
-                className="text-slate-400 hover:text-slate-700 font-bold"
+                className="text-xs font-semibold text-slate-500 hover:text-slate-800 px-2 py-1 rounded-lg border border-slate-200 cursor-pointer"
               >
-                ✕
+                Close
               </button>
             </div>
 

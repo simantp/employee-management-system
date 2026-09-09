@@ -1,14 +1,13 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Search, MoreVertical, Eye, Edit } from 'lucide-react';
 import { useApp } from '@/lib/store';
 import { Employee } from '@/types';
 
 export default function EmployeeDirectoryTable({
   onSelectEmployee
 }: {
-  onSelectEmployee?: (emp: Employee) => void;
+  onSelectEmployee?: (emp) => void;
 }) {
   const { employees } = useApp();
   const [search, setSearch] = useState('');
@@ -34,18 +33,17 @@ export default function EmployeeDirectoryTable({
       <div className="p-5 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h3 className="text-base font-bold text-slate-900">Recent Employees</h3>
-          <p className="text-xs text-slate-500">Australian Staff Directory & Compliance Tracking</p>
+          <p className="text-xs text-slate-500">Australian Staff Directory &amp; Compliance Tracking</p>
         </div>
 
         <div className="flex items-center gap-3">
           <div className="relative">
-            <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
             <input
               type="text"
               placeholder="Filter list..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="pl-9 pr-3 py-1.5 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 text-slate-800"
+              className="px-3.5 py-1.5 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 text-slate-800"
             />
           </div>
 
@@ -71,7 +69,6 @@ export default function EmployeeDirectoryTable({
               <th className="py-3.5 px-5">Employee ID</th>
               <th className="py-3.5 px-5">Full Name</th>
               <th className="py-3.5 px-5">Department</th>
-              <th className="py-3.5 px-5">Start Date</th>
               <th className="py-3.5 px-5">Mobile</th>
               <th className="py-3.5 px-5">Visa / Expiry</th>
               <th className="py-3.5 px-5">Status</th>
@@ -107,9 +104,6 @@ export default function EmployeeDirectoryTable({
                   {emp.department}
                 </td>
                 <td className="py-3.5 px-5 font-medium text-slate-600">
-                  {emp.startDate}
-                </td>
-                <td className="py-3.5 px-5 font-medium text-slate-600">
                   {emp.mobilePhone}
                 </td>
                 <td className="py-3.5 px-5 font-medium">
@@ -133,22 +127,12 @@ export default function EmployeeDirectoryTable({
                   </span>
                 </td>
                 <td className="py-3.5 px-5 text-right" onClick={(e) => e.stopPropagation()}>
-                  <div className="flex items-center justify-end gap-1.5">
-                    <button
-                      onClick={() => onSelectEmployee && onSelectEmployee(emp)}
-                      className="p-1.5 rounded-lg hover:bg-blue-50 text-slate-400 hover:text-blue-600 transition"
-                      title="View Details"
-                    >
-                      <Eye className="w-4 h-4" />
-                    </button>
-                    <button
-                      onClick={() => onSelectEmployee && onSelectEmployee(emp)}
-                      className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-400 hover:text-slate-700 transition"
-                      title="Edit"
-                    >
-                      <Edit className="w-4 h-4" />
-                    </button>
-                  </div>
+                  <button
+                    onClick={() => onSelectEmployee && onSelectEmployee(emp)}
+                    className="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-blue-50 text-slate-700 hover:text-blue-600 text-xs font-semibold transition"
+                  >
+                    View
+                  </button>
                 </td>
               </tr>
             ))}

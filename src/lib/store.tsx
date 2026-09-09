@@ -3,6 +3,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { 
   Employee, 
+  EmployeeDocument,
   LeaveRequest, 
   ComplianceAlert, 
   NotificationItem, 
@@ -499,7 +500,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     }
 
     addToast(
-      `📧 Verification Code Dispatched to ${cleanEmail}`,
+      `Verification Code Dispatched to ${cleanEmail}`,
       `A 6-digit verification code was sent to your email. Check your inbox!`,
       'success'
     );
@@ -611,7 +612,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     };
     setNotifications(prev => [adminNotif, ...prev]);
 
-    addToast('🎉 Email Verified & Account Created!', `Welcome, ${newUser.name}! Your Staff Portal is now ready.`, 'success');
+    addToast('Email Verified & Account Created', `Welcome, ${newUser.name}! Your Staff Portal is now ready.`, 'success');
     return true;
   };
 
@@ -638,7 +639,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       }).catch(err => console.error('Background email dispatch failed', err));
     } catch(e) {}
 
-    addToast(`📧 Verification Code Resent: ${newCode}`, `A fresh 6-digit code was dispatched to ${pendingOTP.email}.`, 'info');
+    addToast(`Verification Code Resent: ${newCode}`, `A fresh 6-digit code was dispatched to ${pendingOTP.email}.`, 'info');
     return newCode;
   };
 
@@ -706,7 +707,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       id: 'notif-update-' + Date.now(),
       recipient: 'STAFF',
       recipientId: id,
-      title: '📝 Profile & Details Updated by Administrator',
+      title: 'Profile & Details Updated by Administrator',
       message: `Your details were updated by an administrator (${changedFields || 'Profile update'}).`,
       type: 'PROFILE_UPDATE',
       timestamp: 'Just now',
@@ -734,7 +735,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     const adminNotif: NotificationItem = {
       id: 'notif-' + Date.now(),
       recipient: 'ADMIN',
-      title: `🔔 New ${req.leaveType} Request: ${req.employeeName}`,
+      title: `New ${req.leaveType} Request: ${req.employeeName}`,
       message: `${req.employeeName} submitted ${req.totalDays} day(s) ${req.leaveType.toLowerCase()} leave (${req.startDate} - ${req.endDate}).`,
       type: 'LEAVE_REQUEST',
       timestamp: 'Just now',
@@ -762,7 +763,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     } catch (e) {}
     
     addAudit('SUBMIT_LEAVE_REQUEST', 'LeaveRequest', newReq.id, `Submitted ${req.leaveType} leave (${req.totalDays} days) starting ${req.startDate}`, req.employeeName, 'STAFF');
-    addToast('⚡ Leave Submitted & Admin Emailed', `Notification & email dispatched to Admin for ${req.employeeName}'s ${req.leaveType} leave request.`, 'success');
+    addToast('Leave Submitted & Admin Emailed', `Notification & email dispatched to Admin for ${req.employeeName}'s ${req.leaveType} leave request.`, 'success');
   };
 
   const reviewLeaveRequest = (id: string, status: LeaveStatus, notes?: string) => {
@@ -850,7 +851,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setNotifications(prev => [adminNotif, ...prev]);
 
     addAudit('UPDATE_BANK_DETAILS', 'Employee', empId, 'Updated bank account & superannuation details (Encrypted with AES-256-GCM)', currentStaff.firstName + ' ' + currentStaff.lastName, 'STAFF');
-    addToast('🔒 Bank Details Encrypted & Saved', 'Your bank details were encrypted with AES-256 and updated securely.', 'success');
+    addToast('Bank Details Encrypted & Saved', 'Your bank details were encrypted with AES-256 and updated securely.', 'success');
   };
 
   const addDocumentType = (type: Omit<DocumentTypeConfig, 'id'>) => {
@@ -891,7 +892,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       id: 'notif-' + Date.now(),
       recipient: 'STAFF',
       recipientId: empId,
-      title: status === 'Verified' ? '✅ Document Verified by HR' : '⚠️ Document Rejected - Action Required',
+      title: status === 'Verified' ? 'Document Verified by HR' : 'Document Rejected - Action Required',
       message: status === 'Verified' 
         ? `Your uploaded document for ${empName} has been verified and approved by HR.` 
         : `Your document was rejected. Reason: ${notes || 'Please re-upload a clearer image.'}`,
@@ -918,70 +919,57 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     });
 
     // Also update users array
-    setUsers(prev => prev.map(u => {
-      if (u.staffId === empId || (currentUser && u.id === currentUser.id) || (currentUser && u.email === currentUser.email)) {
-        return { ...u, avatarUrl };
-      }
-      return u;
-    }));
+    setUsers(prev => prev.map(u => (u.staffId === empId || u.id === empId) ? { ...u, avatarUrl } : u));
 
-    addAudit('UPDATE_AVATAR', 'Employee', empId, 'Staff updated profile photo');
-    addToast('Profile Photo Saved to Database', 'Your profile image has been permanently saved.', 'success');
+    addAudit('UPDATE_AVATAR', 'Employee', empId, 'Updated profile picture');
+    addToast('Profile Photo Updated', 'Your profile picture has been saved to database.', 'success');
   };
 
-  const uploadDocument = (empId: string, doc: { name: string; type: string; fileSize?: string; previewUrl?: string; fileType?: 'image' | 'pdf' | 'doc'; expiryDate?: string; documentNumber?: string }) => {
-    const newDoc = {
+  const uploadDocument = (empId: string, doc: Omit<EmployeeDocument, 'id' | 'uploadDate' | 'status'>) => {
+    const newDoc: EmployeeDocument = {
+      ...doc,
       id: 'doc-' + Date.now(),
-      name: doc.name,
-      type: doc.type,
       uploadDate: new Date().toLocaleDateString('en-AU'),
-      status: 'Pending' as const,
-      fileSize: doc.fileSize || '1.8 MB',
-      previewUrl: doc.previewUrl,
-      fileType: doc.fileType || 'image',
-      expiryDate: doc.expiryDate,
-      documentNumber: doc.documentNumber,
+      status: 'Pending',
     };
 
     setEmployees(prev => prev.map(emp => {
       if (emp.id === empId) {
         return {
           ...emp,
-          documents: [newDoc, ...emp.documents],
+          documents: [newDoc, ...emp.documents]
         };
       }
       return emp;
     }));
 
-    addToast('Document Uploaded', `${doc.name} uploaded and is pending HR verification.`, 'info');
+    const targetEmp = employees.find(e => e.id === empId);
+    const empName = targetEmp ? `${targetEmp.firstName} ${targetEmp.lastName}` : 'Staff Member';
+
+    // Real-time Notification to Admin
+    const adminNotif: NotificationItem = {
+      id: 'notif-' + Date.now(),
+      recipient: 'ADMIN',
+      title: 'New Document Uploaded for Verification',
+      message: `${empName} uploaded a new document: "${doc.name}" (${doc.type}).`,
+      type: 'GENERAL',
+      timestamp: 'Just now',
+      read: false,
+    };
+    setNotifications(prev => [adminNotif, ...prev]);
+
+    addAudit('UPLOAD_DOCUMENT', 'Document', newDoc.id, `${empName} uploaded document: ${doc.name} (${doc.type})`, empName, 'STAFF');
+    addToast('Document Uploaded', `"${doc.name}" has been uploaded and sent to HR for verification.`, 'success');
   };
 
-  const updateDocument = (
-    empId: string, 
-    docId: string, 
-    updates: { 
-      name?: string; 
-      type?: string; 
-      fileSize?: string; 
-      previewUrl?: string; 
-      fileType?: 'image' | 'pdf' | 'doc'; 
-      expiryDate?: string;
-      documentNumber?: string;
-      status?: 'Verified' | 'Pending' | 'Rejected' | 'Expired';
-    }
-  ) => {
+  const updateDocument = (empId: string, docId: string, updates: Partial<EmployeeDocument>) => {
     setEmployees(prev => prev.map(emp => {
       if (emp.id === empId) {
         return {
           ...emp,
           documents: emp.documents.map(d => {
             if (d.id === docId) {
-              return {
-                ...d,
-                ...updates,
-                uploadDate: new Date().toLocaleDateString('en-AU'),
-                status: updates.status || 'Pending',
-              };
+              return { ...d, ...updates, uploadDate: new Date().toLocaleDateString('en-AU'), status: updates.status || 'Pending' };
             }
             return d;
           })
@@ -997,7 +985,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     const adminNotif: NotificationItem = {
       id: 'notif-' + Date.now(),
       recipient: 'ADMIN',
-      title: '📄 Renewed / Updated Document Submitted',
+      title: 'Renewed / Updated Document Submitted',
       message: `${empName} submitted an updated version of "${updates.name || 'Document'}" for verification.`,
       type: 'GENERAL',
       timestamp: 'Just now',
@@ -1051,26 +1039,26 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       const notif: NotificationItem = {
         id: 'notif-' + Date.now(),
         recipient: 'ADMIN',
-        title: '⚠️ 30-Day Visa Expiry Alert',
+        title: '30-Day Visa Expiry Alert',
         message: 'Rajesh Kumar TSS 482 Visa expires in 12 days (30 May 2025). Action required.',
         type: 'VISA_EXPIRY',
         timestamp: 'Just now',
         read: false,
       };
       setNotifications(prev => [notif, ...prev]);
-      addToast('⚠️ Compliance Alert', 'Rajesh Kumar visa expires in 12 days (Riverwood plant).', 'warning');
+      addToast('Compliance Alert', 'Rajesh Kumar visa expires in 12 days (Riverwood plant).', 'warning');
     } else if (type === 'CERTIFICATE_REMINDER') {
       const notif: NotificationItem = {
         id: 'notif-' + Date.now(),
         recipient: 'STAFF',
-        title: '📋 Sick Leave Certificate Reminder (Day 1 of 3)',
+        title: 'Sick Leave Certificate Reminder (Day 1 of 3)',
         message: 'Please upload your medical certificate for your recent sick leave.',
         type: 'CERTIFICATE_REMINDER',
         timestamp: 'Just now',
         read: false,
       };
       setNotifications(prev => [notif, ...prev]);
-      addToast('📋 Reminder Alert', 'Sick leave certificate reminder sent to staff portal.', 'info');
+      addToast('Reminder Alert', 'Sick leave certificate reminder sent to staff portal.', 'info');
     }
   };
 
@@ -1091,7 +1079,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     const notif: NotificationItem = {
       id: `notif-ann-${Date.now()}`,
       recipient: 'STAFF',
-      title: `📢 Company's Latest Announcement: ${data.title}`,
+      title: `Company's Latest Announcement: ${data.title}`,
       message: data.content.slice(0, 120) + (data.content.length > 120 ? '...' : ''),
       type: 'GENERAL',
       timestamp: 'Just now',
@@ -1170,7 +1158,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     const newNotif: NotificationItem = {
       id: 'notif-' + nowMs,
       recipient: 'ADMIN',
-      title: `🟢 ${emp.firstName} ${emp.lastName} Clocked In`,
+      title: `${emp.firstName} ${emp.lastName} Clocked In`,
       message: `${emp.firstName} ${emp.lastName} clocked IN at ${timeStr} (${emp.department || 'Production'}).`,
       type: 'TIMECARD_CLOCK_IN',
       timestamp: 'Just now',
@@ -1178,7 +1166,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     };
     setNotifications(prev => [newNotif, ...prev]);
 
-    addToast('🟢 Clock-In Successful', `Welcome ${emp.firstName}! Clocked in at ${timeStr} AEST.`, 'success');
+    addToast('Clock-In Successful', `Welcome ${emp.firstName}! Clocked in at ${timeStr} AEST.`, 'success');
     addAudit('KIOSK_CLOCK_IN', 'Timecard', shiftId, `${emp.firstName} ${emp.lastName} clocked IN at ${timeStr}`, `${emp.firstName} ${emp.lastName}`, 'Staff');
 
     return { success: true, message: `Successfully clocked in at ${timeStr}`, employee: updatedEmp };
@@ -1275,7 +1263,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     const newNotif: NotificationItem = {
       id: 'notif-' + nowMs,
       recipient: 'ADMIN',
-      title: `🔴 ${emp.firstName} ${emp.lastName} Clocked Out`,
+      title: `${emp.firstName} ${emp.lastName} Clocked Out`,
       message: `${emp.firstName} ${emp.lastName} clocked OUT at ${timeStr} (Duration: ${hmsFormatted}).`,
       type: 'TIMECARD_CLOCK_OUT',
       timestamp: 'Just now',
@@ -1283,7 +1271,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     };
     setNotifications(prev => [newNotif, ...prev]);
 
-    addToast('🔴 Clock-Out Successful', `Goodbye ${emp.firstName}! Shift recorded: ${hmsFormatted} (${totalHours.toFixed(2)} hrs).`, 'success');
+    addToast('Clock-Out Successful', `Goodbye ${emp.firstName}! Shift recorded: ${hmsFormatted} (${totalHours.toFixed(2)} hrs).`, 'success');
     addAudit('KIOSK_CLOCK_OUT', 'Timecard', emp.currentShiftId || 'tc', `${emp.firstName} ${emp.lastName} clocked OUT at ${timeStr} (${hmsFormatted})`, `${emp.firstName} ${emp.lastName}`, 'Staff');
 
     return { success: true, message: `Shift ended: ${hmsFormatted} (${totalHours.toFixed(2)} hrs)`, employee: updatedEmp, totalHours };

@@ -1,7 +1,6 @@
 'use client';
 
 import React, { useState } from 'react';
-import { CalendarPlus, FileHeart } from 'lucide-react';
 import { useApp } from '@/lib/store';
 import LeaveBalanceDonut from '../LeaveBalanceDonut';
 import ApplyLeaveModal from '../ApplyLeaveModal';
@@ -20,24 +19,22 @@ export default function StaffLeaveView() {
         <div>
           <h2 className="text-xl font-black text-slate-900 tracking-tight">Leave Management Center</h2>
           <p className="text-slate-500 mt-0.5">
-            Sydney Leave Balances, Advance Notice Rules & Sick Leave Reporting
+            Sydney Leave Balances, Advance Notice Rules &amp; Sick Leave Reporting
           </p>
         </div>
 
         <div className="flex items-center gap-2.5">
           <button
             onClick={() => setShowSickModal(true)}
-            className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2.5 rounded-xl font-bold shadow-md shadow-emerald-600/20 transition hover:-translate-y-0.5"
+            className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2.5 rounded-xl font-bold shadow-md shadow-emerald-600/20 transition hover:-translate-y-0.5 cursor-pointer"
           >
-            <FileHeart className="w-4 h-4" />
             <span>Sick Leave (&lt; 7 AM)</span>
           </button>
 
           <button
             onClick={() => setShowApplyModal(true)}
-            className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2.5 rounded-xl font-bold shadow-md shadow-blue-600/20 transition hover:-translate-y-0.5"
+            className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2.5 rounded-xl font-bold shadow-md shadow-blue-600/20 transition hover:-translate-y-0.5 cursor-pointer"
           >
-            <CalendarPlus className="w-4 h-4" />
             <span>Apply for Leave</span>
           </button>
         </div>
@@ -47,20 +44,20 @@ export default function StaffLeaveView() {
         <LeaveBalanceDonut onApplyLeave={() => setShowApplyModal(true)} />
 
         <div className="bg-white rounded-2xl p-6 border border-slate-200/80 shadow-sm space-y-3">
-          <h3 className="font-extrabold text-sm text-slate-900">Leave Policies & Lead Times (Australia)</h3>
+          <h3 className="font-extrabold text-sm text-slate-900">Leave Policies &amp; Lead Times (Australia)</h3>
           
           <div className="space-y-2.5 text-slate-600 text-[11px]">
             <div className="p-2.5 rounded-xl bg-amber-50 border border-amber-200 text-amber-900">
-              <strong>🩺 Sick Leave:</strong> Must be reported before <strong>7:00 AM Mon-Fri</strong>. Certificate can be attached now or within 3 days (daily reminders sent).
+              <strong>Sick Leave:</strong> Must be reported before <strong>7:00 AM Mon-Fri</strong>. Certificate can be attached now or within 3 days (daily reminders sent).
             </div>
             <div className="p-2.5 rounded-xl bg-blue-50 border border-blue-200 text-blue-900">
-              <strong>🏖️ 1-Day Leave:</strong> Requires at least <strong>2 days advance notice</strong>.
+              <strong>1-Day Leave:</strong> Requires at least <strong>2 days advance notice</strong>.
             </div>
             <div className="p-2.5 rounded-xl bg-blue-50 border border-blue-200 text-blue-900">
-              <strong>🌴 2 to 5 Days Leave:</strong> Requires at least <strong>2 weeks advance notice</strong>.
+              <strong>2 to 5 Days Leave:</strong> Requires at least <strong>2 weeks advance notice</strong>.
             </div>
             <div className="p-2.5 rounded-xl bg-purple-50 border border-purple-200 text-purple-900">
-              <strong>✈️ 5+ Days Leave:</strong> Requires at least <strong>4 weeks advance notice</strong>.
+              <strong>5+ Days Leave:</strong> Requires at least <strong>4 weeks advance notice</strong>.
             </div>
           </div>
         </div>
@@ -87,15 +84,15 @@ export default function StaffLeaveView() {
               {staffRequests.map(r => (
                 <tr key={r.id} className="hover:bg-slate-50/80 transition">
                   <td className="py-3 px-4 font-bold text-slate-900">{r.leaveType}</td>
-                  <td className="py-3 px-4 font-medium">{r.startDate} → {r.endDate}</td>
+                  <td className="py-3 px-4 font-medium">{r.startDate} to {r.endDate}</td>
                   <td className="py-3 px-4 font-bold text-slate-900">{r.totalDays} day(s)</td>
                   <td className="py-3 px-4 text-slate-600 italic truncate max-w-[200px]">{r.reason}</td>
                   <td className="py-3 px-4">
                     {r.leaveType === 'SICK' ? (
                       r.certificateUploaded ? (
-                        <span className="text-emerald-600 font-bold">✓ Attached</span>
+                        <span className="text-emerald-600 font-bold">Attached</span>
                       ) : (
-                        <span className="text-amber-600 font-bold">⏳ Pending (Day 1)</span>
+                        <span className="text-amber-600 font-bold">Pending (Day 1)</span>
                       )
                     ) : (
                       <span className="text-slate-400">N/A</span>

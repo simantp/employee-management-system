@@ -1,7 +1,6 @@
 'use client';
 
 import React, { useState } from 'react';
-import { FileSpreadsheet, Eye, X, Clock } from 'lucide-react';
 import { useApp } from '@/lib/store';
 import { formatCurrency } from '@/lib/utils';
 
@@ -16,7 +15,7 @@ export default function MyPayslipCard() {
         <div className="flex items-center justify-between mb-3">
           <div>
             <h3 className="text-sm font-bold text-slate-900">My Payslip</h3>
-            <p className="text-[11px] text-slate-500">Australian PAYG & Super Breakdown</p>
+            <p className="text-[11px] text-slate-500">Australian PAYG &amp; Super Breakdown</p>
           </div>
           <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 border border-slate-200">
             Pending Cycle
@@ -24,9 +23,6 @@ export default function MyPayslipCard() {
         </div>
 
         <div className="my-3 py-4 text-center border-y border-slate-100 space-y-1.5 bg-slate-50/50 rounded-xl">
-          <div className="w-10 h-10 rounded-xl bg-slate-100 text-slate-400 flex items-center justify-center mx-auto mb-1">
-            <FileSpreadsheet className="w-5 h-5" />
-          </div>
           <p className="font-bold text-slate-800 text-xs">No Payslips Generated Yet</p>
           <p className="text-[11px] text-slate-400 max-w-xs mx-auto px-2">
             Your official payslip will be generated and made available here once processed by Payroll.
@@ -47,7 +43,7 @@ export default function MyPayslipCard() {
       <div className="flex items-center justify-between mb-3">
         <div>
           <h3 className="text-sm font-bold text-slate-900">My Payslip</h3>
-          <p className="text-[11px] text-slate-500">Australian PAYG & Super Breakdown</p>
+          <p className="text-[11px] text-slate-500">Australian PAYG &amp; Super Breakdown</p>
         </div>
         <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
           Paid
@@ -81,22 +77,21 @@ export default function MyPayslipCard() {
 
       <button
         onClick={() => setShowSlipModal(true)}
-        className="w-full py-2 px-4 rounded-xl border border-slate-200 hover:bg-slate-50 text-slate-700 font-bold text-xs transition flex items-center justify-center gap-2 mt-1"
+        className="w-full py-2 px-4 rounded-xl border border-slate-200 hover:bg-slate-50 text-slate-700 font-bold text-xs transition flex items-center justify-center gap-2 mt-1 cursor-pointer"
       >
-        <Eye className="w-3.5 h-3.5 text-slate-500" />
         <span>View Full Payslip</span>
       </button>
 
       {showSlipModal && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/20 p-4" onClick={() => setShowSlipModal(false)}>
-      <div className="bg-white rounded-2xl shadow-2xl border max-w-md w-full p-6 text-xs animate-in zoom-in-95" onClick={(e) => e.stopPropagation()}>
+          <div className="bg-white rounded-2xl shadow-2xl border max-w-md w-full p-6 text-xs animate-in zoom-in-95" onClick={(e) => e.stopPropagation()}>
             <div className="flex justify-between items-center pb-3 border-b">
               <div>
                 <h4 className="font-bold text-base text-slate-900">Official Payslip Statement</h4>
                 <p className="text-slate-500">{latestPayslip.payPeriod}</p>
               </div>
-              <button onClick={() => setShowSlipModal(false)} className="p-1 text-slate-400 hover:text-slate-700">
-                <X className="w-4 h-4" />
+              <button onClick={() => setShowSlipModal(false)} className="text-xs font-semibold text-slate-500 hover:text-slate-800 px-2 py-1 rounded-lg border border-slate-200 cursor-pointer">
+                Close
               </button>
             </div>
             <div className="py-4 space-y-2">
@@ -111,7 +106,7 @@ export default function MyPayslipCard() {
             </div>
             <button
               onClick={() => setShowSlipModal(false)}
-              className="w-full py-2 bg-slate-900 text-white rounded-xl font-bold"
+              className="w-full py-2 bg-slate-900 text-white rounded-xl font-bold cursor-pointer"
             >
               Close
             </button>

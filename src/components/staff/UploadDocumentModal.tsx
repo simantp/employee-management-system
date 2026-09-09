@@ -1,19 +1,6 @@
 'use client';
 
 import React, { useState, useRef, useEffect } from 'react';
-import { 
-  X, 
-  Upload, 
-  Monitor, 
-  Smartphone, 
-  Camera, 
-  FileText, 
-  CheckCircle2, 
-  Calendar,
-  Eye,
-  RefreshCw,
-  Hash
-} from 'lucide-react';
 import { useApp } from '@/lib/store';
 import { EmployeeDocument } from '@/types';
 
@@ -129,15 +116,12 @@ export default function UploadDocumentModal({
         <div className="p-6 bg-gradient-to-tr from-slate-900 via-navy-900 to-slate-950 text-white relative">
           <button 
             onClick={onClose} 
-            className="absolute top-4 right-4 text-slate-400 hover:text-white p-1 rounded-lg hover:bg-white/10 transition cursor-pointer"
+            className="absolute top-4 right-4 text-xs font-semibold text-slate-400 hover:text-white px-2 py-1 rounded-lg hover:bg-white/10 transition cursor-pointer"
           >
-            <X className="w-4 h-4" />
+            Close
           </button>
 
           <div className="flex items-center gap-3 mb-1">
-            <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-orange-500 to-amber-400 flex items-center justify-center shadow-lg shadow-orange-500/20">
-              {isEditing ? <RefreshCw className="w-5 h-5 text-slate-950" /> : <Upload className="w-5 h-5 text-slate-950" />}
-            </div>
             <div>
               <div className="flex items-center gap-2">
                 <h2 className="font-extrabold text-base text-white">
@@ -176,7 +160,6 @@ export default function UploadDocumentModal({
                     : 'border-slate-200 bg-slate-50 text-slate-600 hover:bg-white'
                 }`}
               >
-                <Monitor className="w-4 h-4 text-orange-600" />
                 <span>From Computer / Laptop</span>
               </button>
 
@@ -189,7 +172,6 @@ export default function UploadDocumentModal({
                     : 'border-slate-200 bg-slate-50 text-slate-600 hover:bg-white'
                 }`}
               >
-                <Smartphone className="w-4 h-4 text-orange-600" />
                 <span>Mobile Camera / Gallery</span>
               </button>
             </div>
@@ -218,46 +200,37 @@ export default function UploadDocumentModal({
           {/* Document Name */}
           <div>
             <label className="font-bold text-slate-700 block mb-1.5">Document Label / Name *</label>
-            <div className="relative">
-              <FileText className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
-              <input
-                type="text"
-                required
-                value={docName}
-                onChange={(e) => setDocName(e.target.value)}
-                placeholder="e.g. Australian Passport (Renewed 2026)"
-                className="w-full pl-10 pr-3 py-3 rounded-2xl border border-slate-300 font-medium text-slate-800 focus:outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 transition"
-              />
-            </div>
+            <input
+              type="text"
+              required
+              value={docName}
+              onChange={(e) => setDocName(e.target.value)}
+              placeholder="e.g. Australian Passport (Renewed 2026)"
+              className="w-full px-3.5 py-3 rounded-2xl border border-slate-300 font-medium text-slate-800 focus:outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 transition"
+            />
           </div>
 
           {/* Document Number & Expiry Date */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <label className="font-bold text-slate-700 block mb-1.5">Document / License No.</label>
-              <div className="relative">
-                <Hash className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
-                <input
-                  type="text"
-                  value={documentNumber}
-                  onChange={(e) => setDocumentNumber(e.target.value)}
-                  placeholder="e.g. N1234567"
-                  className="w-full pl-10 pr-3 py-3 rounded-2xl border border-slate-300 font-medium text-slate-800 focus:outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 transition"
-                />
-              </div>
+              <input
+                type="text"
+                value={documentNumber}
+                onChange={(e) => setDocumentNumber(e.target.value)}
+                placeholder="e.g. N1234567"
+                className="w-full px-3.5 py-3 rounded-2xl border border-slate-300 font-medium text-slate-800 focus:outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 transition"
+              />
             </div>
 
             <div>
               <label className="font-bold text-slate-700 block mb-1.5">New Expiry Date (if applicable)</label>
-              <div className="relative">
-                <Calendar className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
-                <input
-                  type="date"
-                  value={expiryDate}
-                  onChange={(e) => setExpiryDate(e.target.value)}
-                  className="w-full pl-10 pr-3 py-3 rounded-2xl border border-slate-300 font-medium text-slate-800 focus:outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 transition"
-                />
-              </div>
+              <input
+                type="date"
+                value={expiryDate}
+                onChange={(e) => setExpiryDate(e.target.value)}
+                className="w-full px-3.5 py-3 rounded-2xl border border-slate-300 font-medium text-slate-800 focus:outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 transition"
+              />
             </div>
           </div>
 
@@ -278,9 +251,6 @@ export default function UploadDocumentModal({
               onClick={() => fileInputRef.current?.click()}
               className="border-2 border-dashed border-orange-200 hover:border-orange-500 rounded-2xl p-4 bg-orange-50/20 hover:bg-orange-50/50 transition text-center cursor-pointer space-y-1.5 group"
             >
-              <div className="w-9 h-9 rounded-xl bg-orange-100 text-orange-600 flex items-center justify-center mx-auto group-hover:scale-105 transition">
-                {source === 'MOBILE' ? <Camera className="w-4 h-4" /> : <Upload className="w-4 h-4" />}
-              </div>
               <p className="font-bold text-slate-800 text-xs">
                 {fileName ? fileName : source === 'MOBILE' ? 'Tap to take photo or choose from gallery' : 'Click or drag & drop file to upload'}
               </p>
@@ -305,7 +275,7 @@ export default function UploadDocumentModal({
                 )}
                 className="px-2.5 py-1 rounded-lg border border-slate-200 bg-slate-50 hover:bg-orange-50 hover:text-orange-700 text-[10px] font-bold text-slate-700 transition cursor-pointer"
               >
-                🇦🇺 Passport Sample
+                Passport Sample
               </button>
 
               <button
@@ -317,7 +287,7 @@ export default function UploadDocumentModal({
                 )}
                 className="px-2.5 py-1 rounded-lg border border-slate-200 bg-slate-50 hover:bg-orange-50 hover:text-orange-700 text-[10px] font-bold text-slate-700 transition cursor-pointer"
               >
-                🚗 NSW Driver License
+                NSW Driver License
               </button>
 
               <button
@@ -329,7 +299,7 @@ export default function UploadDocumentModal({
                 )}
                 className="px-2.5 py-1 rounded-lg border border-slate-200 bg-slate-50 hover:bg-orange-50 hover:text-orange-700 text-[10px] font-bold text-slate-700 transition cursor-pointer"
               >
-                🛂 TSS 482 Visa Notice
+                TSS 482 Visa Notice
               </button>
             </div>
           </div>
@@ -338,9 +308,8 @@ export default function UploadDocumentModal({
           {filePreview && (
             <div className="p-3 bg-slate-50 border border-slate-200 rounded-2xl space-y-2 animate-in fade-in duration-150">
               <div className="flex items-center justify-between">
-                <span className="font-bold text-slate-700 flex items-center gap-1.5 text-[11px]">
-                  <Eye className="w-3.5 h-3.5 text-orange-600" />
-                  <span>Document Thumbnail Preview:</span>
+                <span className="font-bold text-slate-700 text-[11px]">
+                  Document Thumbnail Preview:
                 </span>
                 <span className="text-[10px] text-slate-400 font-mono">{fileSize || '1.8 MB'}</span>
               </div>
@@ -372,15 +341,9 @@ export default function UploadDocumentModal({
               className="px-5 py-2.5 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-400 hover:to-amber-400 text-slate-950 font-black rounded-xl shadow-md shadow-orange-500/20 transition disabled:opacity-50 flex items-center gap-2 cursor-pointer"
             >
               {isEditing ? (
-                <>
-                  <RefreshCw className={`w-4 h-4 ${isSubmitting ? 'animate-spin' : ''}`} />
-                  <span>{isSubmitting ? 'Saving Renewal...' : 'Save & Submit Updated Document'}</span>
-                </>
+                <span>{isSubmitting ? 'Saving Renewal...' : 'Save & Submit Updated Document'}</span>
               ) : (
-                <>
-                  <CheckCircle2 className="w-4 h-4" />
-                  <span>{isSubmitting ? 'Uploading...' : 'Confirm & Upload Document'}</span>
-                </>
+                <span>{isSubmitting ? 'Uploading...' : 'Confirm & Upload Document'}</span>
               )}
             </button>
           </div>

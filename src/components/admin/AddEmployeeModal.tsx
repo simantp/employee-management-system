@@ -1,7 +1,6 @@
 'use client';
 
 import React, { useState } from 'react';
-import { X, Lock } from 'lucide-react';
 import { useApp } from '@/lib/store';
 import { AUState, CitizenStatus, Department } from '@/types';
 import { formatBSB } from '@/lib/utils';
@@ -119,10 +118,10 @@ export default function AddEmployeeModal({ onClose }: { onClose: () => void }) {
         <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50">
           <div>
             <h3 className="text-sm font-bold text-slate-900">Add New Australian Employee</h3>
-            <p className="text-[11px] text-slate-500">40-Field Intake Form matching Excel Specification</p>
+            <p className="text-[11px] text-slate-500">Intake Form matching System Specification</p>
           </div>
-          <button onClick={onClose} className="text-slate-400 hover:text-slate-700 p-1.5 rounded-lg hover:bg-slate-100">
-            <X className="w-4 h-4" />
+          <button onClick={onClose} className="text-xs font-bold text-slate-400 hover:text-slate-700 px-2 py-1 transition cursor-pointer">
+            Close
           </button>
         </div>
 
@@ -242,7 +241,6 @@ export default function AddEmployeeModal({ onClose }: { onClose: () => void }) {
 
           <div className="p-4 rounded-xl bg-slate-900 text-white space-y-3">
             <div className="flex items-center gap-2 text-cyan-400">
-              <Lock className="w-4 h-4" />
               <h4 className="font-bold text-xs uppercase tracking-wider">
                 3. Bank Details & TFN (Encrypted with AES-256-GCM)
               </h4>

@@ -2,7 +2,6 @@
 
 import React from 'react';
 import { ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
-import { ShieldCheck, CheckCircle2, AlertCircle, AlertTriangle } from 'lucide-react';
 
 const complianceData = [
   { name: 'Compliant', value: 37, color: '#10b981' },
@@ -12,16 +11,11 @@ const complianceData = [
 
 export default function ComplianceStatusDonut() {
   return (
-    <div className="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-sm flex flex-col h-full">
+    <div className="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-xs flex flex-col h-full">
       <div className="flex items-center justify-between mb-2">
-        <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center border border-emerald-100">
-            <ShieldCheck className="w-4 h-4" />
-          </div>
-          <div>
-            <h3 className="text-sm font-bold text-slate-900">Compliance Status</h3>
-            <p className="text-[11px] text-slate-500">TFN, Visas, Licenses & WHS</p>
-          </div>
+        <div>
+          <h3 className="text-sm font-bold text-slate-900">Compliance Status</h3>
+          <p className="text-[11px] text-slate-500">TFN, Visas, Licenses & WHS</p>
         </div>
       </div>
 

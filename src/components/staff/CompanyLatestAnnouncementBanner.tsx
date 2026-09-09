@@ -1,7 +1,6 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Megaphone, Calendar, User, ChevronRight, BellRing, Sparkles, ChevronLeft } from 'lucide-react';
 import { useApp } from '@/lib/store';
 
 export default function CompanyLatestAnnouncementBanner() {
@@ -25,7 +24,6 @@ export default function CompanyLatestAnnouncementBanner() {
         <div className="space-y-2 flex-1 min-w-0">
           <div className="flex flex-wrap items-center gap-2">
             <span className="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full text-[10px] font-black bg-orange-500 text-slate-950 tracking-wider uppercase shadow-xs">
-              <Megaphone className="w-3 h-3" />
               <span>Company's Latest Announcement</span>
             </span>
 
@@ -35,14 +33,12 @@ export default function CompanyLatestAnnouncementBanner() {
               </span>
             )}
 
-            <span className="text-[11px] text-slate-400 font-medium flex items-center gap-1">
-              <Calendar className="w-3 h-3 text-slate-500" />
-              <span>{currentAnnouncement.date}</span>
+            <span className="text-[11px] text-slate-400 font-medium">
+              {currentAnnouncement.date}
             </span>
 
-            <span className="text-[11px] text-slate-400 font-medium flex items-center gap-1">
-              <User className="w-3 h-3 text-slate-500" />
-              <span>{currentAnnouncement.author}</span>
+            <span className="text-[11px] text-slate-400 font-medium">
+              by {currentAnnouncement.author}
             </span>
           </div>
 
@@ -63,17 +59,17 @@ export default function CompanyLatestAnnouncementBanner() {
             </span>
             <button
               onClick={() => setCurrentIndex(prev => (prev > 0 ? prev - 1 : announcements.length - 1))}
-              className="p-2 rounded-xl bg-white/10 hover:bg-white/20 text-white border border-white/10 transition cursor-pointer"
+              className="px-2.5 py-1 text-xs font-semibold rounded-xl bg-white/10 hover:bg-white/20 text-white border border-white/10 transition cursor-pointer"
               title="Previous Announcement"
             >
-              <ChevronLeft className="w-4 h-4" />
+              Prev
             </button>
             <button
               onClick={() => setCurrentIndex(prev => (prev < announcements.length - 1 ? prev + 1 : 0))}
-              className="p-2 rounded-xl bg-white/10 hover:bg-white/20 text-white border border-white/10 transition cursor-pointer"
+              className="px-2.5 py-1 text-xs font-semibold rounded-xl bg-white/10 hover:bg-white/20 text-white border border-white/10 transition cursor-pointer"
               title="Next Announcement"
             >
-              <ChevronRight className="w-4 h-4" />
+              Next
             </button>
           </div>
         )}

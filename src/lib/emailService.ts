@@ -37,7 +37,7 @@ export async function sendOTPEmail({ email, firstName, code }: SendOTPParams): P
       const info = await transporter.sendMail({
         from: fromEmail,
         to: email,
-        subject: `🔐 ${code} is your Employee Portal Verification Code`,
+        subject: `${code} is your Employee Portal Verification Code`,
         text: `Hi ${firstName},
 
 Your 6-digit email verification code for the Australian Employee Portal is: ${code}
@@ -77,7 +77,7 @@ Sydney Plant & Logistics Operations`,
       
       <div class="code-box">
         <div class="code-digits">${code}</div>
-        <div class="expiry">⏱️ Valid for 10 minutes</div>
+        <div class="expiry">Valid for 10 minutes</div>
       </div>
       
       <p style="font-size: 11px; color: #94a3b8; margin-top: 20px;">
@@ -128,7 +128,7 @@ Sydney Plant & Logistics Operations`,
     const info = await testTransporter.sendMail({
       from: '"Australian Employee Portal" <no-reply@company.com.au>',
       to: email,
-      subject: `🔐 ${code} is your Employee Portal Verification Code`,
+      subject: `${code} is your Employee Portal Verification Code`,
       text: `Your verification code is: ${code}`,
       html: `<h2>Your 6-Digit Code is: <strong>${code}</strong></h2>`,
     });
@@ -151,9 +151,7 @@ Sydney Plant & Logistics Operations`,
   }
 }
 
-
-export interface SendLeaveRequestEmailParams {
-  adminEmail?: string;
+export interface SendLeaveEmailParams {
   employeeName: string;
   department?: string;
   leaveType: string;
@@ -162,15 +160,18 @@ export interface SendLeaveRequestEmailParams {
   totalDays: number;
   reason: string;
   submittedAt: string;
+  adminEmail?: string;
 }
 
-export async function sendLeaveRequestEmail(params: SendLeaveRequestEmailParams): Promise<SendEmailResult> {
-  const adminEmail = params.adminEmail || process.env.ADMIN_NOTIFICATION_EMAIL || 'admin@company.com.au';
+export type SendLeaveRequestEmailParams = SendLeaveEmailParams;
+
+export async function sendLeaveRequestEmailToAdmin(params: SendLeaveEmailParams): Promise<SendEmailResult> {
   const smtpHost = process.env.SMTP_HOST;
   const smtpPort = parseInt(process.env.SMTP_PORT || '587', 10);
   const smtpUser = process.env.SMTP_USER;
   const smtpPass = process.env.SMTP_PASS;
-  const fromEmail = process.env.EMAIL_FROM || (smtpUser ? `"HsCreations Leave Alert" <${smtpUser}>` : '"HsCreations Leave Alert" <leave-alerts@hscreations.com.au>');
+  const fromEmail = process.env.EMAIL_FROM || (smtpUser ? `"Leave Management Service" <${smtpUser}>` : '"Leave Management Service" <leave-system@company.com.au>');
+  const adminEmail = params.adminEmail || process.env.ADMIN_NOTIFICATION_EMAIL || 'admin@company.com.au';
 
   const htmlContent = `
 <!DOCTYPE html>
@@ -178,21 +179,21 @@ export async function sendLeaveRequestEmail(params: SendLeaveRequestEmailParams)
 <head>
   <meta charset="utf-8">
   <style>
-    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background-color: #0f172a; margin: 0; padding: 20px; color: #1e293b; }
-    .container { max-width: 560px; margin: 0 auto; background: #ffffff; border-radius: 24px; border: 1px solid #e2e8f0; overflow: hidden; box-shadow: 0 20px 40px rgba(0,0,0,0.15); }
-    .header { background: linear-gradient(135deg, #090d16 0%, #1e1b4b 100%); padding: 32px 28px; text-align: center; color: #ffffff; }
-    .brand-title { font-size: 18px; font-weight: 900; letter-spacing: 1.5px; margin: 0; color: #f97316; }
-    .brand-sub { font-size: 11px; color: #94a3b8; font-weight: 700; text-transform: uppercase; margin-top: 4px; }
-    .badge { display: inline-block; background: #ea580c; color: #ffffff; font-size: 11px; font-weight: 900; padding: 6px 14px; border-radius: 999px; text-transform: uppercase; margin-top: 14px; letter-spacing: 0.5px; }
-    .content { padding: 32px 28px; }
-    .title { font-size: 20px; font-weight: 900; color: #0f172a; margin-top: 0; margin-bottom: 8px; }
-    .desc { font-size: 13px; color: #64748b; line-height: 1.6; margin-bottom: 24px; }
-    .card { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 16px; padding: 20px; margin-bottom: 24px; }
-    .row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #f1f5f9; font-size: 13px; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background-color: #f8fafc; margin: 0; padding: 20px; color: #1e293b; }
+    .container { max-width: 540px; margin: 0 auto; background: #ffffff; border-radius: 20px; border: 1px solid #e2e8f0; overflow: hidden; box-shadow: 0 10px 25px rgba(0,0,0,0.05); }
+    .header { background: #0f172a; padding: 28px 24px; text-align: center; color: #ffffff; }
+    .brand-title { font-size: 15px; font-weight: 900; letter-spacing: 1px; margin: 0; color: #ffffff; }
+    .brand-sub { font-size: 11px; color: #94a3b8; font-weight: 600; text-transform: uppercase; margin-top: 4px; }
+    .badge { display: inline-block; background: #ea580c; color: #ffffff; font-size: 10px; font-weight: 800; text-transform: uppercase; padding: 4px 10px; border-radius: 999px; margin-top: 12px; }
+    .content { padding: 28px 24px; }
+    .title { font-size: 17px; font-weight: 800; color: #0f172a; margin-top: 0; margin-bottom: 8px; }
+    .desc { font-size: 13px; color: #64748b; line-height: 1.5; margin-bottom: 20px; }
+    .card { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 14px; padding: 16px; margin-bottom: 20px; }
+    .row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #f1f5f9; font-size: 12px; }
     .row:last-child { border-bottom: none; }
     .label { color: #64748b; font-weight: 600; }
-    .val { color: #0f172a; font-weight: 800; }
-    .reason-box { background: #fff7ed; border: 1px solid #ffedd5; border-radius: 12px; padding: 14px; font-size: 12px; color: #9a3412; font-style: italic; margin-top: 10px; }
+    .val { color: #0f172a; font-weight: 700; }
+    .reason-box { background: #ffffff; border: 1px dashed #cbd5e1; border-radius: 10px; padding: 12px; font-size: 12px; color: #334155; font-style: italic; margin-top: 8px; }
     .footer { background: #f8fafc; padding: 20px; text-align: center; border-top: 1px solid #e2e8f0; font-size: 11px; color: #94a3b8; line-height: 1.5; }
   </style>
 </head>
@@ -201,7 +202,7 @@ export async function sendLeaveRequestEmail(params: SendLeaveRequestEmailParams)
     <div class="header">
       <div class="brand-title">HSCREATIONS SYDNEY</div>
       <div class="brand-sub">Fair Work NSW Leave Management Hub</div>
-      <div class="badge">🔔 Action Required: Leave Approval</div>
+      <div class="badge">Action Required: Leave Approval</div>
     </div>
     <div class="content">
       <h2 class="title">New ${params.leaveType} Leave Request</h2>
@@ -214,11 +215,11 @@ export async function sendLeaveRequestEmail(params: SendLeaveRequestEmailParams)
         </div>
         <div class="row">
           <span class="label">Department:</span>
-          <span class="val">${params.department || 'General Operations'}</span>
+          <span class="val">${params.department}</span>
         </div>
         <div class="row">
           <span class="label">Leave Type:</span>
-          <span class="val" style="color: #ea580c;">${params.leaveType}</span>
+          <span class="val">${params.leaveType}</span>
         </div>
         <div class="row">
           <span class="label">Duration:</span>
@@ -264,7 +265,7 @@ export async function sendLeaveRequestEmail(params: SendLeaveRequestEmailParams)
       const info = await transporter.sendMail({
         from: fromEmail,
         to: adminEmail,
-        subject: `🔔 Leave Request: ${params.employeeName} (${params.leaveType} - ${params.totalDays}d)`,
+        subject: `Leave Request: ${params.employeeName} (${params.leaveType} - ${params.totalDays}d)`,
         text: `New ${params.leaveType} leave request from ${params.employeeName} (${params.startDate} to ${params.endDate}, ${params.totalDays} days). Reason: ${params.reason}`,
         html: htmlContent,
       });
@@ -297,9 +298,9 @@ export async function sendLeaveRequestEmail(params: SendLeaveRequestEmailParams)
     });
 
     const info = await testTransporter.sendMail({
-      from: '"HsCreations Leave Alert" <leave-alerts@hscreations.com.au>',
+      from: '"Leave Management Service" <leave-system@company.com.au>',
       to: adminEmail,
-      subject: `🔔 Leave Request: ${params.employeeName} (${params.leaveType} - ${params.totalDays}d)`,
+      subject: `Leave Request: ${params.employeeName} (${params.leaveType} - ${params.totalDays}d)`,
       html: htmlContent,
     });
 
@@ -320,3 +321,5 @@ export async function sendLeaveRequestEmail(params: SendLeaveRequestEmailParams)
     };
   }
 }
+
+export const sendLeaveRequestEmail = sendLeaveRequestEmailToAdmin;

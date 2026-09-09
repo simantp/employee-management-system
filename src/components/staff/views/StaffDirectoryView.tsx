@@ -1,7 +1,6 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Users, Search, Mail, Phone, Building2 } from 'lucide-react';
 import { useApp } from '@/lib/store';
 
 export default function StaffDirectoryView() {
@@ -21,7 +20,7 @@ export default function StaffDirectoryView() {
         <div>
           <h2 className="text-xl font-black text-slate-900 tracking-tight">Company Staff Directory</h2>
           <p className="text-slate-500 mt-0.5">
-            Internal contact details for colleagues across Riverwood, Rockdale & Headquarters
+            Internal contact details for colleagues across Riverwood, Rockdale &amp; Headquarters
           </p>
         </div>
 
@@ -61,7 +60,7 @@ export default function StaffDirectoryView() {
               <p className="text-[10px] text-slate-400 truncate mt-0.5">{emp.department}</p>
               
               <div className="mt-2 pt-2 border-t border-slate-100 flex items-center gap-3 text-[10px] text-slate-500">
-                <span className="flex items-center gap-1"><Mail className="w-3 h-3 text-slate-400" /> {emp.email}</span>
+                <span className="truncate">{emp.email}</span>
               </div>
             </div>
           </div>

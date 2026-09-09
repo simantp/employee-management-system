@@ -1,28 +1,22 @@
 'use client';
 
 import React from 'react';
-import { History } from 'lucide-react';
 import { useApp } from '@/lib/store';
 
 export default function AuditLogViewer() {
   const { auditLogs } = useApp();
 
   return (
-    <div className="bg-white rounded-2xl border border-slate-200/80 shadow-sm p-5 mb-6" id="audit-log">
+    <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs p-5 mb-6" id="audit-log">
       <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-2.5">
-          <div className="w-9 h-9 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center border border-purple-100">
-            <History className="w-5 h-5" />
-          </div>
-          <div>
-            <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
-              <span>Security Audit Trail & Compliance Log</span>
-              <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 border border-emerald-200 animate-pulse">
-                Live Recording
-              </span>
-            </h3>
-            <p className="text-[11px] text-slate-500">Immutable ledger of bank detail decryptions, profile changes & approvals</p>
-          </div>
+        <div>
+          <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
+            <span>Security Audit Trail & Compliance Log</span>
+            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 border border-emerald-200">
+              Live Recording
+            </span>
+          </h3>
+          <p className="text-[11px] text-slate-500">Immutable ledger of bank detail decryptions, profile changes & approvals</p>
         </div>
       </div>
 

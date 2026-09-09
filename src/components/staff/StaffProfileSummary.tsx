@@ -1,7 +1,6 @@
 'use client';
 
 import React from 'react';
-import { User, Mail, Phone, MapPin, UserCheck, ShieldCheck, Edit3 } from 'lucide-react';
 import { useApp } from '@/lib/store';
 
 export default function StaffProfileSummary({ onEditProfile }: { onEditProfile?: () => void }) {
@@ -13,10 +12,9 @@ export default function StaffProfileSummary({ onEditProfile }: { onEditProfile?:
         <h3 className="text-sm font-bold text-slate-900">My Profile Summary</h3>
         <button
           onClick={onEditProfile}
-          className="text-xs text-blue-600 font-bold hover:underline flex items-center gap-1"
+          className="text-xs text-blue-600 font-bold hover:underline"
         >
-          <span>View Full Profile</span>
-          <span>→</span>
+          View Full Profile &rarr;
         </button>
       </div>
 
@@ -49,37 +47,27 @@ export default function StaffProfileSummary({ onEditProfile }: { onEditProfile?:
 
       <div className="space-y-2.5 text-xs">
         <div className="flex items-center justify-between">
-          <span className="text-slate-400 font-medium flex items-center gap-1.5">
-            <User className="w-3.5 h-3.5" /> Employee ID
-          </span>
+          <span className="text-slate-400 font-medium">Employee ID</span>
           <span className="font-mono font-bold text-slate-900">{currentStaff.employeeNumber}</span>
         </div>
 
         <div className="flex items-center justify-between">
-          <span className="text-slate-400 font-medium flex items-center gap-1.5">
-            <Mail className="w-3.5 h-3.5" /> Email
-          </span>
+          <span className="text-slate-400 font-medium">Email</span>
           <span className="font-semibold text-slate-700 truncate max-w-[180px]">{currentStaff.email}</span>
         </div>
 
         <div className="flex items-center justify-between">
-          <span className="text-slate-400 font-medium flex items-center gap-1.5">
-            <Phone className="w-3.5 h-3.5" /> Mobile
-          </span>
+          <span className="text-slate-400 font-medium">Mobile</span>
           <span className="font-semibold text-slate-700">{currentStaff.mobilePhone}</span>
         </div>
 
         <div className="flex items-center justify-between">
-          <span className="text-slate-400 font-medium flex items-center gap-1.5">
-            <MapPin className="w-3.5 h-3.5" /> Work Location
-          </span>
+          <span className="text-slate-400 font-medium">Work Location</span>
           <span className="font-semibold text-slate-700">{currentStaff.workLocation}</span>
         </div>
 
         <div className="flex items-center justify-between">
-          <span className="text-slate-400 font-medium flex items-center gap-1.5">
-            <UserCheck className="w-3.5 h-3.5" /> Reports To
-          </span>
+          <span className="text-slate-400 font-medium">Reports To</span>
           <span className="font-semibold text-slate-700">{currentStaff.reportsTo}</span>
         </div>
       </div>

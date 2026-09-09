@@ -1,7 +1,6 @@
 'use client';
 
 import React, { useState } from 'react';
-import { X, Lock, ShieldCheck, CheckCircle2, AlertCircle } from 'lucide-react';
 import { useApp } from '@/lib/store';
 import { validateAUBSB, formatBSB } from '@/lib/utils';
 import { encryptAES256 } from '@/lib/crypto';
@@ -45,23 +44,17 @@ export default function BankDetailsModal({ onClose }: { onClose: () => void }) {
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/20 p-4 overflow-y-auto" onClick={onClose}>
       <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 max-w-lg w-full overflow-hidden animate-in fade-in zoom-in-95" onClick={(e) => e.stopPropagation()}>
         <div className="p-5 bg-gradient-to-r from-navy-950 to-navy-900 text-white flex items-center justify-between">
-          <div className="flex items-center gap-2.5">
-            <div className="w-9 h-9 rounded-xl bg-cyan-500/20 text-cyan-400 border border-cyan-500/30 flex items-center justify-center font-bold">
-              <Lock className="w-4 h-4" />
-            </div>
-            <div>
-              <h3 className="text-sm font-bold text-white">Self-Service Banking & Super</h3>
-              <p className="text-[11px] text-cyan-300">Protected with AES-256 Application-Level Encryption</p>
-            </div>
+          <div>
+            <h3 className="text-sm font-bold text-white">Self-Service Banking &amp; Super</h3>
+            <p className="text-[11px] text-cyan-300">Protected with AES-256 Application-Level Encryption</p>
           </div>
-          <button onClick={onClose} className="text-slate-400 hover:text-white p-1.5">
-            <X className="w-4 h-4" />
+          <button onClick={onClose} className="text-xs font-semibold text-slate-400 hover:text-white px-2 py-1 rounded-lg hover:bg-white/10 transition cursor-pointer">
+            Close
           </button>
         </div>
 
         <form onSubmit={handleSubmit} className="p-6 space-y-4 text-xs">
           <div className="p-3.5 rounded-xl bg-cyan-50 border border-cyan-200 text-cyan-900 flex items-start gap-2.5">
-            <ShieldCheck className="w-4 h-4 text-cyan-700 flex-shrink-0 mt-0.5" />
             <p className="text-[11px] leading-relaxed">
               Your banking details are encrypted on the server before being saved into the database. Updates trigger an instant real-time notification to the Payroll Admin.
             </p>
@@ -152,12 +145,12 @@ export default function BankDetailsModal({ onClose }: { onClose: () => void }) {
           </div>
 
           <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-100">
-            <button type="button" onClick={onClose} className="px-5 py-3 rounded-2xl border border-slate-200 text-slate-700 font-bold hover:bg-slate-100 transition-all text-xs">Cancel</button>
+            <button type="button" onClick={onClose} className="px-5 py-3 rounded-2xl border border-slate-200 text-slate-700 font-bold hover:bg-slate-100 transition-all text-xs cursor-pointer">Cancel</button>
             <button
               type="submit"
-              className="px-5 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold shadow-md shadow-blue-600/25 transition"
+              className="px-5 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold shadow-md shadow-blue-600/25 transition cursor-pointer"
             >
-              Encrypt & Save Bank Details
+              Encrypt &amp; Save Bank Details
             </button>
           </div>
         </form>

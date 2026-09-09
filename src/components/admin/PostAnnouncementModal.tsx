@@ -1,7 +1,6 @@
 'use client';
 
 import React, { useState } from 'react';
-import { X, Megaphone, Send, Sparkles } from 'lucide-react';
 import { useApp } from '@/lib/store';
 
 export default function PostAnnouncementModal({ onClose }: { onClose: () => void }) {
@@ -28,18 +27,13 @@ export default function PostAnnouncementModal({ onClose }: { onClose: () => void
         className="bg-white rounded-3xl shadow-2xl border border-slate-200 max-w-lg w-full overflow-hidden animate-in fade-in zoom-in-95 duration-150 text-xs shadow-black/20"
         onClick={e => e.stopPropagation()}
       >
-        <div className="p-6 bg-gradient-to-r from-slate-950 via-slate-900 to-navy-950 text-white flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-orange-500/20 text-orange-400 border border-orange-500/30 flex items-center justify-center font-black">
-              <Megaphone className="w-5 h-5" />
-            </div>
-            <div>
-              <h3 className="text-base font-black text-white">Post Company Announcement</h3>
-              <p className="text-[11px] text-orange-400 font-medium">Broadcasts to top of all Staff Dashboards</p>
-            </div>
+        <div className="p-6 bg-slate-900 text-white flex items-center justify-between">
+          <div>
+            <h3 className="text-base font-bold text-white">Post Company Announcement</h3>
+            <p className="text-[11px] text-slate-300 font-medium">Broadcasts to top of all Staff Dashboards</p>
           </div>
-          <button onClick={onClose} className="text-slate-400 hover:text-white p-2 rounded-xl hover:bg-white/10 transition cursor-pointer">
-            <X className="w-5 h-5" />
+          <button onClick={onClose} className="text-xs font-bold text-slate-400 hover:text-white px-2 py-1 transition cursor-pointer">
+            Close
           </button>
         </div>
 
@@ -52,7 +46,7 @@ export default function PostAnnouncementModal({ onClose }: { onClose: () => void
               placeholder="e.g. Sydney Plant Schedule Update & WHS Policy"
               value={title}
               onChange={e => setTitle(e.target.value)}
-              className="w-full p-3 border border-slate-300 rounded-xl bg-white font-bold text-slate-900 focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500"
+              className="w-full p-3 border border-slate-300 rounded-xl bg-white font-bold text-slate-900 focus:ring-2 focus:ring-slate-500/20 focus:border-slate-500"
             />
           </div>
 
@@ -79,13 +73,12 @@ export default function PostAnnouncementModal({ onClose }: { onClose: () => void
               placeholder="Write the full announcement message for all staff..."
               value={content}
               onChange={e => setContent(e.target.value)}
-              className="w-full p-3 border border-slate-300 rounded-xl bg-white font-medium text-slate-800 leading-relaxed focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500"
+              className="w-full p-3 border border-slate-300 rounded-xl bg-white font-medium text-slate-800 leading-relaxed focus:ring-2 focus:ring-slate-500/20 focus:border-slate-500"
             />
           </div>
 
-          <div className="p-3 bg-orange-50 rounded-2xl border border-orange-200 text-orange-900 text-[11px] flex items-center gap-2">
-            <Sparkles className="w-4 h-4 text-orange-600 flex-shrink-0" />
-            <span>This announcement will instantly appear in the <strong>Company's Latest Announcement</strong> banner at the top of the Staff Dashboard.</span>
+          <div className="p-3 bg-slate-50 rounded-2xl border border-slate-200 text-slate-700 text-[11px]">
+            This announcement will instantly appear in the <strong>Company's Latest Announcement</strong> banner at the top of the Staff Dashboard.
           </div>
 
           <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-100">
@@ -98,10 +91,9 @@ export default function PostAnnouncementModal({ onClose }: { onClose: () => void
             </button>
             <button
               type="submit"
-              className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-orange-500 to-amber-500 text-slate-950 font-black flex items-center gap-2 shadow-lg shadow-orange-500/20 hover:from-orange-400 hover:to-amber-400 transition cursor-pointer"
+              className="px-5 py-2.5 rounded-xl bg-slate-900 text-white font-bold transition hover:bg-slate-800 cursor-pointer"
             >
-              <Send className="w-4 h-4" />
-              <span>Broadcast Announcement</span>
+              Broadcast Announcement
             </button>
           </div>
         </form>

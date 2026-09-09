@@ -1,7 +1,6 @@
 'use client';
 
 import React, { useState } from 'react';
-import { X, UserCheck, CheckCircle2 } from 'lucide-react';
 import { useApp } from '@/lib/store';
 import { AUState } from '@/types';
 
@@ -28,72 +27,70 @@ export default function EditProfileModal({ onClose }: { onClose: () => void }) {
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/20 p-4 overflow-y-auto" onClick={onClose}>
-      <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 max-w-lg w-full overflow-hidden animate-in fade-in zoom-in-95" onClick={(e) => e.stopPropagation()}>
-        <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50">
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-xl bg-blue-100 text-blue-700 flex items-center justify-center font-bold">
-              <UserCheck className="w-4 h-4" />
-            </div>
-            <div>
-              <h3 className="text-sm font-bold text-slate-900">Update Profile Details</h3>
-              <p className="text-[11px] text-slate-500">Editable employee fields per specifications</p>
-            </div>
+      <div className="bg-white rounded-2xl shadow-xl border border-slate-200 max-w-lg w-full overflow-hidden" onClick={(e) => e.stopPropagation()}>
+        <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+          <div>
+            <h3 className="text-sm font-bold text-slate-900">Update Profile Details</h3>
+            <p className="text-xs text-slate-500">Editable employee fields per specifications</p>
           </div>
-          <button onClick={onClose} className="text-slate-400 hover:text-slate-700 p-1.5 rounded-lg hover:bg-slate-100">
-            <X className="w-4 h-4" />
+          <button 
+            onClick={onClose} 
+            className="text-xs font-semibold text-slate-500 hover:text-slate-800 px-2 py-1 rounded-lg border border-slate-200 hover:bg-slate-100 transition cursor-pointer"
+          >
+            Close
           </button>
         </div>
 
         <form onSubmit={handleSubmit} className="p-6 space-y-4 text-xs">
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="font-bold text-slate-700 block mb-1">Mobile Phone *</label>
+              <label className="font-semibold text-slate-700 block mb-1">Mobile Phone *</label>
               <input
                 type="text"
                 required
                 value={form.mobilePhone}
                 onChange={e => setForm({...form, mobilePhone: e.target.value})}
-                className="w-full p-2.5 border rounded-xl bg-slate-50"
+                className="w-full p-2.5 border border-slate-200 rounded-lg bg-slate-50/50 focus:bg-white focus:ring-2 focus:ring-slate-900/10 focus:border-slate-900 transition"
               />
             </div>
             <div>
-              <label className="font-bold text-slate-700 block mb-1">Home Phone (Optional)</label>
+              <label className="font-semibold text-slate-700 block mb-1">Home Phone (Optional)</label>
               <input
                 type="text"
                 value={form.homePhone}
                 onChange={e => setForm({...form, homePhone: e.target.value})}
-                className="w-full p-2.5 border rounded-xl bg-slate-50"
+                className="w-full p-2.5 border border-slate-200 rounded-lg bg-slate-50/50 focus:bg-white focus:ring-2 focus:ring-slate-900/10 focus:border-slate-900 transition"
               />
             </div>
           </div>
 
           <div>
-            <label className="font-bold text-slate-700 block mb-1">Residential Street Address</label>
+            <label className="font-semibold text-slate-700 block mb-1">Residential Street Address</label>
             <input
               type="text"
               required
               value={form.address}
               onChange={e => setForm({...form, address: e.target.value})}
-              className="w-full p-2.5 border rounded-xl bg-slate-50"
+              className="w-full p-2.5 border border-slate-200 rounded-lg bg-slate-50/50 focus:bg-white focus:ring-2 focus:ring-slate-900/10 focus:border-slate-900 transition"
             />
           </div>
 
           <div className="grid grid-cols-3 gap-3">
             <div>
-              <label className="font-bold text-slate-700 block mb-1">Suburb</label>
+              <label className="font-semibold text-slate-700 block mb-1">Suburb</label>
               <input
                 type="text"
                 value={form.suburb}
                 onChange={e => setForm({...form, suburb: e.target.value})}
-                className="w-full p-2.5 border rounded-xl bg-slate-50"
+                className="w-full p-2.5 border border-slate-200 rounded-lg bg-slate-50/50 focus:bg-white focus:ring-2 focus:ring-slate-900/10 focus:border-slate-900 transition"
               />
             </div>
             <div>
-              <label className="font-bold text-slate-700 block mb-1">State</label>
+              <label className="font-semibold text-slate-700 block mb-1">State</label>
               <select
                 value={form.state}
                 onChange={e => setForm({...form, state: e.target.value as AUState})}
-                className="w-full p-2.5 border rounded-xl bg-slate-50"
+                className="w-full p-2.5 border border-slate-200 rounded-lg bg-slate-50/50 focus:bg-white font-medium"
               >
                 <option value="NSW">NSW</option>
                 <option value="VIC">VIC</option>
@@ -104,35 +101,35 @@ export default function EditProfileModal({ onClose }: { onClose: () => void }) {
               </select>
             </div>
             <div>
-              <label className="font-bold text-slate-700 block mb-1">Postcode</label>
+              <label className="font-semibold text-slate-700 block mb-1">Postcode</label>
               <input
                 type="text"
                 value={form.postcode}
                 onChange={e => setForm({...form, postcode: e.target.value})}
-                className="w-full p-2.5 border rounded-xl bg-slate-50"
+                className="w-full p-2.5 border border-slate-200 rounded-lg bg-slate-50/50 focus:bg-white font-mono"
               />
             </div>
           </div>
 
           <div className="pt-2 border-t border-slate-100">
-            <h4 className="font-bold text-slate-900 mb-2">Emergency Contact</h4>
+            <h4 className="font-bold text-slate-900 text-xs uppercase tracking-wider mb-2">Emergency Contact</h4>
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="font-bold text-slate-700 block mb-1">Contact Name</label>
+                <label className="font-semibold text-slate-700 block mb-1">Contact Name</label>
                 <input
                   type="text"
                   value={form.emergencyNextOfKin}
                   onChange={e => setForm({...form, emergencyNextOfKin: e.target.value})}
-                  className="w-full p-2.5 border rounded-xl bg-slate-50"
+                  className="w-full p-2.5 border border-slate-200 rounded-lg bg-slate-50/50 focus:bg-white focus:ring-2 focus:ring-slate-900/10 focus:border-slate-900 transition"
                 />
               </div>
               <div>
-                <label className="font-bold text-slate-700 block mb-1">Emergency Mobile</label>
+                <label className="font-semibold text-slate-700 block mb-1">Emergency Mobile</label>
                 <input
                   type="text"
                   value={form.emergencyMobile}
                   onChange={e => setForm({...form, emergencyMobile: e.target.value})}
-                  className="w-full p-2.5 border rounded-xl bg-slate-50"
+                  className="w-full p-2.5 border border-slate-200 rounded-lg bg-slate-50/50 focus:bg-white focus:ring-2 focus:ring-slate-900/10 focus:border-slate-900 transition"
                 />
               </div>
             </div>
@@ -142,13 +139,13 @@ export default function EditProfileModal({ onClose }: { onClose: () => void }) {
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 rounded-xl border border-slate-200 text-slate-600 font-bold hover:bg-slate-50 transition"
+              className="px-4 py-2 rounded-lg border border-slate-200 text-slate-700 font-semibold hover:bg-slate-100 transition text-xs cursor-pointer"
             >
               Cancel
             </button>
             <button
               type="submit"
-              className="px-5 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold shadow-md shadow-blue-600/25 transition"
+              className="px-5 py-2 rounded-lg bg-slate-900 hover:bg-slate-800 text-white font-semibold text-xs transition cursor-pointer"
             >
               Save Profile
             </button>

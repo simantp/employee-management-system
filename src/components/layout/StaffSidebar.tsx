@@ -1,23 +1,6 @@
 'use client';
 
 import React from 'react';
-import { 
-  LayoutDashboard, 
-  User, 
-  FileText, 
-  Briefcase, 
-  CreditCard, 
-  Calendar, 
-  Clock, 
-  PhoneCall, 
-  Users, 
-  HelpCircle, 
-  Building2,
-  DoorOpen,
-  Sparkles,
-  ShieldCheck,
-  ChevronRight
-} from 'lucide-react';
 import { useApp } from '@/lib/store';
 
 export default function StaffSidebar({ 
@@ -27,37 +10,37 @@ export default function StaffSidebar({
   activeTab?: string; 
   onSelectTab?: (tab: string) => void;
 }) {
-  const { currentStaff } = useApp();
+  const { currentStaff, logout } = useApp();
 
   const sections = [
     {
       title: 'OVERVIEW',
       items: [
-        { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, badge: null },
-        { id: 'profile', label: 'My Profile', icon: User, badge: null },
-        { id: 'documents', label: 'Documents', icon: FileText, badge: currentStaff.documents.length > 0 ? String(currentStaff.documents.length) : null },
+        { id: 'dashboard', label: 'Dashboard', badge: null },
+        { id: 'profile', label: 'My Profile', badge: null },
+        { id: 'documents', label: 'Documents', badge: currentStaff.documents.length > 0 ? String(currentStaff.documents.length) : null },
       ]
     },
     {
       title: 'TIME & WORKPLACE',
       items: [
-        { id: 'leave', label: 'Leave Management', icon: Calendar, badge: `${currentStaff.leaveBalance.annual}d` },
-        { id: 'timesheet', label: 'Timesheet & Roster', icon: Clock, badge: '38h' },
-        { id: 'employment', label: 'Employment Details', icon: Briefcase, badge: null },
+        { id: 'leave', label: 'Leave Management', badge: `${currentStaff.leaveBalance.annual}d` },
+        { id: 'timesheet', label: 'Timesheet & Roster', badge: '38h' },
+        { id: 'employment', label: 'Employment Details', badge: null },
       ]
     },
     {
       title: 'PEOPLE & DIRECTORY',
       items: [
-        { id: 'emergency', label: 'Emergency Contacts', icon: PhoneCall, badge: null },
-        { id: 'directory', label: 'Company Directory', icon: Users, badge: null },
+        { id: 'emergency', label: 'Emergency Contacts', badge: null },
+        { id: 'directory', label: 'Company Directory', badge: null },
       ]
     },
     {
       title: 'LIFECYCLE',
       items: [
-        { id: 'resignation', label: 'Resignation Notice', icon: DoorOpen, badge: null },
-        { id: 'support', label: 'HR Helpdesk', icon: HelpCircle, badge: null },
+        { id: 'resignation', label: 'Resignation Notice', badge: null },
+        { id: 'support', label: 'HR Helpdesk', badge: null },
       ]
     }
   ];
@@ -102,23 +85,20 @@ export default function StaffSidebar({
             </h3>
 
             {section.items.map(item => {
-              const Icon = item.icon;
               const isActive = activeTab === item.id;
               
               return (
                 <button
                   key={item.id}
                   onClick={() => handleNav(item.id)}
-                  className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-semibold transition-all duration-150 group relative ${
+                  className={`w-full flex items-center justify-between px-3.5 py-2 rounded-xl text-xs transition-all duration-150 group relative ${
                     isActive
-                      ? 'bg-gradient-to-r from-blue-600/20 to-cyan-600/10 text-cyan-300 border border-cyan-500/30 shadow-xs font-bold'
-                      : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900/60'
+                      ? 'bg-gradient-to-r from-blue-600/20 to-cyan-600/10 text-cyan-300 border border-cyan-500/30 font-bold'
+                      : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900/60 font-semibold'
                   }`}
                 >
                   <div className="flex items-center gap-2.5 min-w-0">
-                    <Icon className={`w-4 h-4 flex-shrink-0 transition-transform group-hover:scale-105 ${
-                      isActive ? 'text-cyan-400' : 'text-slate-400 group-hover:text-slate-200'
-                    }`} />
+                    {isActive && <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 flex-shrink-0 animate-pulse" />}
                     <span className="truncate">{item.label}</span>
                   </div>
 
@@ -130,10 +110,6 @@ export default function StaffSidebar({
                     }`}>
                       {item.badge}
                     </span>
-                  )}
-                  
-                  {isActive && !item.badge && (
-                    <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 shadow-sm shadow-cyan-400 animate-pulse"></span>
                   )}
                 </button>
               );

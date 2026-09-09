@@ -1,7 +1,6 @@
 'use client';
 
 import React, { useState } from 'react';
-import { PhoneCall, HeartHandshake, MapPin, Edit3, ShieldAlert } from 'lucide-react';
 import { useApp } from '@/lib/store';
 import EditProfileModal from '../EditProfileModal';
 
@@ -13,7 +12,7 @@ export default function StaffEmergencyView() {
     <div className="p-6 lg:p-8 space-y-6 max-w-7xl mx-auto animate-in fade-in duration-150 text-xs">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h2 className="text-xl font-black text-slate-900 tracking-tight">Emergency Contacts & Medical Info</h2>
+          <h2 className="text-xl font-black text-slate-900 tracking-tight">Emergency Contacts &amp; Medical Info</h2>
           <p className="text-slate-500 mt-0.5">
             Designated Next of Kin contacts for on-site workplace safety incidents
           </p>
@@ -21,9 +20,8 @@ export default function StaffEmergencyView() {
 
         <button
           onClick={() => setShowEdit(true)}
-          className="flex items-center gap-2 bg-rose-600 hover:bg-rose-700 text-white px-4 py-2.5 rounded-xl font-bold shadow-md shadow-rose-600/25"
+          className="flex items-center gap-2 bg-rose-600 hover:bg-rose-700 text-white px-4 py-2.5 rounded-xl font-bold shadow-md shadow-rose-600/25 cursor-pointer"
         >
-          <Edit3 className="w-4 h-4" />
           <span>Update Emergency Contact</span>
         </button>
       </div>
@@ -32,7 +30,6 @@ export default function StaffEmergencyView() {
         <div className="bg-white rounded-2xl p-6 border border-slate-200/80 shadow-sm space-y-4">
           <div className="flex items-center justify-between border-b pb-3">
             <h3 className="font-bold text-sm text-slate-900 flex items-center gap-2">
-              <HeartHandshake className="w-4 h-4 text-rose-500" />
               <span>Primary Next of Kin</span>
             </h3>
             <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-rose-100 text-rose-800">Primary</span>
@@ -64,7 +61,6 @@ export default function StaffEmergencyView() {
 
         <div className="bg-slate-900 text-white rounded-2xl p-6 border border-slate-800 shadow-sm space-y-4">
           <h3 className="font-bold text-sm text-white flex items-center gap-2 border-b border-slate-800 pb-3">
-            <ShieldAlert className="w-4 h-4 text-amber-400" />
             <span>Workplace Incident Protocol</span>
           </h3>
 

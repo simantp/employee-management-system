@@ -1,21 +1,6 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { 
-  ShieldCheck, 
-  ShieldAlert, 
-  Car, 
-  Search, 
-  AlertCircle, 
-  CheckCircle2, 
-  Clock, 
-  Send, 
-  HardHat, 
-  UserCheck, 
-  AlertTriangle,
-  Award,
-  RefreshCw
-} from 'lucide-react';
 import { useApp } from '@/lib/store';
 import { Employee } from '@/types';
 import EmployeeDetailModal from './EmployeeDetailModal';
@@ -117,44 +102,32 @@ export default function AdminComplianceManagement({
         <div className="p-5 rounded-2xl bg-white border border-slate-200/80 shadow-xs flex items-center justify-between">
           <div>
             <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">Visa Holders</span>
-            <span className="text-2xl font-black text-slate-900 mt-1 block">{totalVisaHolders}</span>
+            <span className="text-2xl font-bold text-slate-900 mt-1 block">{totalVisaHolders}</span>
             <span className="text-[10px] text-slate-500 font-medium">Active Visa workforce</span>
-          </div>
-          <div className="w-11 h-11 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center font-bold">
-            <UserCheck className="w-5 h-5" />
           </div>
         </div>
 
         <div className="p-5 rounded-2xl bg-white border border-slate-200/80 shadow-xs flex items-center justify-between">
           <div>
             <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">Visas Expiring &lt;30d</span>
-            <span className="text-2xl font-black text-amber-600 mt-1 block">{criticalVisas}</span>
+            <span className="text-2xl font-bold text-amber-600 mt-1 block">{criticalVisas}</span>
             <span className="text-[10px] text-amber-700 font-medium">Requires immediate renewal</span>
-          </div>
-          <div className="w-11 h-11 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center font-bold">
-            <ShieldAlert className="w-5 h-5" />
           </div>
         </div>
 
         <div className="p-5 rounded-2xl bg-white border border-slate-200/80 shadow-xs flex items-center justify-between">
           <div>
             <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">Licensed Drivers</span>
-            <span className="text-2xl font-black text-emerald-600 mt-1 block">{totalLicenses}</span>
+            <span className="text-2xl font-bold text-emerald-600 mt-1 block">{totalLicenses}</span>
             <span className="text-[10px] text-emerald-700 font-medium">Verified Australia / State</span>
-          </div>
-          <div className="w-11 h-11 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center font-bold">
-            <Car className="w-5 h-5" />
           </div>
         </div>
 
         <div className="p-5 rounded-2xl bg-white border border-slate-200/80 shadow-xs flex items-center justify-between">
           <div>
             <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">Forklift &amp; Press QA</span>
-            <span className="text-2xl font-black text-purple-600 mt-1 block">{forkliftOperators}</span>
+            <span className="text-2xl font-bold text-purple-600 mt-1 block">{forkliftOperators}</span>
             <span className="text-[10px] text-purple-700 font-medium">High risk plant staff</span>
-          </div>
-          <div className="w-11 h-11 rounded-2xl bg-purple-50 text-purple-600 flex items-center justify-center font-bold">
-            <HardHat className="w-5 h-5" />
           </div>
         </div>
       </div>
@@ -167,51 +140,47 @@ export default function AdminComplianceManagement({
           <div className="flex bg-slate-200/80 p-1 rounded-2xl gap-1 max-w-md w-full">
             <button
               onClick={() => setSubTab('visa')}
-              className={`flex-1 py-2 px-3 rounded-xl font-black text-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+              className={`flex-1 py-2 px-3 rounded-xl font-bold text-xs transition-all flex items-center justify-center cursor-pointer ${
                 subTab === 'visa' 
-                  ? 'bg-white text-slate-900 shadow-sm' 
+                  ? 'bg-white text-slate-900 shadow-xs' 
                   : 'text-slate-600 hover:text-slate-900'
               }`}
             >
-              <ShieldCheck className="w-3.5 h-3.5 text-orange-500" />
-              <span>Visa Tracking &amp; VEVO</span>
+              Visa Tracking &amp; VEVO
             </button>
 
             <button
               onClick={() => setSubTab('license')}
-              className={`flex-1 py-2 px-3 rounded-xl font-black text-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+              className={`flex-1 py-2 px-3 rounded-xl font-bold text-xs transition-all flex items-center justify-center cursor-pointer ${
                 subTab === 'license' 
-                  ? 'bg-white text-slate-900 shadow-sm' 
+                  ? 'bg-white text-slate-900 shadow-xs' 
                   : 'text-slate-600 hover:text-slate-900'
               }`}
             >
-              <Car className="w-3.5 h-3.5 text-blue-500" />
-              <span>Driver Licenses</span>
+              Driver Licenses
             </button>
 
             <button
               onClick={() => setSubTab('whs')}
-              className={`flex-1 py-2 px-3 rounded-xl font-black text-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+              className={`flex-1 py-2 px-3 rounded-xl font-bold text-xs transition-all flex items-center justify-center cursor-pointer ${
                 subTab === 'whs' 
-                  ? 'bg-white text-slate-900 shadow-sm' 
+                  ? 'bg-white text-slate-900 shadow-xs' 
                   : 'text-slate-600 hover:text-slate-900'
               }`}
             >
-              <HardHat className="w-3.5 h-3.5 text-emerald-500" />
-              <span>WHS Policies</span>
+              WHS Policies
             </button>
           </div>
 
           {/* Search Bar */}
           <div className="flex items-center gap-2">
-            <div className="relative w-full sm:w-64">
-              <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+            <div className="w-full sm:w-64">
               <input
                 type="text"
                 placeholder="Search staff, visa subclass, license..."
                 value={search}
                 onChange={e => setSearch(e.target.value)}
-                className="w-full pl-9 pr-3 py-2 border border-slate-200 rounded-xl bg-white font-medium text-slate-800 text-xs focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500"
+                className="w-full px-3 py-2 border border-slate-200 rounded-xl bg-white font-medium text-slate-800 text-xs focus:ring-2 focus:ring-slate-500/20 focus:border-slate-500"
               />
             </div>
           </div>
@@ -222,11 +191,10 @@ export default function AdminComplianceManagement({
           <div className="divide-y divide-slate-100">
             <div className="p-4 bg-orange-50/40 border-b border-orange-100/60 flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <AlertCircle className="w-4 h-4 text-orange-600" />
                 <span className="font-bold text-orange-900">Department of Home Affairs (VEVO) Compliance Standards:</span>
                 <span className="text-slate-600">Ensure every non-citizen employee has current visa validity and permitted fortnightly work hours.</span>
               </div>
-              <span className="text-[11px] font-black px-2.5 py-1 rounded-full bg-orange-100 text-orange-800">
+              <span className="text-[11px] font-bold px-2.5 py-1 rounded-full bg-orange-100 text-orange-800">
                 Fair Work Australia
               </span>
             </div>
@@ -275,9 +243,8 @@ export default function AdminComplianceManagement({
                           <div className="font-semibold text-slate-700">
                             {emp.workRestrictions || 'Full-time work rights (38 hrs/week)'}
                           </div>
-                          <span className="text-[10px] text-emerald-600 font-bold flex items-center gap-1 mt-0.5">
-                            <CheckCircle2 className="w-3 h-3" />
-                            <span>VEVO Verified</span>
+                          <span className="text-[10px] text-emerald-600 font-bold block mt-0.5">
+                            VEVO Verified
                           </span>
                         </td>
 
@@ -288,19 +255,16 @@ export default function AdminComplianceManagement({
 
                         <td className="p-4">
                           {isCritical ? (
-                            <span className="px-2.5 py-1 rounded-full text-[10px] font-black bg-rose-100 text-rose-700 border border-rose-200 flex items-center gap-1 w-fit animate-pulse">
-                              <AlertTriangle className="w-3 h-3" />
-                              <span>Critical ({daysLeft}d)</span>
+                            <span className="px-2.5 py-1 rounded-full text-[10px] font-bold bg-rose-100 text-rose-700 border border-rose-200 block w-fit">
+                              Critical ({daysLeft}d)
                             </span>
                           ) : isWarning ? (
-                            <span className="px-2.5 py-1 rounded-full text-[10px] font-black bg-amber-100 text-amber-700 border border-amber-200 flex items-center gap-1 w-fit">
-                              <Clock className="w-3 h-3" />
-                              <span>Expiring Soon ({daysLeft}d)</span>
+                            <span className="px-2.5 py-1 rounded-full text-[10px] font-bold bg-amber-100 text-amber-700 border border-amber-200 block w-fit">
+                              Expiring Soon ({daysLeft}d)
                             </span>
                           ) : (
-                            <span className="px-2.5 py-1 rounded-full text-[10px] font-black bg-emerald-100 text-emerald-700 border border-emerald-200 flex items-center gap-1 w-fit">
-                              <CheckCircle2 className="w-3 h-3" />
-                              <span>Active &amp; Compliant</span>
+                            <span className="px-2.5 py-1 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-700 border border-emerald-200 block w-fit">
+                              Active &amp; Compliant
                             </span>
                           )}
                         </td>
@@ -310,25 +274,23 @@ export default function AdminComplianceManagement({
                             <button
                               onClick={() => handleSimulateVevoCheck(emp)}
                               disabled={vevoCheckingId === emp.id}
-                              className="px-2.5 py-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 font-bold text-[11px] transition flex items-center gap-1 cursor-pointer"
+                              className="px-2.5 py-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 font-bold text-[11px] transition cursor-pointer"
                               title="Run Instant VEVO Check"
                             >
-                              <RefreshCw className={`w-3 h-3 text-blue-600 ${vevoCheckingId === emp.id ? 'animate-spin' : ''}`} />
-                              <span>{vevoCheckingId === emp.id ? 'Checking...' : 'VEVO'}</span>
+                              {vevoCheckingId === emp.id ? 'Checking...' : 'VEVO Check'}
                             </button>
 
                             <button
                               onClick={() => handleSendReminder(emp, 'VISA')}
-                              className="px-2.5 py-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 font-bold text-[11px] transition flex items-center gap-1 cursor-pointer"
+                              className="px-2.5 py-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 font-bold text-[11px] transition cursor-pointer"
                               title="Send Reminder Email"
                             >
-                              <Send className="w-3 h-3 text-orange-500" />
-                              <span>Alert</span>
+                              Alert
                             </button>
 
                             <button
                               onClick={() => setSelectedEmployee(emp)}
-                              className="px-2.5 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-bold text-[11px] transition cursor-pointer"
+                              className="px-2.5 py-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 text-white font-bold text-[11px] transition cursor-pointer"
                             >
                               Edit
                             </button>
@@ -348,11 +310,10 @@ export default function AdminComplianceManagement({
           <div className="divide-y divide-slate-100">
             <div className="p-4 bg-blue-50/40 border-b border-blue-100/60 flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <Car className="w-4 h-4 text-blue-600" />
                 <span className="font-bold text-blue-900">Transport for NSW &amp; SafeWork NSW Operator Compliance:</span>
                 <span className="text-slate-600">Verify company vehicle drivers and certified high-risk printing press / forklift operators.</span>
               </div>
-              <span className="text-[11px] font-black px-2.5 py-1 rounded-full bg-blue-100 text-blue-800">
+              <span className="text-[11px] font-bold px-2.5 py-1 rounded-full bg-blue-100 text-blue-800">
                 SafeWork NSW Verified
               </span>
             </div>
@@ -413,9 +374,8 @@ export default function AdminComplianceManagement({
                         </td>
 
                         <td className="p-4">
-                          <span className="px-2.5 py-1 rounded-full text-[10px] font-black bg-emerald-100 text-emerald-700 border border-emerald-200 flex items-center gap-1 w-fit">
-                            <CheckCircle2 className="w-3 h-3" />
-                            <span>Verified</span>
+                          <span className="px-2.5 py-1 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-700 border border-emerald-200 block w-fit">
+                            Verified
                           </span>
                         </td>
 
@@ -423,15 +383,14 @@ export default function AdminComplianceManagement({
                           <div className="flex items-center justify-end gap-1.5">
                             <button
                               onClick={() => handleSendReminder(emp, 'LICENSE')}
-                              className="px-2.5 py-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 font-bold text-[11px] transition flex items-center gap-1 cursor-pointer"
+                              className="px-2.5 py-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 font-bold text-[11px] transition cursor-pointer"
                             >
-                              <Send className="w-3 h-3 text-blue-500" />
-                              <span>Remind</span>
+                              Remind
                             </button>
 
                             <button
                               onClick={() => setSelectedEmployee(emp)}
-                              className="px-2.5 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-bold text-[11px] transition cursor-pointer"
+                              className="px-2.5 py-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 text-white font-bold text-[11px] transition cursor-pointer"
                             >
                               Edit
                             </button>
@@ -451,7 +410,7 @@ export default function AdminComplianceManagement({
           <div className="p-6 space-y-6">
             <div className="flex items-center justify-between border-b border-slate-100 pb-4">
               <div>
-                <h3 className="font-black text-sm text-slate-900">HsCreations Work Health &amp; Safety (WHS) Standards</h3>
+                <h3 className="font-bold text-sm text-slate-900">HsCreations Work Health &amp; Safety (WHS) Standards</h3>
                 <p className="text-slate-500 text-[11px]">Sydney Printing &amp; Large Format Production Floor Safety Framework</p>
               </div>
               <span className="px-3 py-1 rounded-full bg-emerald-100 text-emerald-800 font-bold text-[10px]">
@@ -461,36 +420,27 @@ export default function AdminComplianceManagement({
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="p-4 rounded-2xl border border-slate-200 bg-slate-50/50 space-y-2">
-                <div className="w-8 h-8 rounded-xl bg-orange-100 text-orange-600 flex items-center justify-center font-bold">
-                  <HardHat className="w-4 h-4" />
-                </div>
                 <h4 className="font-bold text-slate-900">Press Floor PPE Standard</h4>
                 <p className="text-[11px] text-slate-500 leading-relaxed">
                   Mandatory steel-capped footwear, safety eyewear, and ear protection around Heidelberg &amp; Mimaki digital printers.
                 </p>
-                <div className="text-[10px] font-bold text-emerald-600">✓ 100% Staff Acknowledged</div>
+                <div className="text-[10px] font-bold text-emerald-600">100% Staff Acknowledged</div>
               </div>
 
               <div className="p-4 rounded-2xl border border-slate-200 bg-slate-50/50 space-y-2">
-                <div className="w-8 h-8 rounded-xl bg-blue-100 text-blue-600 flex items-center justify-center font-bold">
-                  <Award className="w-4 h-4" />
-                </div>
                 <h4 className="font-bold text-slate-900">Chemical &amp; Ink SDS Safety</h4>
                 <p className="text-[11px] text-slate-500 leading-relaxed">
                   Safety Data Sheets (SDS) for UV curing inks, solvent cleaning agents, and lamination adhesives stored in Riverwood vault.
                 </p>
-                <div className="text-[10px] font-bold text-emerald-600">✓ SDS Folder Updated 2026</div>
+                <div className="text-[10px] font-bold text-emerald-600">SDS Folder Updated 2026</div>
               </div>
 
               <div className="p-4 rounded-2xl border border-slate-200 bg-slate-50/50 space-y-2">
-                <div className="w-8 h-8 rounded-xl bg-purple-100 text-purple-600 flex items-center justify-center font-bold">
-                  <ShieldCheck className="w-4 h-4" />
-                </div>
                 <h4 className="font-bold text-slate-900">Emergency &amp; Evacuation</h4>
                 <p className="text-[11px] text-slate-500 leading-relaxed">
                   Biannual fire evacuation drills, active First Aid wardens, and automated incident reporting for Sydney plant.
                 </p>
-                <div className="text-[10px] font-bold text-purple-600">✓ Next Drill: Q4 2026</div>
+                <div className="text-[10px] font-bold text-purple-600">Next Drill: Q4 2026</div>
               </div>
             </div>
           </div>

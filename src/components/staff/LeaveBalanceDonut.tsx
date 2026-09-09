@@ -2,7 +2,6 @@
 
 import React from 'react';
 import { ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
-import { ShieldCheck } from 'lucide-react';
 import { useApp } from '@/lib/store';
 
 export default function LeaveBalanceDonut({ onApplyLeave }: { onApplyLeave?: () => void } = {}) {
@@ -88,10 +87,7 @@ export default function LeaveBalanceDonut({ onApplyLeave }: { onApplyLeave?: () 
       </div>
 
       <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-400">
-        <span className="flex items-center gap-1">
-          <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
-          <span>Accrual tracked in HsCreations Payroll Vault</span>
-        </span>
+        <span>Accrual tracked in HsCreations Payroll Vault</span>
       </div>
     </div>
   );

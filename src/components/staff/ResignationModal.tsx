@@ -1,7 +1,6 @@
 'use client';
 
 import React, { useState } from 'react';
-import { X, LogOut, AlertTriangle } from 'lucide-react';
 import { useApp } from '@/lib/store';
 
 export default function ResignationModal({ onClose }: { onClose: () => void }) {
@@ -38,23 +37,17 @@ export default function ResignationModal({ onClose }: { onClose: () => void }) {
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/20 p-4 overflow-y-auto" onClick={onClose}>
       <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 max-w-md w-full overflow-hidden animate-in fade-in zoom-in-95" onClick={(e) => e.stopPropagation()}>
         <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-rose-50/60">
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-xl bg-rose-100 text-rose-700 flex items-center justify-center font-bold">
-              <LogOut className="w-4 h-4" />
-            </div>
-            <div>
-              <h3 className="text-sm font-bold text-slate-900">Formal Resignation Notice</h3>
-              <p className="text-[11px] text-slate-500">Australian Standard Notice: 4 Weeks in Advance</p>
-            </div>
+          <div>
+            <h3 className="text-sm font-bold text-slate-900">Formal Resignation Notice</h3>
+            <p className="text-[11px] text-slate-500">Australian Standard Notice: 4 Weeks in Advance</p>
           </div>
-          <button onClick={onClose} className="text-slate-400 hover:text-slate-700 p-1.5 rounded-lg hover:bg-slate-100">
-            <X className="w-4 h-4" />
+          <button onClick={onClose} className="text-xs font-semibold text-slate-500 hover:text-slate-800 px-2 py-1 rounded-lg border border-slate-200 cursor-pointer">
+            Close
           </button>
         </div>
 
         <form onSubmit={handleSubmit} className="p-6 space-y-4 text-xs">
           <div className="p-3.5 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 flex items-start gap-2.5">
-            <AlertTriangle className="w-4 h-4 text-amber-600 flex-shrink-0 mt-0.5" />
             <p className="text-[11px]">
               Per company policy, resignation notices must be given <strong>4 weeks in advance</strong>. Once posted, the status will show as Pending until Admin confirmation.
             </p>
@@ -87,13 +80,13 @@ export default function ResignationModal({ onClose }: { onClose: () => void }) {
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 rounded-xl border border-slate-200 text-slate-600 font-bold hover:bg-slate-50 transition"
+              className="px-4 py-2 rounded-xl border border-slate-200 text-slate-600 font-bold hover:bg-slate-50 transition cursor-pointer"
             >
               Cancel
             </button>
             <button
               type="submit"
-              className="px-5 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-bold shadow-md shadow-rose-600/25 transition"
+              className="px-5 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-bold shadow-md shadow-rose-600/25 transition cursor-pointer"
             >
               Submit Resignation Notice
             </button>
