@@ -118,6 +118,66 @@ export default function AdminSettingsHub({
     addAudit('SYSTEM_BACKUP_EXPORT', 'Backup', 'all', 'Exported comprehensive system backup', 'Admin', 'SuperAdmin');
   };
 
+  const handleExportSQLDump = () => {
+    let sql = `-- ====================================================================\n`;
+    sql += `-- HsCreations Sydney NSW Employee Management System (EMS)\n`;
+    sql += `-- Production MySQL Database Export Snapshot\n`;
+    sql += `-- Generated: ${new Date().toLocaleString('en-AU', { timeZone: 'Australia/Sydney' })}\n`;
+    sql += `-- Charset: utf8mb4, Collation: utf8mb4_unicode_ci\n`;
+    sql += `-- ====================================================================\n\n`;
+    sql += `SET FOREIGN_KEY_CHECKS = 0;\n\n`;
+
+    const escape = (val: any) => {
+      if (val === null || val === undefined) return 'NULL';
+      if (typeof val === 'number') return val;
+      if (typeof val === 'boolean') return val ? 1 : 0;
+      return `'${String(val).replace(/'/g, "''")}'`;
+    };
+
+    // Employees
+    sql += `-- --------------------------------------------------------------------\n`;
+    sql += `-- Table: employees (${employees.length} records)\n`;
+    sql += `-- --------------------------------------------------------------------\n`;
+    employees.forEach(emp => {
+      sql += `INSERT INTO \`employees\` (\n`;
+      sql += `  \`id\`, \`employee_number\`, \`first_name\`, \`last_name\`, \`email\`, \`mobile_phone\`,\n`;
+      sql += `  \`address\`, \`suburb\`, \`state\`, \`postcode\`, \`start_date\`, \`department\`, \`job_title\`,\n`;
+      sql += `  \`work_location\`, \`reports_to\`, \`status\`, \`working_hours\`, \`working_hours_confirmed\`,\n`;
+      sql += `  \`citizen_status\`, \`visa_type\`, \`visa_expiry_date\`, \`visa_status_confirmed\`,\n`;
+      sql += `  \`has_driver_license\`, \`license_country\`, \`license_number\`, \`license_expiry_date\`,\n`;
+      sql += `  \`emergency_next_of_kin\`, \`emergency_relationship\`, \`emergency_mobile\`,\n`;
+      sql += `  \`bank_name\`, \`bank_branch\`, \`account_name\`, \`bsb_encrypted\`, \`bsb_masked\`,\n`;
+      sql += `  \`account_number_encrypted\`, \`account_number_masked\`, \`tfn_encrypted\`, \`tfn_masked\`,\n`;
+      sql += `  \`super_fund_name\`, \`super_member_number\`, \`kiosk_pin\`, \`clock_state\`, \`avatar_url\`,\n`;
+      sql += `  \`annual_leave_balance\`, \`sick_leave_balance\`, \`carers_leave_balance\`, \`long_service_balance\`\n`;
+      sql += `) VALUES (\n`;
+      sql += `  ${escape(emp.id)}, ${escape(emp.employeeNumber)}, ${escape(emp.firstName)}, ${escape(emp.lastName)}, ${escape(emp.email)}, ${escape(emp.mobilePhone)},\n`;
+      sql += `  ${escape(emp.address)}, ${escape(emp.suburb)}, ${escape(emp.state)}, ${escape(emp.postcode)}, ${escape(emp.startDate)}, ${escape(emp.department)}, ${escape(emp.jobTitle)},\n`;
+      sql += `  ${escape(emp.workLocation)}, ${escape(emp.reportsTo)}, ${escape(emp.status)}, ${escape(emp.workingHours || 38)}, ${escape(emp.workingHoursConfirmed ? 1 : 0)},\n`;
+      sql += `  ${escape(emp.citizenStatus)}, ${escape(emp.visaType)}, ${escape(emp.visaExpiryDate)}, ${escape(emp.visaStatusConfirmed ? 1 : 0)},\n`;
+      sql += `  ${escape(emp.hasDriverLicense ? 1 : 0)}, ${escape(emp.licenseCountry)}, ${escape(emp.licenseNumber)}, ${escape(emp.licenseExpiryDate)},\n`;
+      sql += `  ${escape(emp.emergencyNextOfKin)}, ${escape(emp.emergencyRelationship)}, ${escape(emp.emergencyMobile)},\n`;
+      sql += `  ${escape(emp.bankName)}, ${escape(emp.bankBranch)}, ${escape(emp.accountName)}, ${escape(emp.bsbEncrypted)}, ${escape(emp.bsbMasked)},\n`;
+      sql += `  ${escape(emp.accountNumberEncrypted)}, ${escape(emp.accountNumberMasked)}, ${escape(emp.tfnEncrypted)}, ${escape(emp.tfnMasked)},\n`;
+      sql += `  ${escape(emp.superFundName)}, ${escape(emp.superMemberNumber)}, ${escape(emp.kioskPin || '4829')}, ${escape(emp.clockState || 'CLOCKED_OUT')}, ${escape(emp.avatarUrl)},\n`;
+      sql += `  ${escape(emp.leaveBalance?.annual || 20)}, ${escape(emp.leaveBalance?.sick || 10)}, ${escape(emp.leaveBalance?.carers || 2)}, ${escape(emp.leaveBalance?.longService || 0)}\n`;
+      sql += `) ON DUPLICATE KEY UPDATE \`status\` = VALUES(\`status\`), \`updated_at\` = CURRENT_TIMESTAMP;\n\n`;
+    });
+
+    sql += `SET FOREIGN_KEY_CHECKS = 1;\n`;
+
+    const blob = new Blob([sql], { type: 'application/sql' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `HsCreations_Database_Dump_${new Date().toISOString().slice(0, 10)}.sql`;
+    a.click();
+    URL.revokeObjectURL(url);
+
+    addToast('SQL Exported', 'Full database SQL dump generated & downloaded.', 'success');
+    addAudit('DATABASE_SQL_EXPORT', 'Database', 'all', 'Exported full SQL database snapshot', 'Admin', 'SuperAdmin');
+  };
+
   const handleResetDemoData = () => {
     if (window.confirm('Are you sure you want to reset demo data to initial default state? Current test records will be refreshed.')) {
       try {
@@ -842,7 +902,20 @@ export default function AdminSettingsHub({
               <div className="space-y-4">
                 <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 flex items-center justify-between">
                   <div>
-                    <h4 className="font-bold text-slate-900">Download Complete System Backup</h4>
+                    <h4 className="font-bold text-slate-900">Download MySQL Database Dump (.sql)</h4>
+                    <p className="text-slate-500 text-[11px]">Production-ready SQL file with all table structures and current record INSERTs</p>
+                  </div>
+                  <button
+                    onClick={handleExportSQLDump}
+                    className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs shadow-xs transition cursor-pointer"
+                  >
+                    Export MySQL (.sql)
+                  </button>
+                </div>
+
+                <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 flex items-center justify-between">
+                  <div>
+                    <h4 className="font-bold text-slate-900">Download Complete System Backup (.json)</h4>
                     <p className="text-slate-500 text-[11px]">Encrypted JSON archive containing employee profiles, timecards, and leaves</p>
                   </div>
                   <button
