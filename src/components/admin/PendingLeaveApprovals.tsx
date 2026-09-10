@@ -76,50 +76,6 @@ export default function PendingLeaveApprovals({
     return 'https://images.unsplash.com/photo-1584515979956-d9f6e5d09982?w=1000&auto=format&fit=crop&q=80';
   };
 
-  const exportApprovedLeavesCSV = () => {
-    const headers = [
-      'Request ID', 
-      'Employee ID', 
-      'Employee Name', 
-      'Department', 
-      'Leave Type', 
-      'Start Date', 
-      'End Date', 
-      'Total Days', 
-      'Status', 
-      'Submitted At', 
-      'Reviewed By', 
-      'Reviewed At', 
-      'Reason', 
-      'Admin Notes'
-    ];
-    const rows = filteredLeaves.map(r => [
-      `"${r.id}"`,
-      `"${r.employeeId}"`,
-      `"${r.employeeName}"`,
-      `"${r.department || ''}"`,
-      `"${r.leaveType}"`,
-      `"${r.startDate}"`,
-      `"${r.endDate}"`,
-      r.totalDays,
-      `"${r.status}"`,
-      `"${r.submittedAt || ''}"`,
-      `"${r.reviewedBy || ''}"`,
-      `"${r.reviewedAt || ''}"`,
-      `"${r.reason ? r.reason.replace(/"/g, '""') : ''}"`,
-      `"${r.adminNotes ? r.adminNotes.replace(/"/g, '""') : ''}"`
-    ]);
-
-    const csvContent = 'data:text/csv;charset=utf-8,' + [headers.join(','), ...rows.map(e => e.join(','))].join('\n');
-    const encodedUri = encodeURI(csvContent);
-    const link = document.createElement('a');
-    link.setAttribute('href', encodedUri);
-    link.setAttribute('download', `HsCreations_Leave_Records_${new Date().toISOString().slice(0, 10)}.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  };
-
   // Unified return for both Compact Mode (Dashboard widget) and Full Mode (Leave Approvals Tab)
   return (
     <div className={mode === 'compact' ? 'text-xs font-sans' : 'space-y-6 animate-in fade-in duration-150 text-xs font-sans'}>
@@ -340,12 +296,6 @@ export default function PendingLeaveApprovals({
           </div>
 
           <div className="flex flex-wrap items-center gap-2.5">
-            <button
-              onClick={exportApprovedLeavesCSV}
-              className="px-3.5 py-2 rounded-xl bg-white border border-slate-300 text-slate-700 font-bold hover:bg-slate-50 transition cursor-pointer shadow-xs text-xs"
-            >
-              Export Leaves (CSV)
-            </button>
             <input
               type="text"
               placeholder="Search staff, reason, type..."
