@@ -91,12 +91,6 @@ export default function EmployeeDocumentsTab({ employeeId }: { employeeId: strin
     );
   }
 
-  // Calculate statistics
-  const totalCount = documents.length;
-  const verifiedCount = documents.filter(d => d.status === 'Verified').length;
-  const pendingCount = documents.filter(d => d.status === 'Pending').length;
-  const actionCount = documents.filter(d => d.status === 'Rejected' || d.status === 'Expired').length;
-
   // Filtered documents
   const filteredDocs = documents.filter(doc => {
     const matchesCategory = filterCategory === 'ALL' || 
@@ -132,22 +126,33 @@ export default function EmployeeDocumentsTab({ employeeId }: { employeeId: strin
     setFormDocName(doc.name);
     setFormDocNumber(doc.documentNumber || '');
     setFormExpiryDate(doc.expiryDate || '');
-    setFormStatus(doc.status);
+    setFormStatus(doc.status || 'Verified');
     setFormFilePreview(doc.previewUrl || null);
     setFormFileSize(doc.fileSize || '1.8 MB');
-    setFormFileType(doc.fileType || 'image');
+    setFormFileType((doc as any).fileType || (doc.previewUrl?.endsWith('.pdf') ? 'pdf' : 'image'));
     setShowUploadModal(true);
   };
 
-  // Handle file select
+  // Select Quick Preset
+  const handleSelectPreset = (preset: typeof samplePresets[0]) => {
+    setFormDocType(preset.type);
+    setFormDocName(preset.name);
+    setFormDocNumber(preset.number);
+    setFormExpiryDate(preset.expiry);
+    setFormFilePreview(preset.preview);
+    setFormFileSize('1.8 MB');
+    setFormFileType('image');
+  };
+
+  // Handle Real File Upload via FileReader
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      setFormFileSize((file.size / (1024 * 1024)).toFixed(2) + ' MB');
       const isPdf = file.type.includes('pdf') || file.name.toLowerCase().endsWith('.pdf');
       const isDoc = file.name.toLowerCase().endsWith('.doc') || file.name.toLowerCase().endsWith('.docx');
       setFormFileType(isPdf ? 'pdf' : isDoc ? 'doc' : 'image');
-
+      setFormFileSize((file.size / (1024 * 1024)).toFixed(2) + ' MB');
+      
       const reader = new FileReader();
       reader.onload = (event) => {
         setFormFilePreview(event.target?.result as string);
@@ -160,26 +165,15 @@ export default function EmployeeDocumentsTab({ employeeId }: { employeeId: strin
     }
   };
 
-  // Handle Preset Select
-  const handleSelectPreset = (preset: typeof samplePresets[0]) => {
-    setFormDocType(preset.type);
-    setFormDocName(preset.name);
-    setFormDocNumber(preset.number);
-    setFormExpiryDate(preset.expiry);
-    setFormFilePreview(preset.preview);
-    setFormFileSize('1.8 MB');
-    setFormFileType('image');
-  };
-
-  // Save Upload / Edit
+  // Submit Upload / Edit
   const handleSaveDocument = (e: React.FormEvent) => {
     e.preventDefault();
     if (!formDocName.trim()) {
-      addToast('Document Title Required', 'Please enter a name for the document.', 'error');
+      alert('Please enter a document name');
       return;
     }
 
-    const defaultImg = formFilePreview || 'https://images.unsplash.com/photo-1589829545856-d10d557cf95f?w=600&auto=format&fit=crop&q=80';
+    const defaultImg = formFilePreview || samplePresets.find(p => p.type === formDocType)?.preview || 'https://images.unsplash.com/photo-1589829545856-d10d557cf95f?w=600&auto=format&fit=crop&q=80';
 
     if (editingDoc) {
       updateDocument(employeeId, editingDoc.id, {
@@ -192,7 +186,8 @@ export default function EmployeeDocumentsTab({ employeeId }: { employeeId: strin
         fileType: formFileType,
         previewUrl: defaultImg,
       });
-      addToast('Document Updated', `"${formDocName}" was updated in ${currentEmp.firstName}'s vault.`, 'success');
+
+      addToast('Document Updated', `"${formDocName}" was successfully updated.`, 'success');
       addAudit('ADMIN_UPDATE_DOCUMENT', 'Document', editingDoc.id, `Admin updated document "${formDocName}" for ${currentEmp.firstName} ${currentEmp.lastName}`, 'Admin', 'SuperAdmin');
     } else {
       uploadDocument(employeeId, {
@@ -255,7 +250,7 @@ export default function EmployeeDocumentsTab({ employeeId }: { employeeId: strin
   return (
     <div className="space-y-5 animate-in fade-in duration-150">
       
-      {/* Header & Stats Banner */}
+      {/* Header Banner */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-4">
         <div>
           <h3 className="font-extrabold text-sm text-slate-900">
@@ -273,33 +268,6 @@ export default function EmployeeDocumentsTab({ employeeId }: { employeeId: strin
         >
           <span>Upload New Document</span>
         </button>
-      </div>
-
-      {/* Summary Stat Cards */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <div className="p-3 bg-slate-50 rounded-2xl border border-slate-200/80 space-y-0.5">
-          <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">Total On File</span>
-          <div className="text-lg font-black text-slate-900">{totalCount}</div>
-          <span className="text-[10px] text-slate-400 font-medium">Compliance items</span>
-        </div>
-
-        <div className="p-3 bg-emerald-50/60 rounded-2xl border border-emerald-200/80 space-y-0.5">
-          <span className="text-[10px] font-bold text-emerald-700 uppercase tracking-wider block">Verified</span>
-          <div className="text-lg font-black text-emerald-800">{verifiedCount}</div>
-          <span className="text-[10px] text-emerald-600 font-medium">Fully approved</span>
-        </div>
-
-        <div className="p-3 bg-amber-50/60 rounded-2xl border border-amber-200/80 space-y-0.5">
-          <span className="text-[10px] font-bold text-amber-700 uppercase tracking-wider block">Pending Review</span>
-          <div className="text-lg font-black text-amber-800">{pendingCount}</div>
-          <span className="text-[10px] text-amber-600 font-medium">Requires verification</span>
-        </div>
-
-        <div className="p-3 bg-rose-50/60 rounded-2xl border border-rose-200/80 space-y-0.5">
-          <span className="text-[10px] font-bold text-rose-700 uppercase tracking-wider block">Action Needed</span>
-          <div className="text-lg font-black text-rose-800">{actionCount}</div>
-          <span className="text-[10px] text-rose-600 font-medium">Rejected / Expired</span>
-        </div>
       </div>
 
       {/* Filter and Search Bar */}
@@ -828,18 +796,6 @@ export default function EmployeeDocumentsTab({ employeeId }: { employeeId: strin
                       </svg>
                       <span>Print Document</span>
                     </button>
-
-                    <a
-                      href={inspectDoc.previewUrl || '#'}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="px-3.5 py-2 rounded-xl border border-slate-300 hover:bg-slate-50 text-slate-700 font-bold transition cursor-pointer flex items-center gap-1.5"
-                    >
-                      <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                      </svg>
-                      <span>Open Full File</span>
-                    </a>
                     
                     <button
                       type="button"
