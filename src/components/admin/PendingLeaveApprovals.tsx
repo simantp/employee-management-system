@@ -794,15 +794,32 @@ export default function PendingLeaveApprovals({
 
             {/* Document Certificate Viewer Body */}
             <div className="p-4 sm:p-6 bg-slate-950 flex flex-col items-center justify-center min-h-[350px] max-h-[65vh] overflow-auto">
-              <div className={`transition-all duration-200 flex items-center justify-center ${zoomCert ? 'max-w-none w-auto' : 'max-w-full max-h-[55vh]'}`}>
-                <img
-                  src={getCertificateUrl(inspectingCert)}
-                  alt={`Medical certificate uploaded by ${inspectingCert.employeeName}`}
-                  className={`rounded-2xl object-contain shadow-2xl border border-slate-800 bg-white transition-transform ${
-                    zoomCert ? 'w-auto h-auto max-w-[90vw]' : 'max-h-[52vh] max-w-full'
-                  }`}
-                />
-              </div>
+              {(() => {
+                const certUrl = getCertificateUrl(inspectingCert);
+                const isPdf = certUrl.toLowerCase().endsWith('.pdf') || certUrl.includes('.pdf?') || certUrl.startsWith('data:application/pdf');
+
+                if (isPdf) {
+                  return (
+                    <iframe
+                      src={certUrl}
+                      title={`Medical certificate for ${inspectingCert.employeeName}`}
+                      className="w-full h-[52vh] rounded-2xl bg-white border border-slate-800 shadow-2xl"
+                    />
+                  );
+                }
+
+                return (
+                  <div className={`transition-all duration-200 flex items-center justify-center ${zoomCert ? 'max-w-none w-auto' : 'max-w-full max-h-[55vh]'}`}>
+                    <img
+                      src={certUrl}
+                      alt={`Medical certificate uploaded by ${inspectingCert.employeeName}`}
+                      className={`rounded-2xl object-contain shadow-2xl border border-slate-800 bg-white transition-transform ${
+                        zoomCert ? 'w-auto h-auto max-w-[90vw]' : 'max-h-[52vh] max-w-full'
+                      }`}
+                    />
+                  </div>
+                );
+              })()}
               <div className="mt-3 text-center">
                 <span className="text-[11px] text-slate-400 font-medium">
                   Official medical certificate uploaded by <strong>{inspectingCert.employeeName}</strong> on {inspectingCert.submittedAt || inspectingCert.startDate}
@@ -823,18 +840,6 @@ export default function PendingLeaveApprovals({
                   </svg>
                   <span>Print Certificate</span>
                 </button>
-
-                <a
-                  href={getCertificateUrl(inspectingCert)}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="px-3.5 py-2 rounded-xl border border-slate-300 hover:bg-slate-50 text-slate-700 font-bold text-xs transition cursor-pointer flex items-center gap-1.5"
-                >
-                  <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                  </svg>
-                  <span>Open Full Document</span>
-                </a>
               </div>
 
               <div className="flex items-center gap-2">
