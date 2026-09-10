@@ -13,16 +13,16 @@ export default function StaffSidebar({
   const { currentStaff } = useApp();
 
   const navItems = [
-    { id: 'dashboard', label: 'Dashboard', badge: null },
-    { id: 'profile', label: 'My Profile', badge: null },
-    { id: 'documents', label: 'Documents', badge: currentStaff.documents.length > 0 ? String(currentStaff.documents.length) : null },
-    { id: 'leave', label: 'Leave Management', badge: `${currentStaff.leaveBalance.annual}d` },
-    { id: 'timesheet', label: 'Timesheet & Roster', badge: '38h' },
-    { id: 'employment', label: 'Employment Details', badge: null },
-    { id: 'emergency', label: 'Emergency Contacts', badge: null },
-    { id: 'directory', label: 'Company Directory', badge: null },
-    { id: 'resignation', label: 'Resignation Notice', badge: null },
-    { id: 'support', label: 'HR Helpdesk', badge: null },
+    { id: 'dashboard', label: 'Dashboard' },
+    { id: 'profile', label: 'My Profile' },
+    { id: 'documents', label: 'Documents' },
+    { id: 'leave', label: 'Leave Management' },
+    { id: 'timesheet', label: 'Timesheet & Roster' },
+    { id: 'employment', label: 'Employment Details' },
+    { id: 'emergency', label: 'Emergency Contacts' },
+    { id: 'directory', label: 'Company Directory' },
+    { id: 'resignation', label: 'Resignation Notice' },
+    { id: 'support', label: 'HR Helpdesk' },
   ];
 
   const handleNav = (id: string) => {
@@ -75,16 +75,6 @@ export default function StaffSidebar({
                 {isActive && <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 flex-shrink-0 animate-pulse" />}
                 <span className="truncate">{item.label}</span>
               </div>
-
-              {item.badge && (
-                <span className={`text-[10px] px-2 py-0.5 rounded-md font-mono font-bold flex-shrink-0 ${
-                  isActive 
-                    ? 'bg-cyan-400/20 text-cyan-300 border border-cyan-400/30' 
-                    : 'bg-slate-800/80 text-slate-400 border border-slate-700/50'
-                }`}>
-                  {item.badge}
-                </span>
-              )}
             </button>
           );
         })}
