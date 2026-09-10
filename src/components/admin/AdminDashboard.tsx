@@ -6,7 +6,6 @@ import PendingLeaveApprovals from './PendingLeaveApprovals';
 import PendingDocumentApprovals from './PendingDocumentApprovals';
 import AuditLogViewer from './AuditLogViewer';
 import EmployeeDetailModal from './EmployeeDetailModal';
-import PostAnnouncementModal from './PostAnnouncementModal';
 import EmployeeManagementView from './EmployeeManagementView';
 import AdminTimecardManagement from './AdminTimecardManagement';
 import AdminAlertsReminders from './AdminAlertsReminders';
@@ -23,7 +22,6 @@ export default function AdminDashboard({
   activeTab?: string;
 }) {
   const { employees, alerts, expirySettings } = useApp();
-  const [showAnnouncementModal, setShowAnnouncementModal] = useState(false);
   const [showActiveStaffModal, setShowActiveStaffModal] = useState(false);
   const [showVisaLicenseAlertsModal, setShowVisaLicenseAlertsModal] = useState(false);
   const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
@@ -79,15 +77,6 @@ export default function AdminDashboard({
               Admin Command Center
             </h1>
           </div>
-
-          <div className="flex items-center gap-3">
-            <button
-              onClick={() => setShowAnnouncementModal(true)}
-              className="bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-400 hover:to-amber-400 text-slate-950 px-4 py-2 rounded-xl text-xs font-black shadow-md shadow-orange-500/20 transition cursor-pointer"
-            >
-              + Broadcast Announcement
-            </button>
-          </div>
         </div>
       )}
 
@@ -136,11 +125,6 @@ export default function AdminDashboard({
             <PendingDocumentApprovals />
           </div>
         </>
-      )}
-
-      {/* Broadcast Announcement Modal */}
-      {showAnnouncementModal && (
-        <PostAnnouncementModal onClose={() => setShowAnnouncementModal(false)} />
       )}
 
       {/* Live Active On-Shift Staff Modal */}

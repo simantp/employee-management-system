@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import React, { useState, useMemo } from 'react';
 import { useApp } from '@/lib/store';
@@ -53,41 +53,6 @@ export default function AnnouncementsManager() {
     });
   }, [announcements, searchQuery, selectedCategory, selectedFilter]);
 
-  // Export CSV
-  const handleExportCSV = () => {
-    const headers = ['ID', 'Title', 'Category', 'Author', 'Role', 'Date', 'Pinned', 'Content'];
-    const rows = announcements.map(a => [
-      `"${a.id}"`,
-      `"${(a.title || '').replace(/"/g, '""')}"`,
-      `"${(a.category || '').replace(/"/g, '""')}"`,
-      `"${(a.author || '').replace(/"/g, '""')}"`,
-      `"${(a.authorRole || '').replace(/"/g, '""')}"`,
-      `"${(a.date || '').replace(/"/g, '""')}"`,
-      a.isPinned ? 'YES' : 'NO',
-      `"${(a.content || '').replace(/"/g, '""')}"`,
-    ]);
-
-    const csvContent = 'data:text/csv;charset=utf-8,' + [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
-    const encodedUri = encodeURI(csvContent);
-    const link = document.createElement('a');
-    link.setAttribute('href', encodedUri);
-    link.setAttribute('download', `company_announcements_ledger_${new Date().toISOString().slice(0, 10)}.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  };
-
-  // Export JSON
-  const handleExportJSON = () => {
-    const dataStr = 'data:text/json;charset=utf-8,' + encodeURIComponent(JSON.stringify(announcements, null, 2));
-    const link = document.createElement('a');
-    link.setAttribute('href', dataStr);
-    link.setAttribute('download', `company_announcements_backup_${new Date().toISOString().slice(0, 10)}.json`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  };
-
   const getCategoryColor = (cat?: string) => {
     switch (cat) {
       case 'Operations & Safety':
@@ -120,81 +85,14 @@ export default function AnnouncementsManager() {
           </p>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2.5">
-          <button
-            onClick={handleExportCSV}
-            className="px-3.5 py-2 rounded-xl border border-slate-300 hover:bg-slate-50 text-slate-700 text-xs font-bold transition flex items-center gap-1.5 cursor-pointer"
-            title="Download CSV report"
-          >
-            <span>📥</span>
-            <span>Export CSV</span>
-          </button>
-
-          <button
-            onClick={handleExportJSON}
-            className="px-3.5 py-2 rounded-xl border border-slate-300 hover:bg-slate-50 text-slate-700 text-xs font-bold transition flex items-center gap-1.5 cursor-pointer"
-            title="Download JSON backup"
-          >
-            <span>💾</span>
-            <span>JSON Backup</span>
-          </button>
-
+        <div className="flex items-center gap-2.5">
           <button
             onClick={() => setShowPostModal(true)}
-            className="bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-400 hover:to-amber-400 text-slate-950 px-4 py-2 rounded-xl text-xs font-black shadow-md shadow-orange-500/20 transition flex items-center gap-1.5 cursor-pointer"
+            className="bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-400 hover:to-amber-400 text-slate-950 px-4 py-2.5 rounded-xl text-xs font-black shadow-md shadow-orange-500/20 transition flex items-center gap-1.5 cursor-pointer"
           >
             <span>+</span>
             <span>Broadcast Announcement</span>
           </button>
-        </div>
-      </div>
-
-      {/* KPI Stats Summary */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-        <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-2xs">
-          <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
-            Total Records
-          </span>
-          <div className="flex items-baseline gap-2">
-            <span className="text-2xl font-black text-slate-900">{announcements.length}</span>
-            <span className="text-[11px] text-slate-500 font-medium">notices</span>
-          </div>
-        </div>
-
-        <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-2xs">
-          <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
-            Pinned Spotlight
-          </span>
-          <div className="flex items-baseline gap-2">
-            <span className="text-2xl font-black text-orange-600">
-              {announcements.filter(a => a.isPinned).length}
-            </span>
-            <span className="text-[11px] text-slate-500 font-medium">active</span>
-          </div>
-        </div>
-
-        <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-2xs">
-          <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
-            WHS & Safety
-          </span>
-          <div className="flex items-baseline gap-2">
-            <span className="text-2xl font-black text-amber-600">
-              {announcements.filter(a => a.category === 'Operations & Safety').length}
-            </span>
-            <span className="text-[11px] text-slate-500 font-medium">bulletins</span>
-          </div>
-        </div>
-
-        <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-2xs">
-          <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
-            HR & Fair Work
-          </span>
-          <div className="flex items-baseline gap-2">
-            <span className="text-2xl font-black text-blue-600">
-              {announcements.filter(a => a.category === 'Fair Work NSW' || a.category === 'HR & Compliance').length}
-            </span>
-            <span className="text-[11px] text-slate-500 font-medium">notices</span>
-          </div>
         </div>
       </div>
 
