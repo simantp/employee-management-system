@@ -1,0 +1,42 @@
+[
+  {
+    "id": "usr-1",
+    "name": "Admin User",
+    "email": "admin@company.com.au",
+    "role": "SUPER_ADMIN",
+    "isEmailVerified": true,
+    "avatarUrl": "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150",
+    "createdAt": "10/01/2024"
+  },
+  {
+    "id": "usr-2",
+    "name": "Suman Thapa",
+    "email": "suman.thapa@company.com",
+    "role": "STAFF",
+    "isEmailVerified": true,
+    "staffId": "emp-42",
+    "department": "Production (Riverwood)",
+    "avatarUrl": "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150",
+    "createdAt": "15/05/2025"
+  },
+  {
+    "id": "usr-3",
+    "name": "Anita KC",
+    "email": "anita.kc@company.com",
+    "role": "STAFF",
+    "isEmailVerified": true,
+    "staffId": "emp-41",
+    "department": "Design",
+    "avatarUrl": "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=150",
+    "createdAt": "12/05/2025"
+  },
+  {
+    "id": "usr-4",
+    "name": "HR Manager",
+    "email": "hr@company.com.au",
+    "role": "HR_MANAGER",
+    "isEmailVerified": true,
+    "avatarUrl": "https://images.unsplash.com/photo-1580489944761-15a19d654956?w=150",
+    "createdAt": "01/02/2024"
+  }
+]

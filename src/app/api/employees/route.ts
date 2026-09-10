@@ -1,8 +1,8 @@
 import { NextResponse } from 'next/server';
 import { query, isDbConfigured } from '@/lib/db';
 import { Employee, EmployeeDocument } from '@/types';
+import { getStoredEmployees, saveStoredEmployees } from '@/lib/serverData';
 
-// Helper to map DB row to Employee object
 function mapDbRowToEmployee(row: any, documents: EmployeeDocument[] = []): Employee {
   return {
     id: row.id,
@@ -26,7 +26,7 @@ function mapDbRowToEmployee(row: any, documents: EmployeeDocument[] = []): Emplo
     status: row.status || 'Active',
     workingHours: Number(row.working_hours) || 38,
     workingHoursConfirmed: Boolean(row.working_hours_confirmed),
-    citizenStatus: row.citizen_status || 'Australian Citizen',
+    citizenStatus: (row.citizen_status as any) || 'CITIZEN',
     visaType: row.visa_type || undefined,
     visaExpiryDate: row.visa_expiry_date || undefined,
     visaStatusConfirmed: Boolean(row.visa_status_confirmed),
@@ -71,231 +71,208 @@ function mapDbRowToEmployee(row: any, documents: EmployeeDocument[] = []): Emplo
 }
 
 export async function GET() {
-  if (!isDbConfigured) {
-    return NextResponse.json({ success: false, isConfigured: false, message: 'Database not configured' });
-  }
+  if (isDbConfigured) {
+    try {
+      const empRows = await query<any[]>('SELECT * FROM employees ORDER BY employee_number ASC');
+      const docRows = await query<any[]>('SELECT * FROM employee_documents ORDER BY created_at DESC');
 
-  try {
-    const empRows = await query<any[]>('SELECT * FROM employees ORDER BY employee_number ASC');
-    const docRows = await query<any[]>('SELECT * FROM employee_documents ORDER BY created_at DESC');
-
-    const docsByEmp: Record<string, EmployeeDocument[]> = {};
-    docRows.forEach(doc => {
-      const empId = doc.employee_id;
-      if (!docsByEmp[empId]) docsByEmp[empId] = [];
-      docsByEmp[empId].push({
-        id: doc.id,
-        name: doc.name,
-        type: doc.type,
-        documentNumber: doc.document_number || undefined,
-        expiryDate: doc.expiry_date || undefined,
-        uploadDate: doc.upload_date,
-        status: doc.status,
-        fileSize: doc.file_size || '1.8 MB',
-        fileType: doc.file_type || 'image',
-        previewUrl: doc.preview_url || doc.file_path,
+      const docsByEmp: Record<string, EmployeeDocument[]> = {};
+      docRows.forEach(doc => {
+        const empId = doc.employee_id;
+        if (!docsByEmp[empId]) docsByEmp[empId] = [];
+        docsByEmp[empId].push({
+          id: doc.id,
+          name: doc.name,
+          type: doc.type,
+          documentNumber: doc.document_number || undefined,
+          expiryDate: doc.expiry_date || undefined,
+          uploadDate: doc.upload_date,
+          status: doc.status,
+          fileSize: doc.file_size || '1.8 MB',
+          fileType: doc.file_type || 'image',
+          previewUrl: doc.preview_url || doc.file_path,
+        });
       });
-    });
 
-    const employees: Employee[] = empRows.map(row => mapDbRowToEmployee(row, docsByEmp[row.id] || []));
-
-    return NextResponse.json({
-      success: true,
-      employees,
-    });
-  } catch (err: any) {
-    console.error('Error fetching employees from MySQL:', err);
-    return NextResponse.json({ success: false, message: err.message }, { status: 500 });
+      const employees: Employee[] = empRows.map(row => mapDbRowToEmployee(row, docsByEmp[row.id] || []));
+      await saveStoredEmployees(employees);
+      return NextResponse.json({ success: true, employees });
+    } catch (err: any) {
+      console.warn('MySQL employee fetch failed, falling back to disk storage:', err.message);
+    }
   }
+
+  const employees = await getStoredEmployees();
+  return NextResponse.json({ success: true, employees });
 }
 
 export async function POST(req: Request) {
-  if (!isDbConfigured) {
-    return NextResponse.json({ success: false, message: 'Database not configured' }, { status: 400 });
-  }
-
   try {
     const body: Partial<Employee> = await req.json();
     const id = body.id || `emp-${Date.now()}`;
     const empNumber = body.employeeNumber || `HSC-SYD-${Math.floor(100 + Math.random() * 900)}`;
 
-    const sql = `
-      INSERT INTO employees (
-        id, employee_number, first_name, last_name, email, mobile_phone,
-        address, suburb, state, postcode, start_date, department, job_title,
-        work_location, reports_to, status, working_hours, working_hours_confirmed,
-        citizen_status, visa_type, visa_expiry_date, visa_status_confirmed,
-        has_driver_license, license_country, license_number, license_expiry_date,
-        emergency_next_of_kin, emergency_relationship, emergency_mobile,
-        bank_name, bank_branch, account_name, bsb_encrypted, bsb_masked,
-        account_number_encrypted, account_number_masked, tfn_encrypted, tfn_masked,
-        super_fund_name, super_member_number, kiosk_pin, clock_state, avatar_url,
-        annual_leave_balance, sick_leave_balance, carers_leave_balance, long_service_balance
-      ) VALUES (
-        ?, ?, ?, ?, ?, ?,
-        ?, ?, ?, ?, ?, ?, ?,
-        ?, ?, ?, ?, ?,
-        ?, ?, ?, ?,
-        ?, ?, ?, ?,
-        ?, ?, ?,
-        ?, ?, ?, ?, ?,
-        ?, ?, ?, ?,
-        ?, ?, ?, ?, ?,
-        ?, ?, ?, ?
-      )
-    `;
-
-    await query(sql, [
+    const newEmp: Employee = {
       id,
-      empNumber,
-      body.firstName || 'Staff',
-      body.lastName || 'Member',
-      body.email || '',
-      body.mobilePhone || '',
-      body.address || '',
-      body.suburb || '',
-      body.state || 'NSW',
-      body.postcode || '',
-      body.startDate || new Date().toISOString().split('T')[0],
-      body.department || null,
-      body.jobTitle || 'Staff Member',
-      body.workLocation || 'Sydney, NSW',
-      body.reportsTo || 'Operations Lead',
-      body.status || 'Active',
-      body.workingHours || 38.0,
-      body.workingHoursConfirmed ? 1 : 0,
-      body.citizenStatus || 'Australian Citizen',
-      body.visaType || null,
-      body.visaExpiryDate || null,
-      body.visaStatusConfirmed ? 1 : 0,
-      body.hasDriverLicense ? 1 : 0,
-      body.licenseCountry || 'NSW (Australia)',
-      body.licenseNumber || null,
-      body.licenseExpiryDate || null,
-      body.emergencyNextOfKin || null,
-      body.emergencyRelationship || null,
-      body.emergencyMobile || null,
-      body.bankName || null,
-      body.bankBranch || null,
-      body.accountName || null,
-      body.bsbEncrypted || null,
-      body.bsbMasked || null,
-      body.accountNumberEncrypted || null,
-      body.accountNumberMasked || null,
-      body.tfnEncrypted || null,
-      body.tfnMasked || null,
-      body.superFundName || null,
-      body.superMemberNumber || null,
-      body.kioskPin || '4829',
-      body.clockState || 'CLOCKED_OUT',
-      body.avatarUrl || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150',
-      body.leaveBalance?.annual || 20.0,
-      body.leaveBalance?.sick || 10.0,
-      body.leaveBalance?.carers || 2.0,
-      body.leaveBalance?.longService || 0.0,
-    ]);
+      employeeNumber: empNumber,
+      firstName: body.firstName || 'Staff',
+      lastName: body.lastName || 'Member',
+      email: body.email || '',
+      mobilePhone: body.mobilePhone || '',
+      homePhone: body.homePhone,
+      dateOfBirth: body.dateOfBirth || '',
+      startDate: body.startDate || new Date().toISOString().split('T')[0],
+      gender: body.gender || 'Prefer not to say',
+      address: body.address || '',
+      suburb: body.suburb || '',
+      state: body.state || 'NSW',
+      postcode: body.postcode || '',
+      department: body.department,
+      jobTitle: body.jobTitle || 'Staff Member',
+      workLocation: body.workLocation || 'Sydney, NSW',
+      reportsTo: body.reportsTo || 'Operations Lead',
+      status: body.status || 'Active',
+      workingHours: body.workingHours || 38.0,
+      workingHoursConfirmed: body.workingHoursConfirmed ?? true,
+      citizenStatus: body.citizenStatus || 'CITIZEN',
+      visaType: body.visaType,
+      visaExpiryDate: body.visaExpiryDate,
+      visaStatusConfirmed: body.visaStatusConfirmed ?? true,
+      hasDriverLicense: body.hasDriverLicense ?? true,
+      licenseCountry: body.licenseCountry || 'NSW (Australia)',
+      licenseNumber: body.licenseNumber,
+      licenseExpiryDate: body.licenseExpiryDate,
+      emergencyNextOfKin: body.emergencyNextOfKin || '',
+      emergencyRelationship: body.emergencyRelationship || '',
+      emergencyAddress: body.emergencyAddress || '',
+      emergencySuburb: body.emergencySuburb || '',
+      emergencyState: body.emergencyState || 'NSW',
+      emergencyPostcode: body.emergencyPostcode || '',
+      emergencyMobile: body.emergencyMobile || '',
+      bankName: body.bankName,
+      bankBranch: body.bankBranch,
+      accountName: body.accountName,
+      bsbEncrypted: body.bsbEncrypted,
+      bsbMasked: body.bsbMasked || '062-•••',
+      accountNumberEncrypted: body.accountNumberEncrypted,
+      accountNumberMasked: body.accountNumberMasked || '•••••847',
+      tfnEncrypted: body.tfnEncrypted,
+      tfnMasked: body.tfnMasked || '•••-•••-782',
+      superFundName: body.superFundName,
+      superMemberNumber: body.superMemberNumber,
+      kioskPin: body.kioskPin || '4829',
+      clockState: body.clockState || 'CLOCKED_OUT',
+      avatarUrl: body.avatarUrl || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150',
+      leaveBalance: body.leaveBalance || { annual: 20, sick: 10, carers: 2, longService: 0 },
+      payslips: [],
+      documents: body.documents || [],
+    };
+
+    // Update disk JSON
+    const stored = await getStoredEmployees();
+    const updated = [newEmp, ...stored.filter(e => e.id !== id)];
+    await saveStoredEmployees(updated);
+
+    if (isDbConfigured) {
+      try {
+        const sql = `
+          INSERT INTO employees (
+            id, employee_number, first_name, last_name, email, mobile_phone,
+            address, suburb, state, postcode, start_date, department, job_title,
+            work_location, reports_to, status, working_hours, working_hours_confirmed,
+            citizen_status, visa_type, visa_expiry_date, visa_status_confirmed,
+            has_driver_license, license_country, license_number, license_expiry_date,
+            emergency_next_of_kin, emergency_relationship, emergency_mobile,
+            bank_name, bank_branch, account_name, bsb_encrypted, bsb_masked,
+            account_number_encrypted, account_number_masked, tfn_encrypted, tfn_masked,
+            super_fund_name, super_member_number, kiosk_pin, clock_state, avatar_url,
+            annual_leave_balance, sick_leave_balance, carers_leave_balance, long_service_balance
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        `;
+        await query(sql, [
+          id, empNumber, newEmp.firstName, newEmp.lastName, newEmp.email, newEmp.mobilePhone,
+          newEmp.address, newEmp.suburb, newEmp.state, newEmp.postcode, newEmp.startDate, newEmp.department || null, newEmp.jobTitle,
+          newEmp.workLocation, newEmp.reportsTo, newEmp.status, newEmp.workingHours, newEmp.workingHoursConfirmed ? 1 : 0,
+          newEmp.citizenStatus, newEmp.visaType || null, newEmp.visaExpiryDate || null, newEmp.visaStatusConfirmed ? 1 : 0,
+          newEmp.hasDriverLicense ? 1 : 0, newEmp.licenseCountry || 'NSW (Australia)', newEmp.licenseNumber || null, newEmp.licenseExpiryDate || null,
+          newEmp.emergencyNextOfKin || null, newEmp.emergencyRelationship || null, newEmp.emergencyMobile || null,
+          newEmp.bankName || null, newEmp.bankBranch || null, newEmp.accountName || null, newEmp.bsbEncrypted || null, newEmp.bsbMasked || null,
+          newEmp.accountNumberEncrypted || null, newEmp.accountNumberMasked || null, newEmp.tfnEncrypted || null, newEmp.tfnMasked || null,
+          newEmp.superFundName || null, newEmp.superMemberNumber || null, newEmp.kioskPin || '4829', newEmp.clockState || 'CLOCKED_OUT',
+          newEmp.avatarUrl, newEmp.leaveBalance.annual, newEmp.leaveBalance.sick, newEmp.leaveBalance.carers, newEmp.leaveBalance.longService
+        ]);
+      } catch (err: any) {
+        console.warn('MySQL employee insert skipped:', err.message);
+      }
+    }
 
     return NextResponse.json({ success: true, id, employeeNumber: empNumber });
   } catch (err: any) {
-    console.error('Error inserting employee in MySQL:', err);
+    console.error('Error inserting employee:', err);
     return NextResponse.json({ success: false, message: err.message }, { status: 500 });
   }
 }
 
 export async function PUT(req: Request) {
-  if (!isDbConfigured) {
-    return NextResponse.json({ success: false, message: 'Database not configured' }, { status: 400 });
-  }
-
   try {
     const { id, updates } = await req.json();
     if (!id) {
       return NextResponse.json({ success: false, message: 'Employee ID required' }, { status: 400 });
     }
 
-    const setClauses: string[] = [];
-    const params: any[] = [];
+    // Update disk JSON
+    const stored = await getStoredEmployees();
+    const updated = stored.map(emp => emp.id === id ? { ...emp, ...updates } : emp);
+    await saveStoredEmployees(updated);
 
-    const fieldMap: Record<string, string> = {
-      firstName: 'first_name',
-      lastName: 'last_name',
-      email: 'email',
-      mobilePhone: 'mobile_phone',
-      address: 'address',
-      suburb: 'suburb',
-      state: 'state',
-      postcode: 'postcode',
-      startDate: 'start_date',
-      department: 'department',
-      jobTitle: 'job_title',
-      workLocation: 'work_location',
-      reportsTo: 'reports_to',
-      status: 'status',
-      workingHours: 'working_hours',
-      workingHoursConfirmed: 'working_hours_confirmed',
-      citizenStatus: 'citizen_status',
-      visaType: 'visa_type',
-      visaExpiryDate: 'visa_expiry_date',
-      visaStatusConfirmed: 'visa_status_confirmed',
-      hasDriverLicense: 'has_driver_license',
-      licenseCountry: 'license_country',
-      licenseNumber: 'license_number',
-      licenseExpiryDate: 'license_expiry_date',
-      emergencyNextOfKin: 'emergency_next_of_kin',
-      emergencyRelationship: 'emergency_relationship',
-      emergencyMobile: 'emergency_mobile',
-      bankName: 'bank_name',
-      bankBranch: 'bank_branch',
-      accountName: 'account_name',
-      bsbEncrypted: 'bsb_encrypted',
-      bsbMasked: 'bsb_masked',
-      accountNumberEncrypted: 'account_number_encrypted',
-      accountNumberMasked: 'account_number_masked',
-      tfnEncrypted: 'tfn_encrypted',
-      tfnMasked: 'tfn_masked',
-      superFundName: 'super_fund_name',
-      superMemberNumber: 'super_member_number',
-      kioskPin: 'kiosk_pin',
-      clockState: 'clock_state',
-      lastClockIn: 'last_clock_in',
-      lastClockOut: 'last_clock_out',
-      clockInTimestamp: 'clock_in_timestamp',
-      currentShiftId: 'current_shift_id',
-      avatarUrl: 'avatar_url',
-    };
+    if (isDbConfigured) {
+      try {
+        const setClauses: string[] = [];
+        const params: any[] = [];
+        const fieldMap: Record<string, string> = {
+          firstName: 'first_name', lastName: 'last_name', email: 'email', mobilePhone: 'mobile_phone',
+          address: 'address', suburb: 'suburb', state: 'state', postcode: 'postcode', startDate: 'start_date',
+          department: 'department', jobTitle: 'job_title', workLocation: 'work_location', reportsTo: 'reports_to',
+          status: 'status', workingHours: 'working_hours', workingHoursConfirmed: 'working_hours_confirmed',
+          citizenStatus: 'citizen_status', visaType: 'visa_type', visaExpiryDate: 'visa_expiry_date',
+          visaStatusConfirmed: 'visa_status_confirmed', hasDriverLicense: 'has_driver_license',
+          licenseCountry: 'license_country', licenseNumber: 'license_number', licenseExpiryDate: 'license_expiry_date',
+          emergencyNextOfKin: 'emergency_next_of_kin', emergencyRelationship: 'emergency_relationship',
+          emergencyMobile: 'emergency_mobile', bankName: 'bank_name', bankBranch: 'bank_branch',
+          accountName: 'account_name', bsbEncrypted: 'bsb_encrypted', bsbMasked: 'bsb_masked',
+          accountNumberEncrypted: 'account_number_encrypted', accountNumberMasked: 'account_number_masked',
+          tfnEncrypted: 'tfn_encrypted', tfnMasked: 'tfn_masked', superFundName: 'super_fund_name',
+          superMemberNumber: 'super_member_number', kioskPin: 'kiosk_pin', clockState: 'clock_state',
+          lastClockIn: 'last_clock_in', lastClockOut: 'last_clock_out', clockInTimestamp: 'clock_in_timestamp',
+          currentShiftId: 'current_shift_id', avatarUrl: 'avatar_url',
+        };
 
-    for (const [key, value] of Object.entries(updates)) {
-      const col = fieldMap[key];
-      if (col) {
-        setClauses.push(`\`${col}\` = ?`);
-        if (typeof value === 'boolean') {
-          params.push(value ? 1 : 0);
-        } else {
-          params.push(value ?? null);
+        for (const [key, value] of Object.entries(updates)) {
+          const col = fieldMap[key];
+          if (col) {
+            setClauses.push(`\`${col}\` = ?`);
+            params.push(typeof value === 'boolean' ? (value ? 1 : 0) : (value ?? null));
+          }
         }
+
+        if (setClauses.length > 0) {
+          params.push(id);
+          const sql = `UPDATE employees SET ${setClauses.join(', ')} WHERE id = ?`;
+          await query(sql, params);
+        }
+      } catch (err: any) {
+        console.warn('MySQL employee update skipped:', err.message);
       }
     }
 
-    if (setClauses.length === 0) {
-      return NextResponse.json({ success: true, message: 'No fields to update' });
-    }
-
-    params.push(id);
-    const sql = `UPDATE employees SET ${setClauses.join(', ')} WHERE id = ?`;
-    await query(sql, params);
-
     return NextResponse.json({ success: true, id });
   } catch (err: any) {
-    console.error('Error updating employee in MySQL:', err);
+    console.error('Error updating employee:', err);
     return NextResponse.json({ success: false, message: err.message }, { status: 500 });
   }
 }
 
 export async function DELETE(req: Request) {
-  if (!isDbConfigured) {
-    return NextResponse.json({ success: false, message: 'Database not configured' }, { status: 400 });
-  }
-
   try {
     const { searchParams } = new URL(req.url);
     const id = searchParams.get('id');
@@ -303,10 +280,22 @@ export async function DELETE(req: Request) {
       return NextResponse.json({ success: false, message: 'ID required' }, { status: 400 });
     }
 
-    await query('DELETE FROM employees WHERE id = ?', [id]);
+    // Remove from disk JSON
+    const stored = await getStoredEmployees();
+    const updated = stored.filter(emp => emp.id !== id);
+    await saveStoredEmployees(updated);
+
+    if (isDbConfigured) {
+      try {
+        await query('DELETE FROM employees WHERE id = ?', [id]);
+      } catch (err: any) {
+        console.warn('MySQL employee delete skipped:', err.message);
+      }
+    }
+
     return NextResponse.json({ success: true, id });
   } catch (err: any) {
-    console.error('Error deleting employee from MySQL:', err);
+    console.error('Error deleting employee:', err);
     return NextResponse.json({ success: false, message: err.message }, { status: 500 });
   }
 }

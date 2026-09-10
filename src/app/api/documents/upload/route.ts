@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { query, isDbConfigured } from '@/lib/db';
 import { saveEmployeeFile } from '@/lib/uploadUtils';
 import { EmployeeDocument } from '@/types';
+import { getStoredEmployees, saveStoredEmployees } from '@/lib/serverData';
 
 export async function POST(req: Request) {
   try {
@@ -113,6 +114,19 @@ export async function POST(req: Request) {
       fileType,
       previewUrl,
     };
+
+    // Update disk JSON
+    const stored = await getStoredEmployees();
+    const updated = stored.map(emp => {
+      if (emp.id === empId) {
+        return {
+          ...emp,
+          documents: [newDoc, ...(emp.documents || []).filter(d => d.id !== docId)]
+        };
+      }
+      return emp;
+    });
+    await saveStoredEmployees(updated);
 
     return NextResponse.json({
       success: true,

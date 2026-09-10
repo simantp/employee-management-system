@@ -1,0 +1,21 @@
+[
+  {
+    "id": "ann-1",
+    "title": "Sydney Plant Annual Team Building & WHS Safety Workshop",
+    "content": "All Sydney NSW staff members are invited to our annual safety presentation and company celebration lunch on Friday 28 August 2026. Shifts and production schedules will operate on modified hours.",
+    "author": "Super Admin (HsCreations Executive)",
+    "authorRole": "SUPER_ADMIN",
+    "date": "20 Aug 2026",
+    "category": "Operations & Safety",
+    "isPinned": true
+  },
+  {
+    "id": "ann-2",
+    "title": "Fair Work Australia 2026/2027 Award & Pay Updates",
+    "content": "The 2026 annual Fair Work Commission wage review adjustments have been fully integrated into the HsCreations payroll schedule. Review your employment specifications in My Profile.",
+    "author": "Human Resources Director",
+    "authorRole": "ADMIN",
+    "date": "15 Aug 2026",
+    "category": "Fair Work NSW"
+  }
+]

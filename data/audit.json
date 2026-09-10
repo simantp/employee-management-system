@@ -1,0 +1,38 @@
+[
+  {
+    "id": "aud-1",
+    "timestamp": "19/08/2026 09:14:22 AEST",
+    "actorId": "admin-1",
+    "actorName": "Admin User",
+    "actorRole": "Super Admin",
+    "action": "VIEW_ENCRYPTED_BANK_DETAILS",
+    "targetType": "Employee",
+    "targetId": "emp-42 (Suman Thapa)",
+    "details": "Decrypted BSB and Account Number for payroll audit validation.",
+    "ipAddress": "203.14.182.91 (Sydney, AU)"
+  },
+  {
+    "id": "aud-2",
+    "timestamp": "18/08/2026 16:30:15 AEST",
+    "actorId": "emp-41",
+    "actorName": "Anita KC",
+    "actorRole": "Staff",
+    "action": "SUBMIT_LEAVE_REQUEST",
+    "targetType": "LeaveRequest",
+    "targetId": "lr-103",
+    "details": "Submitted 5 days Annual Leave starting 28/08/2026.",
+    "ipAddress": "110.174.52.12 (Parramatta, AU)"
+  },
+  {
+    "id": "aud-3",
+    "timestamp": "16/08/2026 09:00:10 AEST",
+    "actorId": "admin-1",
+    "actorName": "Admin User",
+    "actorRole": "Super Admin",
+    "action": "APPROVE_LEAVE_REQUEST",
+    "targetType": "LeaveRequest",
+    "targetId": "lr-102 (Suman Thapa)",
+    "details": "Approved 5 days Annual Leave.",
+    "ipAddress": "203.14.182.91 (Sydney, AU)"
+  }
+]

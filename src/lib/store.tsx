@@ -314,32 +314,40 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     // ==========================================
     async function hydrateFromBackendDb() {
       try {
-        const [empRes, tcRes, lrRes, dtRes, annRes, audRes] = await Promise.allSettled([
+        const [empRes, tcRes, lrRes, dtRes, annRes, audRes, usrRes, setRes] = await Promise.allSettled([
           fetch('/api/employees').then(r => r.json()),
           fetch('/api/timecards').then(r => r.json()),
           fetch('/api/leave').then(r => r.json()),
           fetch('/api/document-types').then(r => r.json()),
           fetch('/api/announcements').then(r => r.json()),
           fetch('/api/audit').then(r => r.json()),
+          fetch('/api/users').then(r => r.json()),
+          fetch('/api/settings').then(r => r.json()),
         ]);
 
         if (empRes.status === 'fulfilled' && empRes.value?.success && Array.isArray(empRes.value.employees) && empRes.value.employees.length > 0) {
           setEmployees(empRes.value.employees);
         }
-        if (tcRes.status === 'fulfilled' && tcRes.value?.success && Array.isArray(tcRes.value.timecards) && tcRes.value.timecards.length > 0) {
+        if (tcRes.status === 'fulfilled' && tcRes.value?.success && Array.isArray(tcRes.value.timecards)) {
           setTimecards(tcRes.value.timecards);
         }
-        if (lrRes.status === 'fulfilled' && lrRes.value?.success && Array.isArray(lrRes.value.leaveRequests) && lrRes.value.leaveRequests.length > 0) {
+        if (lrRes.status === 'fulfilled' && lrRes.value?.success && Array.isArray(lrRes.value.leaveRequests)) {
           setLeaveRequests(lrRes.value.leaveRequests);
         }
         if (dtRes.status === 'fulfilled' && dtRes.value?.success && Array.isArray(dtRes.value.documentTypes) && dtRes.value.documentTypes.length > 0) {
           setDocumentTypes(dtRes.value.documentTypes);
         }
-        if (annRes.status === 'fulfilled' && annRes.value?.success && Array.isArray(annRes.value.announcements) && annRes.value.announcements.length > 0) {
+        if (annRes.status === 'fulfilled' && annRes.value?.success && Array.isArray(annRes.value.announcements)) {
           setAnnouncements(annRes.value.announcements);
         }
-        if (audRes.status === 'fulfilled' && audRes.value?.success && Array.isArray(audRes.value.auditLogs) && audRes.value.auditLogs.length > 0) {
+        if (audRes.status === 'fulfilled' && audRes.value?.success && Array.isArray(audRes.value.auditLogs)) {
           setAuditLogs(audRes.value.auditLogs);
+        }
+        if (usrRes.status === 'fulfilled' && usrRes.value?.success && Array.isArray(usrRes.value.users) && usrRes.value.users.length > 0) {
+          setUsers(usrRes.value.users);
+        }
+        if (setRes.status === 'fulfilled' && setRes.value?.success && setRes.value.settings?.expirySettings) {
+          setExpirySettings(prev => ({ ...prev, ...setRes.value.settings.expirySettings }));
         }
       } catch (err) {
         console.warn('Backend database synchronization fallback to cached state:', err);
@@ -695,6 +703,21 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setPendingOTP(null);
     setShowAuthModal(false);
 
+    // MySQL / Server Data Backend Sync
+    try {
+      fetch('/api/employees', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newEmployee),
+      }).catch(e => console.warn('New employee DB sync skipped:', e));
+
+      fetch('/api/users', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newUser),
+      }).catch(e => console.warn('New user DB sync skipped:', e));
+    } catch (e) {}
+
     addAudit('REGISTER_STAFF', 'User', newUser.id, `New staff registered and email verified: ${newUser.email}`, newUser.name, 'STAFF');
     
     // Notify admin
@@ -763,6 +786,15 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       createdAt: new Date().toLocaleDateString('en-AU'),
     };
     setUsers(prev => [newUser, ...prev]);
+
+    try {
+      fetch('/api/users', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newUser),
+      }).catch(e => console.warn('New user DB sync skipped:', e));
+    } catch(e) {}
+
     addAudit('CREATE_ADMIN_USER', 'User', newUser.id, `Super Admin created new ${data.role}: ${data.name} (${data.email})`);
     addToast('Admin User Created', `${data.name} granted ${data.role} access.`, 'success');
   };
@@ -771,6 +803,15 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const promoteUserRole = (userId: string, newRole: UserRole) => {
     setUsers(prev => prev.map(u => u.id === userId ? { ...u, role: newRole } : u));
     const target = users.find(u => u.id === userId);
+    if (target) {
+      try {
+        fetch('/api/users', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ ...target, role: newRole }),
+        }).catch(e => console.warn('User promote DB sync skipped:', e));
+      } catch(e) {}
+    }
     addAudit('PROMOTE_USER_ROLE', 'User', userId, `Super Admin changed role of ${target?.name} to ${newRole}`);
     addToast('Role Updated', `${target?.name} role updated to ${newRole}.`, 'success');
   };
@@ -991,6 +1032,18 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   const uploadMedicalCertificate = (leaveId: string, fileUrl: string) => {
     setLeaveRequests(prev => prev.map(r => r.id === leaveId ? { ...r, certificateUploaded: true, certificateUrl: fileUrl, reminderCount: 0 } : r));
+    try {
+      fetch('/api/leave', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: leaveId,
+          certificateUploaded: true,
+          certificateUrl: fileUrl,
+          reminderCount: 0,
+        }),
+      }).catch(err => console.warn('Leave certificate sync skipped:', err));
+    } catch (e) {}
     addToast('Medical Certificate Uploaded', 'Your certificate has been attached and sent to HR.', 'success');
   };
 
@@ -1745,10 +1798,17 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   };
 
   const updateExpirySettings = (updates: Partial<ExpiryReminderSettings>) => {
-    setExpirySettings(prev => {
-      const updated = { ...prev, ...updates };
-      return updated;
-    });
+    const updated = { ...expirySettings, ...updates };
+    setExpirySettings(updated);
+
+    try {
+      fetch('/api/settings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ expirySettings: updated }),
+      }).catch(err => console.warn('Settings DB sync skipped:', err));
+    } catch (e) {}
+
     addToast('Expiry Settings Updated', 'Compliance reminder intervals & thresholds saved.', 'success');
     addAudit(
       'EXPIRY_SETTINGS_UPDATED',

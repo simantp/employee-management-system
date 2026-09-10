@@ -1,61 +1,57 @@
 import { NextResponse } from 'next/server';
 import { query, isDbConfigured } from '@/lib/db';
 import { DocumentTypeConfig } from '@/types';
+import { getStoredDocumentTypes, saveStoredDocumentTypes } from '@/lib/serverData';
 
 export async function GET() {
-  if (!isDbConfigured) {
-    return NextResponse.json({ success: false, message: 'Database not configured' });
+  if (isDbConfigured) {
+    try {
+      const rows = await query<any[]>('SELECT * FROM document_types ORDER BY name ASC');
+      const documentTypes: DocumentTypeConfig[] = rows.map(r => ({
+        id: r.id,
+        name: r.name,
+        category: r.category,
+        hasExpiry: Boolean(r.has_expiry),
+      }));
+      await saveStoredDocumentTypes(documentTypes);
+      return NextResponse.json({ success: true, documentTypes });
+    } catch (err: any) {
+      console.warn('MySQL document-types fetch failed, using disk fallback:', err.message);
+    }
   }
 
-  try {
-    const rows = await query<any[]>('SELECT * FROM document_types ORDER BY created_at ASC');
-    const documentTypes: DocumentTypeConfig[] = rows.map(r => ({
-      id: r.id,
-      name: r.name,
-      category: r.category,
-      hasExpiry: Boolean(r.has_expiry),
-    }));
-
-    return NextResponse.json({ success: true, documentTypes });
-  } catch (err: any) {
-    console.error('Error fetching document types from MySQL:', err);
-    return NextResponse.json({ success: false, message: err.message }, { status: 500 });
-  }
+  const documentTypes = await getStoredDocumentTypes();
+  return NextResponse.json({ success: true, documentTypes });
 }
 
 export async function POST(req: Request) {
-  if (!isDbConfigured) {
-    return NextResponse.json({ success: true, message: 'Saved locally' });
-  }
-
   try {
     const dt: DocumentTypeConfig = await req.json();
     const id = dt.id || `dt-${Date.now()}`;
+    const newDt: DocumentTypeConfig = { ...dt, id };
 
-    const sql = `
-      INSERT INTO document_types (id, name, category, has_expiry)
-      VALUES (?, ?, ?, ?)
-    `;
+    const stored = await getStoredDocumentTypes();
+    const updated = [...stored.filter(x => x.id !== id), newDt];
+    await saveStoredDocumentTypes(updated);
 
-    await query(sql, [
-      id,
-      dt.name,
-      dt.category || 'General',
-      dt.hasExpiry ? 1 : 0,
-    ]);
+    if (isDbConfigured) {
+      try {
+        await query('INSERT INTO document_types (id, name, category, has_expiry) VALUES (?, ?, ?, ?)', [
+          id, dt.name, dt.category, dt.hasExpiry ? 1 : 0
+        ]);
+      } catch (err: any) {
+        console.warn('MySQL document-type insert skipped:', err.message);
+      }
+    }
 
     return NextResponse.json({ success: true, id });
   } catch (err: any) {
-    console.error('Error saving document type in MySQL:', err);
+    console.error('Error saving document type:', err);
     return NextResponse.json({ success: false, message: err.message }, { status: 500 });
   }
 }
 
 export async function DELETE(req: Request) {
-  if (!isDbConfigured) {
-    return NextResponse.json({ success: true, message: 'Deleted locally' });
-  }
-
   try {
     const { searchParams } = new URL(req.url);
     const id = searchParams.get('id');
@@ -63,10 +59,21 @@ export async function DELETE(req: Request) {
       return NextResponse.json({ success: false, message: 'ID required' }, { status: 400 });
     }
 
-    await query('DELETE FROM document_types WHERE id = ?', [id]);
+    const stored = await getStoredDocumentTypes();
+    const updated = stored.filter(d => d.id !== id);
+    await saveStoredDocumentTypes(updated);
+
+    if (isDbConfigured) {
+      try {
+        await query('DELETE FROM document_types WHERE id = ?', [id]);
+      } catch (err: any) {
+        console.warn('MySQL document-type delete skipped:', err.message);
+      }
+    }
+
     return NextResponse.json({ success: true, id });
   } catch (err: any) {
-    console.error('Error deleting document type from MySQL:', err);
+    console.error('Error deleting document type:', err);
     return NextResponse.json({ success: false, message: err.message }, { status: 500 });
   }
 }

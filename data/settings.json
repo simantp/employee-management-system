@@ -1,0 +1,11 @@
+{
+  "expirySettings": {
+    "autoReminderEnabled": true,
+    "visaWarningDays": 60,
+    "visaCriticalDays": 30,
+    "licenseWarningDays": 60,
+    "licenseCriticalDays": 30,
+    "warningFrequencyDays": 5,
+    "criticalFrequencyDays": 3
+  }
+}
