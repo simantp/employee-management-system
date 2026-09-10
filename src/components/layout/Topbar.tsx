@@ -40,6 +40,17 @@ export default function Topbar({
 
   const [showAlertsHub, setShowAlertsHub] = useState(false);
   const [showUserDropdown, setShowUserDropdown] = useState(false);
+  const [viewedActionIds, setViewedActionIds] = useState<string[]>([]);
+
+  // Hydrate viewed action IDs from localStorage on mount
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem('ems_viewed_staff_actions_v1');
+      if (saved) {
+        setViewedActionIds(JSON.parse(saved));
+      }
+    } catch (e) {}
+  }, []);
 
   const notifRef = useRef<HTMLDivElement>(null);
   const userRef = useRef<HTMLDivElement>(null);
@@ -57,9 +68,10 @@ export default function Topbar({
         const emp = employees.find(e => e.id === lr.employeeId);
         const hasMedCert = !!(lr.certificateUrl || lr.certificateUploaded);
         const leaveTypeName = lr.leaveType ? lr.leaveType.replace(/_/g, ' ') : 'Leave';
+        const itemId = `leave-${lr.id}`;
 
         list.push({
-          id: `leave-${lr.id}`,
+          id: itemId,
           source: 'LEAVE',
           badge: hasMedCert ? 'SICK LEAVE + CERT' : `${leaveTypeName.toUpperCase()}`,
           badgeColor: hasMedCert ? 'bg-rose-50 text-rose-700 border-rose-200' : 'bg-amber-50 text-amber-800 border-amber-200',
@@ -69,7 +81,7 @@ export default function Topbar({
           timestamp: lr.submittedAt || 'Pending Review',
           actorName: lr.employeeName,
           actorAvatar: emp?.avatarUrl,
-          isUnread: true,
+          isUnread: !viewedActionIds.includes(itemId),
         });
       });
 
@@ -78,8 +90,9 @@ export default function Topbar({
         if (Array.isArray(emp.documents)) {
           emp.documents.forEach(doc => {
             if (doc.status === 'Pending') {
+              const itemId = `doc-${emp.id}-${doc.id}`;
               list.push({
-                id: `doc-${emp.id}-${doc.id}`,
+                id: itemId,
                 source: 'COMPLIANCE',
                 badge: 'DOC VERIFICATION',
                 badgeColor: 'bg-purple-50 text-purple-700 border-purple-200',
@@ -89,7 +102,7 @@ export default function Topbar({
                 timestamp: (doc as any).uploadedAt || 'Pending Review',
                 actorName: `${emp.firstName} ${emp.lastName}`,
                 actorAvatar: emp.avatarUrl,
-                isUnread: true,
+                isUnread: !viewedActionIds.includes(itemId),
               });
             }
           });
@@ -99,8 +112,9 @@ export default function Topbar({
       // 3. Critical & Warning Expiry Alerts
       alerts.forEach(alert => {
         const isUrgent = alert.severity === 'URGENT';
+        const itemId = `alert-${alert.id}`;
         list.push({
-          id: `alert-${alert.id}`,
+          id: itemId,
           source: 'COMPLIANCE',
           badge: isUrgent ? 'URGENT EXPIRY' : 'EXPIRY WARNING',
           badgeColor: isUrgent ? 'bg-rose-50 text-rose-700 border-rose-200 font-bold' : 'bg-amber-50 text-amber-800 border-amber-200',
@@ -109,7 +123,7 @@ export default function Topbar({
           description: alert.description || 'Compliance renewal action needed',
           timestamp: alert.dueDate ? `Due ${alert.dueDate}` : 'Action Required',
           actorName: alert.employeeName,
-          isUnread: true,
+          isUnread: !viewedActionIds.includes(itemId),
         });
       });
 
@@ -135,8 +149,9 @@ export default function Topbar({
           icon = '📢';
         }
 
+        const itemId = `notif-${n.id}`;
         list.push({
-          id: `notif-${n.id}`,
+          id: itemId,
           source: 'NOTIFICATION',
           badge,
           badgeColor,
@@ -144,7 +159,7 @@ export default function Topbar({
           title: n.title,
           description: n.message,
           timestamp: n.timestamp || 'Recent',
-          isUnread: !n.read,
+          isUnread: !n.read && !viewedActionIds.includes(itemId),
         });
       });
 
@@ -159,8 +174,9 @@ export default function Topbar({
       });
 
       relevantNotifs.forEach(n => {
+        const itemId = `notif-${n.id}`;
         list.push({
-          id: `notif-${n.id}`,
+          id: itemId,
           source: 'NOTIFICATION',
           badge: 'STAFF NOTICE',
           badgeColor: 'bg-blue-50 text-blue-700 border-blue-200',
@@ -168,17 +184,54 @@ export default function Topbar({
           title: n.title,
           description: n.message,
           timestamp: n.timestamp || 'Recent',
-          isUnread: !n.read,
+          isUnread: !n.read && !viewedActionIds.includes(itemId),
         });
       });
     }
 
     return list;
-  }, [leaveRequests, employees, alerts, notifications, activePortal, currentUser]);
+  }, [leaveRequests, employees, alerts, notifications, activePortal, currentUser, viewedActionIds]);
 
   const attentionCount = useMemo(() => {
     return staffActionNotifications.filter(item => item.isUnread).length;
   }, [staffActionNotifications]);
+
+  // Mark all current staff action items as viewed & reset badge count to 0
+  const markAllActionsAsViewed = () => {
+    markAllNotificationsRead(activePortal === 'ADMIN' ? 'ADMIN' : 'STAFF');
+    const allIds = staffActionNotifications.map(item => item.id);
+    setViewedActionIds(prev => {
+      const merged = Array.from(new Set([...prev, ...allIds]));
+      try {
+        localStorage.setItem('ems_viewed_staff_actions_v1', JSON.stringify(merged));
+      } catch (e) {}
+      return merged;
+    });
+  };
+
+  // Mark a single action item as viewed
+  const markSingleActionAsViewed = (id: string) => {
+    if (id.startsWith('notif-')) {
+      markNotificationRead(id.replace('notif-', ''));
+    }
+    setViewedActionIds(prev => {
+      if (prev.includes(id)) return prev;
+      const updated = [...prev, id];
+      try {
+        localStorage.setItem('ems_viewed_staff_actions_v1', JSON.stringify(updated));
+      } catch (e) {}
+      return updated;
+    });
+  };
+
+  // Toggle dropdown and immediately mark unread requests as viewed
+  const handleToggleAlertsHub = () => {
+    const nextState = !showAlertsHub;
+    setShowAlertsHub(nextState);
+    if (nextState) {
+      markAllActionsAsViewed();
+    }
+  };
 
   // Close dropdowns on click outside
   useEffect(() => {
@@ -221,7 +274,7 @@ export default function Topbar({
         {/* ========================================================================= */}
         <div className="relative" ref={notifRef}>
           <button
-            onClick={() => setShowAlertsHub(!showAlertsHub)}
+            onClick={handleToggleAlertsHub}
             className={`relative flex items-center justify-center p-2.5 rounded-2xl border transition-all cursor-pointer select-none ${
               showAlertsHub
                 ? 'bg-slate-900 border-slate-900 text-white shadow-md'
@@ -245,7 +298,7 @@ export default function Topbar({
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
               </svg>
 
-              {/* Pulsing Alert Badge */}
+              {/* Pulsing Alert Badge (Visible only when there are unread items) */}
               {attentionCount > 0 && (
                 <span className="absolute -top-2.5 -right-2.5 flex h-4 w-4">
                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75" />
@@ -266,7 +319,7 @@ export default function Topbar({
               {/* Dropdown Header */}
               <div className="px-4 py-3 border-b border-slate-100 bg-slate-900 text-white flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <span className={`w-2 h-2 rounded-full ${attentionCount > 0 ? 'bg-amber-400 animate-ping' : 'bg-emerald-400'}`} />
+                  <span className="w-2 h-2 rounded-full bg-emerald-400" />
                   <div>
                     <h4 className="text-xs font-black tracking-tight text-white flex items-center gap-1.5">
                       <span>{activePortal === 'ADMIN' ? 'Staff Requests & Attention' : 'Notifications'}</span>
@@ -282,14 +335,12 @@ export default function Topbar({
                   </div>
                 </div>
 
-                {attentionCount > 0 && (
-                  <button
-                    onClick={() => markAllNotificationsRead(activePortal === 'ADMIN' ? 'ADMIN' : 'STAFF')}
-                    className="text-[10px] font-black text-orange-400 hover:text-orange-300 transition py-1 px-2.5 rounded-lg bg-slate-800 hover:bg-slate-700 cursor-pointer"
-                  >
-                    Mark read
-                  </button>
-                )}
+                <button
+                  onClick={markAllActionsAsViewed}
+                  className="text-[10px] font-black text-orange-400 hover:text-orange-300 transition py-1 px-2.5 rounded-lg bg-slate-800 hover:bg-slate-700 cursor-pointer"
+                >
+                  Mark all read
+                </button>
               </div>
 
               {/* Request & Alert List */}
@@ -308,14 +359,10 @@ export default function Topbar({
                   staffActionNotifications.map(item => (
                     <div
                       key={item.id}
-                      onClick={() => {
-                        if (item.source === 'NOTIFICATION' && item.isUnread) {
-                          markNotificationRead(item.id.replace('notif-', ''));
-                        }
-                      }}
-                      className={`p-3 rounded-xl border transition-all flex items-start gap-2.5 ${
+                      onClick={() => markSingleActionAsViewed(item.id)}
+                      className={`p-3 rounded-xl border transition-all flex items-start gap-2.5 cursor-pointer ${
                         item.isUnread
-                          ? 'bg-amber-50/60 border-amber-200/90 shadow-2xs hover:bg-amber-50 cursor-pointer'
+                          ? 'bg-amber-50/70 border-amber-200/90 shadow-2xs hover:bg-amber-50'
                           : 'bg-slate-50/80 border-slate-200/70 hover:bg-slate-100/70'
                       }`}
                     >
