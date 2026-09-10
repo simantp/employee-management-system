@@ -1,24 +1,18 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useApp } from '@/lib/store';
 import CompanyLatestAnnouncementBanner from './CompanyLatestAnnouncementBanner';
-import BankDetailsModal from './BankDetailsModal';
-import EditProfileModal from './EditProfileModal';
-import EditWorkRightsModal from './EditWorkRightsModal';
 import ResignationModal from './ResignationModal';
 
 // Dedicated Detailed Views
 import StaffFullProfileView from './views/StaffFullProfileView';
 import StaffDocumentsView from './views/StaffDocumentsView';
 import StaffLeaveView from './views/StaffLeaveView';
-import StaffPayrollView from './views/StaffPayrollView';
 import StaffEmploymentView from './views/StaffEmploymentView';
 import StaffTimesheetView from './views/StaffTimesheetView';
-import StaffTrainingView from './views/StaffTrainingView';
 import StaffEmergencyView from './views/StaffEmergencyView';
 import StaffDirectoryView from './views/StaffDirectoryView';
-import StaffAnnouncementsView from './views/StaffAnnouncementsView';
 import StaffSupportView from './views/StaffSupportView';
 
 export default function StaffDashboard({
@@ -26,37 +20,8 @@ export default function StaffDashboard({
 }: {
   activeTab?: string;
 }) {
-  const { currentStaff } = useApp();
-  
-  const [showBankModal, setShowBankModal] = useState(false);
-  const [showEditModal, setShowEditModal] = useState(false);
-  const [showWorkRightsModal, setShowWorkRightsModal] = useState(false);
+  const { announcements } = useApp();
   const [showResignModal, setShowResignModal] = useState(false);
-  const [sydneyTimeStr, setSydneyTimeStr] = useState('');
-  const [greeting, setGreeting] = useState('Good day');
-
-  useEffect(() => {
-    const updateTime = () => {
-      try {
-        const now = new Date();
-        const sydneyHours = parseInt(now.toLocaleTimeString('en-AU', { timeZone: 'Australia/Sydney', hour: '2-digit', hour12: false }));
-        if (sydneyHours < 12) setGreeting('Good morning');
-        else if (sydneyHours < 17) setGreeting('Good afternoon');
-        else setGreeting('Good evening');
-
-        setSydneyTimeStr(now.toLocaleTimeString('en-AU', { timeZone: 'Australia/Sydney', hour: '2-digit', minute: '2-digit', second: '2-digit' }));
-      } catch (e) {}
-    };
-    updateTime();
-    const interval = setInterval(updateTime, 1000);
-    return () => clearInterval(interval);
-  }, []);
-
-  // Check if staff has updated working hours & visa status in profile
-  const hasHoursConfirmed = Boolean(
-    currentStaff.workingHoursConfirmed || 
-    (currentStaff.workingHours && currentStaff.workingHours > 0)
-  );
 
   // Dedicated Detailed Workspace Views for Sidebar Navigation
   if (activeTab === 'profile' || activeTab === 'personal') {
@@ -79,20 +44,12 @@ export default function StaffDashboard({
     return <StaffTimesheetView />;
   }
 
-  if (activeTab === 'training') {
-    return <StaffTrainingView />;
-  }
-
   if (activeTab === 'emergency') {
     return <StaffEmergencyView />;
   }
 
   if (activeTab === 'directory') {
     return <StaffDirectoryView />;
-  }
-
-  if (activeTab === 'announcements') {
-    return <StaffAnnouncementsView />;
   }
 
   if (activeTab === 'support') {
@@ -124,64 +81,71 @@ export default function StaffDashboard({
     );
   }
 
-  // DEFAULT TAB ('dashboard'): Clean Dynamic Hero & Latest Announcement
+  // DEFAULT TAB ('dashboard'): Clean View Showing ONLY Company Announcements (Greeting section removed)
   return (
     <div className="p-6 lg:p-8 space-y-6 max-w-7xl mx-auto animate-in fade-in duration-200 text-xs font-sans">
       
-      {/* Dynamic Hero Banner */}
-      <div className="relative rounded-3xl overflow-hidden p-6 sm:p-8 border border-slate-800 shadow-xl mesh-gradient-dark text-white">
-        <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
-          <div className="space-y-2">
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-extrabold bg-orange-500/20 text-orange-300 border border-orange-500/30 backdrop-blur-md">
-                <span className="w-1.5 h-1.5 rounded-full bg-orange-400 animate-pulse"></span>
-                <span>Sydney Live • {sydneyTimeStr || 'AEST'}</span>
-              </span>
-              <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-white/10 text-slate-300 border border-white/10">
-                {currentStaff.workLocation || 'Sydney, NSW'}
-              </span>
-            </div>
-
-            <h1 className="text-2xl sm:text-3xl font-black text-white tracking-tight flex items-center gap-2.5">
-              <span>{greeting}, {currentStaff.firstName}</span>
-            </h1>
-
-            {/* Subtitle below greeting: ONLY show assigned department and confirmed hours */}
-            <p className="text-xs text-slate-300 font-medium max-w-xl flex flex-wrap items-center gap-1.5">
-              <span>{currentStaff.jobTitle || 'Staff Member'}</span>
-              {currentStaff.department ? (
-                <>
-                  <span className="text-slate-500">•</span>
-                  <strong className="text-orange-400">{currentStaff.department}</strong>
-                </>
-              ) : null}
-              {hasHoursConfirmed && currentStaff.workingHours ? (
-                <>
-                  <span className="text-slate-500">•</span>
-                  <span className="text-slate-300 font-bold">{currentStaff.workingHours} Hours / Week</span>
-                </>
-              ) : null}
-            </p>
-          </div>
-
-          <div className="flex items-center gap-2.5 flex-shrink-0">
-            <button
-              onClick={() => setShowWorkRightsModal(true)}
-              className="flex items-center gap-2 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-400 hover:to-amber-400 text-slate-950 px-4 py-2.5 rounded-2xl text-xs font-black shadow-lg shadow-orange-500/20 transition-all hover:scale-[1.02] active:scale-[0.98] cursor-pointer"
-            >
-              <span>Update Visa &amp; Working Hours</span>
-            </button>
-          </div>
-        </div>
-      </div>
-
-      {/* Top Banner: Company's Latest Announcement (Posted by Admin/Super Admin) */}
+      {/* Spotlight: Company's Latest Announcement */}
       <CompanyLatestAnnouncementBanner />
 
+      {/* Full Announcements Feed */}
+      {announcements && announcements.length > 0 && (
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <h3 className="text-sm font-black text-slate-900 tracking-tight">
+              All Company Announcements &amp; Workplace Notices
+            </h3>
+            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 border border-slate-200">
+              {announcements.length} {announcements.length === 1 ? 'Notice' : 'Notices'}
+            </span>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {announcements.map((a) => (
+              <div 
+                key={a.id} 
+                className="bg-white rounded-3xl p-6 border border-slate-200/80 shadow-xs space-y-3 flex flex-col justify-between hover:border-slate-300 transition"
+              >
+                <div className="space-y-2.5">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-[10px] font-black px-2.5 py-0.5 rounded-full bg-orange-50 text-orange-800 border border-orange-200">
+                      {a.category || 'Company Notice'}
+                    </span>
+                    <span className="text-slate-400 text-[10px] font-medium font-mono">
+                      {a.date}
+                    </span>
+                  </div>
+                  <h4 className="font-extrabold text-sm text-slate-900 leading-snug">
+                    {a.title}
+                  </h4>
+                  <p className="text-slate-600 leading-relaxed text-xs">
+                    {a.content}
+                  </p>
+                </div>
+
+                <div className="pt-3 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-400">
+                  <span>Author: <strong className="text-slate-700 font-semibold">{a.author}</strong></span>
+                  <span className="text-[10px] px-1.5 py-0.5 rounded bg-slate-50 text-slate-500 font-bold border border-slate-200">
+                    {a.authorRole || 'Management'}
+                  </span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {(!announcements || announcements.length === 0) && (
+        <div className="bg-white rounded-3xl p-12 border border-slate-200/80 text-center space-y-2 shadow-xs">
+          <span className="text-3xl block mb-2">📢</span>
+          <h3 className="text-sm font-bold text-slate-900">No Announcements at this time</h3>
+          <p className="text-slate-500 text-xs max-w-sm mx-auto">
+            When management posts new bulletins or policy updates, they will appear here automatically.
+          </p>
+        </div>
+      )}
+
       {/* Modals */}
-      {showWorkRightsModal && <EditWorkRightsModal onClose={() => setShowWorkRightsModal(false)} />}
-      {showBankModal && <BankDetailsModal onClose={() => setShowBankModal(false)} />}
-      {showEditModal && <EditProfileModal onClose={() => setShowEditModal(false)} />}
       {showResignModal && <ResignationModal onClose={() => setShowResignModal(false)} />}
     </div>
   );
