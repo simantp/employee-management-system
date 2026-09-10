@@ -10,7 +10,7 @@ export default function AdminSidebar({
   activeTab?: string; 
   onSelectTab?: (tab: string) => void;
 }) {
-  const { alerts, leaveRequests, employees, activeWorkingStaffCount, logout } = useApp();
+  const { alerts, leaveRequests, employees, activeWorkingStaffCount, announcements, logout } = useApp();
 
   const pendingApprovals = leaveRequests.filter(r => r.status === 'PENDING').length;
 
@@ -19,6 +19,7 @@ export default function AdminSidebar({
     { id: 'timecards', label: 'Timecard & Shifts', badge: activeWorkingStaffCount > 0 ? `${activeWorkingStaffCount} Active` : null },
     { id: 'employees', label: 'Employees', badge: null },
     { id: 'alerts', label: 'Visa and License Alerts', badge: null },
+    { id: 'announcements', label: 'Announcements', badge: announcements.length > 0 ? `${announcements.length}` : null },
   ];
 
   const handleNav = (id: string) => {

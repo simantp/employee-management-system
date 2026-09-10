@@ -1,15 +1,5 @@
 [
   {
-    "id": "ann-1789015427729",
-    "title": "Test",
-    "content": "testtesetstetsesdfds",
-    "author": "Admin User",
-    "authorRole": "SUPER_ADMIN",
-    "date": "10 Sept 2026",
-    "category": "Operations & Safety",
-    "isPinned": true
-  },
-  {
     "id": "ann-1",
     "title": "Sydney Plant Annual Team Building & WHS Safety Workshop",
     "content": "All Sydney NSW staff members are invited to our annual safety presentation and company celebration lunch on Friday 28 August 2026. Shifts and production schedules will operate on modified hours.",
@@ -26,6 +16,87 @@
     "author": "Human Resources Director",
     "authorRole": "ADMIN",
     "date": "15 Aug 2026",
-    "category": "Fair Work NSW"
+    "category": "Fair Work NSW",
+    "isPinned": true
+  },
+  {
+    "id": "ann-3",
+    "title": "NSW Public Holiday Operating Hours & Shift Rates",
+    "content": "Upcoming bank holiday and state public holiday operations schedule is now published. Staff rostered on public holidays will receive applicable statutory penalty rates as per modern award regulations.",
+    "author": "Operations Director",
+    "authorRole": "ADMIN",
+    "date": "10 Aug 2026",
+    "category": "Operations & Safety",
+    "isPinned": false
+  },
+  {
+    "id": "ann-4",
+    "title": "Quarterly Fire Evacuation Drill & First Aid Officer Nominations",
+    "content": "The mandatory Q3 fire drill will take place on Wednesday at 10:30 AM across the Riverwood & Sydney distribution facilities. Staff interested in becoming certified First Aid Officers please contact HR.",
+    "author": "WHS Safety Committee",
+    "authorRole": "ADMIN",
+    "date": "01 Aug 2026",
+    "category": "Operations & Safety",
+    "isPinned": false
+  },
+  {
+    "id": "ann-5",
+    "title": "Forklift & Heavy Machinery Pre-Start Check Protocol",
+    "content": "All certified operators must complete the digital daily pre-shift inspection log before operating forklifts or pallet wrappers. Report any hydraulic or safety defects immediately to your shift supervisor.",
+    "author": "Warehouse Safety Supervisor",
+    "authorRole": "SUPER_ADMIN",
+    "date": "25 Jul 2026",
+    "category": "Operations & Safety",
+    "isPinned": false
+  },
+  {
+    "id": "ann-6",
+    "title": "Superannuation Guarantee Increase & Super Choice Form Notice",
+    "content": "The statutory superannuation contribution rate has increased. If you wish to nominate an alternate approved super fund or self-managed fund, submit an updated Superannuation Standard Choice form in the Documents tab.",
+    "author": "Payroll & Compliance Dept",
+    "authorRole": "ADMIN",
+    "date": "18 Jul 2026",
+    "category": "HR & Compliance",
+    "isPinned": false
+  },
+  {
+    "id": "ann-7",
+    "title": "Annual Winter Flu Vaccination Clinic & Health Subsidy",
+    "content": "Complimentary on-site influenza vaccination sessions will be available for all team members next Tuesday. Booking slots are open on the staff portal or through your department coordinator.",
+    "author": "Employee Wellbeing Officer",
+    "authorRole": "ADMIN",
+    "date": "10 Jul 2026",
+    "category": "Company Event",
+    "isPinned": false
+  },
+  {
+    "id": "ann-8",
+    "title": "PPE Standards & High-Visibility Vest Renewal Drive",
+    "content": "Steel-capped safety boots and current-spec hi-vis apparel are mandatory inside all active production and loading dock zones. Damaged or worn PPE can be exchanged for free at the plant store.",
+    "author": "WHS Compliance Officer",
+    "authorRole": "ADMIN",
+    "date": "02 Jul 2026",
+    "category": "Operations & Safety",
+    "isPinned": false
+  },
+  {
+    "id": "ann-9",
+    "title": "Quarterly Team Recognition & Excellence Awards",
+    "content": "Congratulations to our Riverwood Production and Dispatch teams for achieving zero lost-time injuries (LTI) this quarter! Monthly recognition award certificates and gift cards have been awarded.",
+    "author": "Managing Director",
+    "authorRole": "SUPER_ADMIN",
+    "date": "20 Jun 2026",
+    "category": "Company Event",
+    "isPinned": false
+  },
+  {
+    "id": "ann-10",
+    "title": "Updated Emergency Contact & Next-of-Kin Records Verification",
+    "content": "In accordance with NSW WHS regulations, all employees are requested to review and verify their nominated emergency contact numbers and residential details in the Emergency Contacts tab.",
+    "author": "Human Resources Director",
+    "authorRole": "ADMIN",
+    "date": "10 Jun 2026",
+    "category": "HR & Compliance",
+    "isPinned": false
   }
 ]

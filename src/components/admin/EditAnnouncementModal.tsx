@@ -1,23 +1,34 @@
-'use client';
+﻿'use client';
 
 import React, { useState } from 'react';
 import { useApp } from '@/lib/store';
+import { Announcement } from '@/types';
 
-export default function PostAnnouncementModal({ onClose }: { onClose: () => void }) {
-  const { postAnnouncement } = useApp();
-  const [title, setTitle] = useState('');
-  const [content, setContent] = useState('');
-  const [category, setCategory] = useState('Operations & Safety');
-  const [isPinned, setIsPinned] = useState(true);
+export default function EditAnnouncementModal({ 
+  announcement, 
+  onClose 
+}: { 
+  announcement: Announcement; 
+  onClose: () => void;
+}) {
+  const { updateAnnouncement } = useApp();
+  const [title, setTitle] = useState(announcement.title);
+  const [content, setContent] = useState(announcement.content);
+  const [category, setCategory] = useState(announcement.category || 'Operations & Safety');
+  const [author, setAuthor] = useState(announcement.author);
+  const [date, setDate] = useState(announcement.date);
+  const [isPinned, setIsPinned] = useState(Boolean(announcement.isPinned));
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!title.trim() || !content.trim()) return;
 
-    postAnnouncement({
+    updateAnnouncement(announcement.id, {
       title: title.trim(),
       content: content.trim(),
       category,
+      author: author.trim() || announcement.author,
+      date: date.trim() || announcement.date,
       isPinned,
     });
     onClose();
@@ -32,10 +43,10 @@ export default function PostAnnouncementModal({ onClose }: { onClose: () => void
         <div className="p-6 bg-slate-900 text-white flex items-center justify-between">
           <div>
             <div className="flex items-center gap-2">
-              <span className="p-1.5 rounded-lg bg-orange-500/20 text-orange-400 text-sm">📢</span>
-              <h3 className="text-base font-bold text-white">Post Company Announcement</h3>
+              <span className="p-1.5 rounded-lg bg-blue-500/20 text-blue-400 text-sm">✏️</span>
+              <h3 className="text-base font-bold text-white">Edit Announcement Record</h3>
             </div>
-            <p className="text-[11px] text-slate-300 font-medium mt-1">Broadcasts instantly to the Staff Dashboard and stores permanently in records</p>
+            <p className="text-[11px] text-slate-300 font-medium mt-1">Update title, message content, category or pinned spotlight status</p>
           </div>
           <button onClick={onClose} className="text-xs font-bold text-slate-400 hover:text-white px-2 py-1 transition cursor-pointer">
             ✕
@@ -48,34 +59,56 @@ export default function PostAnnouncementModal({ onClose }: { onClose: () => void
             <input
               type="text"
               required
-              placeholder="e.g. Sydney Plant Schedule Update & WHS Policy"
               value={title}
               onChange={e => setTitle(e.target.value)}
               className="w-full p-3 border border-slate-300 rounded-xl bg-white font-bold text-slate-900 focus:ring-2 focus:ring-slate-500/20 focus:border-slate-500"
             />
           </div>
 
-          <div>
-            <label className="block font-bold text-slate-700 mb-1">Category / Tag</label>
-            <select
-              value={category}
-              onChange={e => setCategory(e.target.value)}
-              className="w-full p-3 border border-slate-300 rounded-xl bg-white font-semibold text-slate-900 cursor-pointer"
-            >
-              <option value="Operations & Safety">Operations & Safety</option>
-              <option value="Fair Work NSW">Fair Work NSW</option>
-              <option value="HR & Compliance">HR & Compliance</option>
-              <option value="Company Event">Company Event</option>
-              <option value="General Announcement">General Announcement</option>
-            </select>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label className="block font-bold text-slate-700 mb-1">Category / Tag</label>
+              <select
+                value={category}
+                onChange={e => setCategory(e.target.value)}
+                className="w-full p-3 border border-slate-300 rounded-xl bg-white font-semibold text-slate-900 cursor-pointer"
+              >
+                <option value="Operations & Safety">Operations & Safety</option>
+                <option value="Fair Work NSW">Fair Work NSW</option>
+                <option value="HR & Compliance">HR & Compliance</option>
+                <option value="Company Event">Company Event</option>
+                <option value="General Announcement">General Announcement</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="block font-bold text-slate-700 mb-1">Broadcast Date</label>
+              <input
+                type="text"
+                value={date}
+                onChange={e => setDate(e.target.value)}
+                placeholder="e.g. 20 Aug 2026"
+                className="w-full p-3 border border-slate-300 rounded-xl bg-white font-semibold text-slate-900"
+              />
+            </div>
           </div>
 
           <div>
-            <label className="block font-bold text-slate-700 mb-1">Announcement Message *</label>
+            <label className="block font-bold text-slate-700 mb-1">Author / Issuer</label>
+            <input
+              type="text"
+              value={author}
+              onChange={e => setAuthor(e.target.value)}
+              placeholder="e.g. Super Admin (HsCreations)"
+              className="w-full p-3 border border-slate-300 rounded-xl bg-white font-medium text-slate-800"
+            />
+          </div>
+
+          <div>
+            <label className="block font-bold text-slate-700 mb-1">Announcement Message Content *</label>
             <textarea
               required
               rows={5}
-              placeholder="Write the full announcement message for all staff..."
               value={content}
               onChange={e => setContent(e.target.value)}
               className="w-full p-3 border border-slate-300 rounded-xl bg-white font-medium text-slate-800 leading-relaxed focus:ring-2 focus:ring-slate-500/20 focus:border-slate-500"
@@ -105,9 +138,9 @@ export default function PostAnnouncementModal({ onClose }: { onClose: () => void
             </button>
             <button
               type="submit"
-              className="px-5 py-2.5 rounded-xl bg-orange-500 hover:bg-orange-600 text-slate-950 font-black shadow-md shadow-orange-500/20 transition cursor-pointer"
+              className="px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-black shadow-md shadow-blue-600/20 transition cursor-pointer"
             >
-              Broadcast & Save Record
+              Save Changes & Sync
             </button>
           </div>
         </form>

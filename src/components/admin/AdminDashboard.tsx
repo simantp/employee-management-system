@@ -13,6 +13,7 @@ import AdminAlertsReminders from './AdminAlertsReminders';
 import AdminSettingsHub from './AdminSettingsHub';
 import ActiveStaffModal from './ActiveStaffModal';
 import VisaLicenseAlertsModal from './VisaLicenseAlertsModal';
+import AnnouncementsManager from './AnnouncementsManager';
 import { Employee } from '@/types';
 import { useApp } from '@/lib/store';
 
@@ -95,6 +96,8 @@ export default function AdminDashboard({
         <AdminTimecardManagement />
       ) : activeTab === 'employees' ? (
         <EmployeeManagementView />
+      ) : activeTab === 'announcements' ? (
+        <AnnouncementsManager />
       ) : activeTab === 'approvals' ? (
         <PendingLeaveApprovals mode="full" />
       ) : (activeTab === 'alerts' || activeTab === 'compliance' || activeTab === 'visa-alerts' || activeTab === 'license-alerts' || activeTab === 'whs-policies') ? (

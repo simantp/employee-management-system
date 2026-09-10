@@ -78,7 +78,80 @@ export const INITIAL_ANNOUNCEMENTS: Announcement[] = [
     author: 'Human Resources Director',
     authorRole: 'ADMIN',
     date: '15 Aug 2026',
-    category: 'Fair Work NSW'
+    category: 'Fair Work NSW',
+    isPinned: true
+  },
+  {
+    id: 'ann-3',
+    title: 'NSW Public Holiday Operating Hours & Shift Rates',
+    content: 'Upcoming bank holiday and state public holiday operations schedule is now published. Staff rostered on public holidays will receive applicable statutory penalty rates as per modern award regulations.',
+    author: 'Operations Director',
+    authorRole: 'ADMIN',
+    date: '10 Aug 2026',
+    category: 'Operations & Safety'
+  },
+  {
+    id: 'ann-4',
+    title: 'Quarterly Fire Evacuation Drill & First Aid Officer Nominations',
+    content: 'The mandatory Q3 fire drill will take place on Wednesday at 10:30 AM across the Riverwood & Sydney distribution facilities. Staff interested in becoming certified First Aid Officers please contact HR.',
+    author: 'WHS Safety Committee',
+    authorRole: 'ADMIN',
+    date: '01 Aug 2026',
+    category: 'Operations & Safety'
+  },
+  {
+    id: 'ann-5',
+    title: 'Forklift & Heavy Machinery Pre-Start Check Protocol',
+    content: 'All certified operators must complete the digital daily pre-shift inspection log before operating forklifts or pallet wrappers. Report any hydraulic or safety defects immediately to your shift supervisor.',
+    author: 'Warehouse Safety Supervisor',
+    authorRole: 'SUPER_ADMIN',
+    date: '25 Jul 2026',
+    category: 'Operations & Safety'
+  },
+  {
+    id: 'ann-6',
+    title: 'Superannuation Guarantee Increase & Super Choice Form Notice',
+    content: 'The statutory superannuation contribution rate has increased. If you wish to nominate an alternate approved super fund or self-managed fund, submit an updated Superannuation Standard Choice form in the Documents tab.',
+    author: 'Payroll & Compliance Dept',
+    authorRole: 'ADMIN',
+    date: '18 Jul 2026',
+    category: 'HR & Compliance'
+  },
+  {
+    id: 'ann-7',
+    title: 'Annual Winter Flu Vaccination Clinic & Health Subsidy',
+    content: 'Complimentary on-site influenza vaccination sessions will be available for all team members next Tuesday. Booking slots are open on the staff portal or through your department coordinator.',
+    author: 'Employee Wellbeing Officer',
+    authorRole: 'ADMIN',
+    date: '10 Jul 2026',
+    category: 'Company Event'
+  },
+  {
+    id: 'ann-8',
+    title: 'PPE Standards & High-Visibility Vest Renewal Drive',
+    content: 'Steel-capped safety boots and current-spec hi-vis apparel are mandatory inside all active production and loading dock zones. Damaged or worn PPE can be exchanged for free at the plant store.',
+    author: 'WHS Compliance Officer',
+    authorRole: 'ADMIN',
+    date: '02 Jul 2026',
+    category: 'Operations & Safety'
+  },
+  {
+    id: 'ann-9',
+    title: 'Quarterly Team Recognition & Excellence Awards',
+    content: 'Congratulations to our Riverwood Production and Dispatch teams for achieving zero lost-time injuries (LTI) this quarter! Monthly recognition award certificates and gift cards have been awarded.',
+    author: 'Managing Director',
+    authorRole: 'SUPER_ADMIN',
+    date: '20 Jun 2026',
+    category: 'Company Event'
+  },
+  {
+    id: 'ann-10',
+    title: 'Updated Emergency Contact & Next-of-Kin Records Verification',
+    content: 'In accordance with NSW WHS regulations, all employees are requested to review and verify their nominated emergency contact numbers and residential details in the Emergency Contacts tab.',
+    author: 'Human Resources Director',
+    authorRole: 'ADMIN',
+    date: '10 Jun 2026',
+    category: 'HR & Compliance'
   }
 ];
 
@@ -151,8 +224,10 @@ interface AppContextType {
   auditLogs: AuditLog[];
   toasts: ToastMessage[];
   announcements: Announcement[];
-  postAnnouncement: (data: { title: string; content: string; category?: string }) => void;
+  postAnnouncement: (data: { title: string; content: string; category?: string; isPinned?: boolean }) => void;
+  updateAnnouncement: (id: string, updates: Partial<Announcement>) => void;
   deleteAnnouncement: (id: string) => void;
+  togglePinAnnouncement: (id: string) => void;
   unreadAdminCount: number;
   unreadStaffCount: number;
 
@@ -1512,7 +1587,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   };
 
   
-  const postAnnouncement = (data: { title: string; content: string; category?: string }) => {
+  const postAnnouncement = (data: { title: string; content: string; category?: string; isPinned?: boolean }) => {
     const newAnn: Announcement = {
       id: `ann-${Date.now()}`,
       title: data.title,
@@ -1520,8 +1595,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       author: currentUser ? currentUser.name : 'Super Admin (HsCreations)',
       authorRole: currentUser ? currentUser.role : 'SUPER_ADMIN',
       date: new Date().toLocaleDateString('en-AU', { day: '2-digit', month: 'short', year: 'numeric' }),
-      category: data.category || 'Company Notice',
-      isPinned: true
+      category: data.category || 'Operations & Safety',
+      isPinned: data.isPinned !== undefined ? data.isPinned : true
     };
     setAnnouncements(prev => [newAnn, ...prev]);
 
@@ -1552,6 +1627,71 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       `Admin posted company announcement: "${data.title}"`
     );
     addToast('Announcement Broadcasted', 'New company announcement posted to all staff dashboards.', 'success');
+  };
+
+  const updateAnnouncement = (id: string, updates: Partial<Announcement>) => {
+    setAnnouncements(prev => prev.map(a => a.id === id ? { ...a, ...updates } : a));
+
+    // MySQL Backend Sync
+    try {
+      fetch('/api/announcements', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id, updates }),
+      }).catch(err => console.warn('Announcement PUT DB sync skipped:', err));
+    } catch (e) {}
+
+    addAudit(
+      'UPDATE_ANNOUNCEMENT',
+      'ANNOUNCEMENT',
+      id,
+      `Admin updated announcement record: "${updates.title || id}"`
+    );
+    addToast('Announcement Updated', 'Announcement record has been saved and synced.', 'success');
+  };
+
+  const deleteAnnouncement = (id: string) => {
+    const target = announcements.find(a => a.id === id);
+    setAnnouncements(prev => prev.filter(a => a.id !== id));
+
+    // MySQL Backend Sync
+    try {
+      fetch(`/api/announcements?id=${encodeURIComponent(id)}`, {
+        method: 'DELETE',
+      }).catch(err => console.warn('Announcement DELETE DB sync skipped:', err));
+    } catch (e) {}
+
+    addAudit(
+      'DELETE_ANNOUNCEMENT',
+      'ANNOUNCEMENT',
+      id,
+      `Admin removed announcement record: "${target?.title || id}"`
+    );
+    addToast('Announcement Deleted', 'Announcement record has been removed from database.', 'info');
+  };
+
+  const togglePinAnnouncement = (id: string) => {
+    const target = announcements.find(a => a.id === id);
+    if (!target) return;
+    const nextPinned = !target.isPinned;
+    
+    setAnnouncements(prev => prev.map(a => a.id === id ? { ...a, isPinned: nextPinned } : a));
+
+    try {
+      fetch('/api/announcements', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id, updates: { isPinned: nextPinned } }),
+      }).catch(err => console.warn('Announcement toggle pin DB sync skipped:', err));
+    } catch (e) {}
+
+    addAudit(
+      'TOGGLE_PIN_ANNOUNCEMENT',
+      'ANNOUNCEMENT',
+      id,
+      `Admin ${nextPinned ? 'pinned' : 'unpinned'} announcement: "${target.title}"`
+    );
+    addToast(nextPinned ? 'Announcement Pinned' : 'Announcement Unpinned', `"${target.title}" is now ${nextPinned ? 'pinned to the spotlight' : 'unpinned'}.`, 'info');
   };
 
 
@@ -1882,19 +2022,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     addToast('Shift Deleted', 'Timecard record deleted.', 'info');
   };
 
-  const deleteAnnouncement = (id: string) => {
-    setAnnouncements(prev => prev.filter(a => a.id !== id));
-
-    // MySQL Backend Sync
-    try {
-      fetch(`/api/announcements?id=${encodeURIComponent(id)}`, {
-        method: 'DELETE',
-      }).catch(err => console.warn('Announcement delete DB sync skipped:', err));
-    } catch (e) {}
-
-    addToast('Announcement Removed', 'Company announcement deleted.', 'info');
-  };
-
   const updateExpirySettings = (updates: Partial<ExpiryReminderSettings>) => {
     const updated = { ...expirySettings, ...updates };
     setExpirySettings(updated);
@@ -2024,7 +2151,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       toasts,
       announcements,
       postAnnouncement,
+      updateAnnouncement,
       deleteAnnouncement,
+      togglePinAnnouncement,
       unreadAdminCount,
       unreadStaffCount,
       timecards,
