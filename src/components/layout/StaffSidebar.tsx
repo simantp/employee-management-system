@@ -10,39 +10,19 @@ export default function StaffSidebar({
   activeTab?: string; 
   onSelectTab?: (tab: string) => void;
 }) {
-  const { currentStaff, logout } = useApp();
+  const { currentStaff } = useApp();
 
-  const sections = [
-    {
-      title: 'OVERVIEW',
-      items: [
-        { id: 'dashboard', label: 'Dashboard', badge: null },
-        { id: 'profile', label: 'My Profile', badge: null },
-        { id: 'documents', label: 'Documents', badge: currentStaff.documents.length > 0 ? String(currentStaff.documents.length) : null },
-      ]
-    },
-    {
-      title: 'TIME & WORKPLACE',
-      items: [
-        { id: 'leave', label: 'Leave Management', badge: `${currentStaff.leaveBalance.annual}d` },
-        { id: 'timesheet', label: 'Timesheet & Roster', badge: '38h' },
-        { id: 'employment', label: 'Employment Details', badge: null },
-      ]
-    },
-    {
-      title: 'PEOPLE & DIRECTORY',
-      items: [
-        { id: 'emergency', label: 'Emergency Contacts', badge: null },
-        { id: 'directory', label: 'Company Directory', badge: null },
-      ]
-    },
-    {
-      title: 'LIFECYCLE',
-      items: [
-        { id: 'resignation', label: 'Resignation Notice', badge: null },
-        { id: 'support', label: 'HR Helpdesk', badge: null },
-      ]
-    }
+  const navItems = [
+    { id: 'dashboard', label: 'Dashboard', badge: null },
+    { id: 'profile', label: 'My Profile', badge: null },
+    { id: 'documents', label: 'Documents', badge: currentStaff.documents.length > 0 ? String(currentStaff.documents.length) : null },
+    { id: 'leave', label: 'Leave Management', badge: `${currentStaff.leaveBalance.annual}d` },
+    { id: 'timesheet', label: 'Timesheet & Roster', badge: '38h' },
+    { id: 'employment', label: 'Employment Details', badge: null },
+    { id: 'emergency', label: 'Emergency Contacts', badge: null },
+    { id: 'directory', label: 'Company Directory', badge: null },
+    { id: 'resignation', label: 'Resignation Notice', badge: null },
+    { id: 'support', label: 'HR Helpdesk', badge: null },
   ];
 
   const handleNav = (id: string) => {
@@ -76,46 +56,38 @@ export default function StaffSidebar({
         </div>
       </div>
 
-      {/* Navigation Grouped Sections */}
-      <div className="flex-1 overflow-y-auto px-3 py-3 space-y-4 scrollbar-thin scrollbar-thumb-slate-800">
-        {sections.map((section, sIndex) => (
-          <div key={sIndex} className="space-y-1">
-            <h3 className="text-[10px] font-bold text-slate-400 uppercase tracking-wider px-3 mb-1.5">
-              {section.title}
-            </h3>
+      {/* Flat List of Clickable Tabs */}
+      <div className="flex-1 overflow-y-auto px-3 py-3 space-y-1.5 scrollbar-thin scrollbar-thumb-slate-800">
+        {navItems.map(item => {
+          const isActive = activeTab === item.id;
+          
+          return (
+            <button
+              key={item.id}
+              onClick={() => handleNav(item.id)}
+              className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs transition-all duration-150 group relative cursor-pointer ${
+                isActive
+                  ? 'bg-gradient-to-r from-blue-600/30 to-cyan-600/20 text-cyan-300 border border-cyan-500/40 font-bold shadow-sm shadow-cyan-950/40'
+                  : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900/60 font-semibold'
+              }`}
+            >
+              <div className="flex items-center gap-2.5 min-w-0">
+                {isActive && <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 flex-shrink-0 animate-pulse" />}
+                <span className="truncate">{item.label}</span>
+              </div>
 
-            {section.items.map(item => {
-              const isActive = activeTab === item.id;
-              
-              return (
-                <button
-                  key={item.id}
-                  onClick={() => handleNav(item.id)}
-                  className={`w-full flex items-center justify-between px-3.5 py-2 rounded-xl text-xs transition-all duration-150 group relative ${
-                    isActive
-                      ? 'bg-gradient-to-r from-blue-600/20 to-cyan-600/10 text-cyan-300 border border-cyan-500/30 font-bold'
-                      : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900/60 font-semibold'
-                  }`}
-                >
-                  <div className="flex items-center gap-2.5 min-w-0">
-                    {isActive && <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 flex-shrink-0 animate-pulse" />}
-                    <span className="truncate">{item.label}</span>
-                  </div>
-
-                  {item.badge && (
-                    <span className={`text-[10px] px-2 py-0.5 rounded-md font-mono font-bold flex-shrink-0 ${
-                      isActive 
-                        ? 'bg-cyan-400/20 text-cyan-300 border border-cyan-400/30' 
-                        : 'bg-slate-800/80 text-slate-400 border border-slate-700/50'
-                    }`}>
-                      {item.badge}
-                    </span>
-                  )}
-                </button>
-              );
-            })}
-          </div>
-        ))}
+              {item.badge && (
+                <span className={`text-[10px] px-2 py-0.5 rounded-md font-mono font-bold flex-shrink-0 ${
+                  isActive 
+                    ? 'bg-cyan-400/20 text-cyan-300 border border-cyan-400/30' 
+                    : 'bg-slate-800/80 text-slate-400 border border-slate-700/50'
+                }`}>
+                  {item.badge}
+                </span>
+              )}
+            </button>
+          );
+        })}
       </div>
 
       {/* Bottom Sleek User Bar */}

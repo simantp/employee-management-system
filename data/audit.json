@@ -1,5 +1,29 @@
 [
   {
+    "id": "aud-1789020629585",
+    "action": "USER_LOGIN",
+    "targetType": "User",
+    "targetId": "usr-2",
+    "details": "User logged in with role STAFF",
+    "actorId": "usr-1",
+    "actorName": "Suman Thapa",
+    "actorRole": "STAFF",
+    "timestamp": "10/09/2026, 4:10:29 pm AEST",
+    "ipAddress": "127.0.0.1 (Localhost)"
+  },
+  {
+    "id": "aud-1789020626976",
+    "action": "USER_LOGOUT",
+    "targetType": "User",
+    "targetId": "usr-1",
+    "details": "User Admin User logged out",
+    "actorId": "usr-1",
+    "actorName": "Admin User",
+    "actorRole": "SUPER_ADMIN",
+    "timestamp": "10/09/2026, 4:10:26 pm AEST",
+    "ipAddress": "127.0.0.1 (Localhost)"
+  },
+  {
     "id": "aud-1789019813096",
     "action": "USER_LOGIN",
     "targetType": "User",
