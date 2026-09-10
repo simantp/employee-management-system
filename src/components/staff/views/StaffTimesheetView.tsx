@@ -139,9 +139,6 @@ export default function StaffTimesheetView() {
               Read-Only
             </span>
           </div>
-          <p className="text-slate-500 mt-0.5">
-            Fair Work Australia standard 38.0h week • Real-time electronic punch log at {currentStaff.workLocation || 'Sydney NSW'}
-          </p>
         </div>
 
         <div className="flex items-center gap-2.5">
@@ -188,35 +185,6 @@ export default function StaffTimesheetView() {
           </div>
         </div>
       )}
-
-      {/* Summary KPI Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="bg-white rounded-2xl p-4 border border-slate-200/80 shadow-xs space-y-1">
-          <span className="text-slate-400 font-bold uppercase tracking-wider text-[10px] block">Logged Hours</span>
-          <span className="text-2xl font-black text-slate-900 block">{totalLoggedHours.toFixed(1)} hrs</span>
-          <span className="text-[11px] text-emerald-600 font-bold">
-            {((totalLoggedHours / standardHours) * 100).toFixed(0)}% of {standardHours}h standard
-          </span>
-        </div>
-
-        <div className="bg-white rounded-2xl p-4 border border-slate-200/80 shadow-xs space-y-1">
-          <span className="text-slate-400 font-bold uppercase tracking-wider text-[10px] block">Overtime (1.5x / 2.0x)</span>
-          <span className="text-2xl font-black text-orange-600 block">{totalOvertime.toFixed(1)} hrs</span>
-          <span className="text-[11px] text-slate-500">Fair Work penalty tier</span>
-        </div>
-
-        <div className="bg-white rounded-2xl p-4 border border-slate-200/80 shadow-xs space-y-1">
-          <span className="text-slate-400 font-bold uppercase tracking-wider text-[10px] block">Approved Leaves</span>
-          <span className="text-2xl font-black text-indigo-600 block">{staffLeaves.length} Shifts</span>
-          <span className="text-[11px] text-indigo-700 font-semibold">Annual &amp; Sick recorded</span>
-        </div>
-
-        <div className="bg-white rounded-2xl p-4 border border-slate-200/80 shadow-xs space-y-1">
-          <span className="text-slate-400 font-bold uppercase tracking-wider text-[10px] block">Security &amp; Integrity</span>
-          <span className="text-2xl font-black text-emerald-600 block">Verified</span>
-          <span className="text-[11px] text-slate-500">Supervisor: {currentStaff.reportsTo || 'Operations Lead'}</span>
-        </div>
-      </div>
 
       {/* Main Electronic Timecard Table */}
       <div className="bg-white rounded-3xl border border-slate-200/80 shadow-sm overflow-hidden">
