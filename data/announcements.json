@@ -1,5 +1,15 @@
 [
   {
+    "id": "ann-1789015427729",
+    "title": "Test",
+    "content": "testtesetstetsesdfds",
+    "author": "Admin User",
+    "authorRole": "SUPER_ADMIN",
+    "date": "10 Sept 2026",
+    "category": "Operations & Safety",
+    "isPinned": true
+  },
+  {
     "id": "ann-1",
     "title": "Sydney Plant Annual Team Building & WHS Safety Workshop",
     "content": "All Sydney NSW staff members are invited to our annual safety presentation and company celebration lunch on Friday 28 August 2026. Shifts and production schedules will operate on modified hours.",

@@ -8,7 +8,15 @@ export default function CompanyLatestAnnouncementBanner() {
   const [currentIndex, setCurrentIndex] = useState(0);
 
   if (!announcements || announcements.length === 0) {
-    return null;
+    return (
+      <div className="relative overflow-hidden rounded-3xl bg-slate-900 border border-slate-800 p-8 text-white text-center space-y-2 shadow-xl animate-in fade-in duration-150">
+        <span className="text-3xl block mb-1">📢</span>
+        <h3 className="text-sm font-bold text-white">No Announcements at this time</h3>
+        <p className="text-xs text-slate-400 max-w-sm mx-auto">
+          When company management posts new notices or operational updates, they will appear here.
+        </p>
+      </div>
+    );
   }
 
   const currentAnnouncement = announcements[currentIndex] || announcements[0];

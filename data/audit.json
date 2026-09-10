@@ -1,5 +1,65 @@
 [
   {
+    "id": "aud-1789015433723",
+    "action": "USER_LOGIN",
+    "targetType": "User",
+    "targetId": "usr-2",
+    "details": "User logged in with role STAFF",
+    "actorId": "usr-1",
+    "actorName": "Suman Thapa",
+    "actorRole": "STAFF",
+    "timestamp": "10/09/2026, 2:43:53 pm AEST",
+    "ipAddress": "127.0.0.1 (Localhost)"
+  },
+  {
+    "id": "aud-1789015432128",
+    "action": "USER_LOGOUT",
+    "targetType": "User",
+    "targetId": "usr-1",
+    "details": "User Admin User logged out",
+    "actorId": "usr-1",
+    "actorName": "Admin User",
+    "actorRole": "SUPER_ADMIN",
+    "timestamp": "10/09/2026, 2:43:52 pm AEST",
+    "ipAddress": "127.0.0.1 (Localhost)"
+  },
+  {
+    "id": "aud-1789015427731",
+    "action": "POST_ANNOUNCEMENT",
+    "targetType": "ANNOUNCEMENT",
+    "targetId": "ann-1789015427729",
+    "details": "Admin posted company announcement: \"Test\"",
+    "actorId": "usr-1",
+    "actorName": "Admin User",
+    "actorRole": "SUPER_ADMIN",
+    "timestamp": "10/09/2026, 2:43:47 pm AEST",
+    "ipAddress": "127.0.0.1 (Localhost)"
+  },
+  {
+    "id": "aud-1789015414466",
+    "action": "USER_LOGIN",
+    "targetType": "User",
+    "targetId": "usr-1",
+    "details": "User logged in with role SUPER_ADMIN",
+    "actorId": "usr-1",
+    "actorName": "Admin User",
+    "actorRole": "SUPER_ADMIN",
+    "timestamp": "10/09/2026, 2:43:34 pm AEST",
+    "ipAddress": "127.0.0.1 (Localhost)"
+  },
+  {
+    "id": "aud-1789015413552",
+    "action": "USER_LOGOUT",
+    "targetType": "User",
+    "targetId": "usr-2",
+    "details": "User Suman Thapa logged out",
+    "actorId": "usr-1",
+    "actorName": "Suman Thapa",
+    "actorRole": "STAFF",
+    "timestamp": "10/09/2026, 2:43:33 pm AEST",
+    "ipAddress": "127.0.0.1 (Localhost)"
+  },
+  {
     "id": "aud-1789014515756",
     "action": "USER_LOGIN",
     "targetType": "User",
