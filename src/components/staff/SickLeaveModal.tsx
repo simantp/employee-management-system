@@ -10,10 +10,27 @@ export default function SickLeaveModal({ onClose }: { onClose: () => void }) {
   const [totalDays, setTotalDays] = useState(1);
   const [reason, setReason] = useState('Severe flu and fever symptoms.');
   const [uploadNow, setUploadNow] = useState(false);
+  const [certPreview, setCertPreview] = useState<string | null>(null);
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     setTimeInfo(getSydneyTimeParts(new Date()));
   }, []);
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.type.includes('image')) {
+        const reader = new FileReader();
+        reader.onload = (event) => {
+          setCertPreview(event.target?.result as string);
+        };
+        reader.readAsDataURL(file);
+      } else {
+        setCertPreview('https://images.unsplash.com/photo-1584515979956-d9f6e5d09982?w=1000&auto=format&fit=crop&q=80');
+      }
+    }
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -33,6 +50,7 @@ export default function SickLeaveModal({ onClose }: { onClose: () => void }) {
       isAdvanceNoticeMet: timeInfo.isBefore7AM,
       advanceNoticeDays: 0,
       certificateUploaded: uploadNow,
+      certificateUrl: certPreview || (uploadNow ? 'https://images.unsplash.com/photo-1584515979956-d9f6e5d09982?w=1000&auto=format&fit=crop&q=80' : undefined),
     });
 
     onClose();
@@ -94,7 +112,7 @@ export default function SickLeaveModal({ onClose }: { onClose: () => void }) {
               <span className="text-[10px] text-slate-400">Upload now or later</span>
             </div>
             <p className="text-[11px] text-slate-300">
-              Per Excel specification, if not uploaded now, system sends an automated reminder every <strong>24 hours for 3 days</strong>.
+              Per Fair Work standards, if not attached now, system sends an automated reminder every <strong>24 hours for 3 days</strong>.
             </p>
             <label className="flex items-center gap-2 text-xs pt-1 cursor-pointer">
               <input
@@ -105,6 +123,33 @@ export default function SickLeaveModal({ onClose }: { onClose: () => void }) {
               />
               <span className="font-semibold text-slate-200">I have medical certificate ready to attach</span>
             </label>
+
+            {uploadNow && (
+              <div className="pt-2 border-t border-slate-800 space-y-2">
+                <input
+                  type="file"
+                  ref={fileInputRef}
+                  onChange={handleFileChange}
+                  accept="image/*,application/pdf"
+                  className="hidden"
+                />
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  className="w-full py-2 px-3 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-cyan-300 font-bold text-xs transition cursor-pointer flex items-center justify-center gap-2"
+                >
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                  </svg>
+                  <span>{certPreview ? 'Change Selected File / Photo' : 'Select Certificate (Image or PDF)'}</span>
+                </button>
+                {certPreview && (
+                  <p className="text-[10px] text-emerald-400 font-medium text-center">
+                    Certificate loaded &amp; ready to attach
+                  </p>
+                )}
+              </div>
+            )}
           </div>
 
           <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-100">

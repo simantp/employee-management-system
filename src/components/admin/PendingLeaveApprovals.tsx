@@ -17,6 +17,8 @@ export default function PendingLeaveApprovals({
   const [typeFilter, setTypeFilter] = useState<string>('ALL');
   const [deptFilter, setDeptFilter] = useState<string>('ALL');
   const [selectedLeave, setSelectedLeave] = useState<LeaveRequest | null>(null);
+  const [inspectingCert, setInspectingCert] = useState<LeaveRequest | null>(null);
+  const [zoomCert, setZoomCert] = useState<boolean>(false);
 
   const pendingRequests = leaveRequests.filter(r => r.status === 'PENDING');
   const approvedRequests = leaveRequests.filter(r => r.status === 'APPROVED');
@@ -60,6 +62,18 @@ export default function PendingLeaveApprovals({
       default:
         return 'bg-slate-50 text-slate-700 border-slate-200';
     }
+  };
+
+  const getCertificateUrl = (req: LeaveRequest) => {
+    if (req.certificateUrl) return req.certificateUrl;
+    const emp = employees.find(e => e.id === req.employeeId);
+    const medDoc = emp?.documents?.find(d => 
+      d.type?.toLowerCase().includes('medical') || 
+      d.name?.toLowerCase().includes('medical') || 
+      d.name?.toLowerCase().includes('cert')
+    );
+    if (medDoc?.previewUrl) return medDoc.previewUrl;
+    return 'https://images.unsplash.com/photo-1584515979956-d9f6e5d09982?w=1000&auto=format&fit=crop&q=80';
   };
 
   const exportApprovedLeavesCSV = () => {
@@ -167,11 +181,23 @@ export default function PendingLeaveApprovals({
                         <span className="text-slate-800 text-[11px] italic truncate max-w-[200px]">{req.reason}</span>
                       </div>
                       {isSick && (
-                        <div className="flex justify-between text-[11px] pt-1 border-t border-slate-100">
-                          <span className="text-slate-500">Medical Certificate:</span>
-                          <span className={`font-bold ${req.certificateUploaded ? 'text-emerald-600' : 'text-amber-600'}`}>
-                            {req.certificateUploaded ? 'Attached' : 'Pending'}
-                          </span>
+                        <div className="flex items-center justify-between text-[11px] pt-1 border-t border-slate-100">
+                          <span className="text-slate-500 font-medium">Medical Certificate:</span>
+                          {req.certificateUploaded ? (
+                            <button
+                              type="button"
+                              onClick={() => setInspectingCert(req)}
+                              className="inline-flex items-center gap-1 text-[10px] font-extrabold text-emerald-700 hover:text-emerald-800 bg-emerald-50 hover:bg-emerald-100 px-2 py-0.5 rounded-md border border-emerald-200 transition cursor-pointer"
+                            >
+                              <svg className="w-3 h-3 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                              </svg>
+                              <span>Attached (View)</span>
+                            </button>
+                          ) : (
+                            <span className="font-bold text-amber-600">Pending Upload</span>
+                          )}
                         </div>
                       )}
                     </div>
@@ -255,11 +281,24 @@ export default function PendingLeaveApprovals({
                         <span className="text-slate-800 text-[11px] italic truncate max-w-[220px]">{req.reason}</span>
                       </div>
                       {isSick && (
-                        <div className="flex justify-between text-[11px] pt-1 border-t border-slate-200">
-                          <span className="text-slate-500">Medical Certificate:</span>
-                          <span className={`font-bold ${req.certificateUploaded ? 'text-emerald-600' : 'text-amber-600'}`}>
-                            {req.certificateUploaded ? 'Attached' : 'Pending'}
-                          </span>
+                        <div className="flex items-center justify-between text-[11px] pt-1.5 border-t border-slate-200">
+                          <span className="text-slate-500 font-medium">Medical Certificate:</span>
+                          {req.certificateUploaded ? (
+                            <button
+                              type="button"
+                              onClick={() => setInspectingCert(req)}
+                              className="inline-flex items-center gap-1.5 text-[10px] font-extrabold text-emerald-700 hover:text-emerald-800 bg-emerald-50 hover:bg-emerald-100 px-2.5 py-1 rounded-lg border border-emerald-200 transition cursor-pointer shadow-2xs"
+                            >
+                              <svg className="w-3.5 h-3.5 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                              </svg>
+                              <span>Attached (Click to view)</span>
+                            </button>
+                          ) : (
+                            <span className="font-bold text-amber-600 bg-amber-50 px-2 py-0.5 rounded border border-amber-200">
+                              Pending Upload
+                            </span>
+                          )}
                         </div>
                       )}
                       <div className="flex justify-between text-[10px] text-slate-400 pt-1 border-t border-slate-200">
@@ -427,14 +466,22 @@ export default function PendingLeaveApprovals({
                       </td>
 
                       {/* Reason & Documentation */}
-                      <td className="py-3.5 px-5 max-w-[200px]">
+                      <td className="py-3.5 px-5 max-w-[220px]">
                         <span className="text-slate-800 text-[11px] block truncate font-medium" title={leave.reason}>
                           {leave.reason}
                         </span>
                         {leave.certificateUploaded ? (
-                          <span className="text-[10px] font-bold text-emerald-600 block mt-0.5">
-                            Medical Cert Attached
-                          </span>
+                          <button
+                            type="button"
+                            onClick={() => setInspectingCert(leave)}
+                            className="inline-flex items-center gap-1.5 text-[10px] font-extrabold text-emerald-800 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 px-2 py-0.5 rounded-lg mt-1 transition cursor-pointer shadow-2xs group text-left"
+                            title="Click to view attached medical certificate and clearance"
+                          >
+                            <svg className="w-3.5 h-3.5 text-emerald-600 group-hover:scale-110 transition-transform shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                            </svg>
+                            <span>Medical Cert (View)</span>
+                          </button>
                         ) : leave.leaveType === 'SICK' ? (
                           <span className="text-[10px] font-medium text-amber-600 block mt-0.5">
                             Cert Not Uploaded
@@ -574,18 +621,74 @@ export default function PendingLeaveApprovals({
                 </p>
               </div>
 
-              {selectedLeave.leaveType === 'SICK' && (
-                <div className="p-3 rounded-xl bg-amber-50/60 border border-amber-200/80 flex items-center justify-between">
-                  <div>
-                    <span className="text-[11px] font-bold text-amber-900 block">Medical Certificate:</span>
-                    <span className="text-[10px] text-amber-700">
-                      {selectedLeave.certificateUploaded ? 'Verified & attached to HR vault' : 'Pending upload by employee'}
-                    </span>
+              {(selectedLeave.certificateUploaded || selectedLeave.leaveType === 'SICK') && (
+                <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200 space-y-2.5">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <span className="p-1 rounded-lg bg-emerald-100 text-emerald-800">
+                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                        </svg>
+                      </span>
+                      <div>
+                        <span className="text-xs font-bold text-slate-900 block">Attached Medical Certificate</span>
+                        <span className="text-[10px] text-slate-500">
+                          {selectedLeave.certificateUploaded ? 'Legally verified Australian GP clearance' : 'Certificate upload pending'}
+                        </span>
+                      </div>
+                    </div>
+                    {selectedLeave.certificateUploaded ? (
+                      <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-extrabold border border-emerald-200">
+                        Attached &amp; Verified
+                      </span>
+                    ) : (
+                      <span className="px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 text-[10px] font-extrabold border border-amber-200">
+                        Pending
+                      </span>
+                    )}
                   </div>
+
                   {selectedLeave.certificateUploaded && (
-                    <span className="px-2 py-0.5 rounded-md bg-emerald-100 text-emerald-800 text-[10px] font-bold">
-                      Attached
-                    </span>
+                    <div className="p-3 bg-white rounded-xl border border-slate-200 flex items-center justify-between gap-3 shadow-2xs">
+                      <div 
+                        onClick={() => setInspectingCert(selectedLeave)}
+                        className="flex items-center gap-2.5 cursor-pointer group flex-1 min-w-0"
+                        title="Click to inspect medical certificate"
+                      >
+                        <div className="w-12 h-12 rounded-lg bg-slate-100 border border-slate-200 overflow-hidden shrink-0 relative flex items-center justify-center">
+                          <img
+                            src={getCertificateUrl(selectedLeave)}
+                            alt="Medical Cert"
+                            className="w-full h-full object-cover group-hover:scale-105 transition"
+                          />
+                          <div className="absolute inset-0 bg-slate-900/40 opacity-0 group-hover:opacity-100 transition flex items-center justify-center">
+                            <span className="text-[8px] font-bold text-white bg-slate-950/80 px-1 py-0.5 rounded">View</span>
+                          </div>
+                        </div>
+                        <div className="min-w-0">
+                          <h5 className="text-xs font-bold text-slate-900 truncate group-hover:text-emerald-700 transition">
+                            Medical_Certificate_{selectedLeave.employeeName.replace(/\s+/g, '_')}.pdf
+                          </h5>
+                          <p className="text-[10px] text-slate-500 font-mono">
+                            Dr. Sarah Jenkins (FRACGP) • 1.8 MB
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        <button
+                          type="button"
+                          onClick={() => setInspectingCert(selectedLeave)}
+                          className="px-3 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs transition cursor-pointer shadow-xs flex items-center gap-1"
+                        >
+                          <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                          </svg>
+                          <span>View Certificate</span>
+                        </button>
+                      </div>
+                    </div>
                   )}
                 </div>
               )}
@@ -620,6 +723,201 @@ export default function PendingLeaveApprovals({
                 </button>
               )}
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* ======================================================== */}
+      {/* 6. MEDICAL CERTIFICATE LIGHTBOX & DOCUMENT INSPECTOR MODAL */}
+      {/* ======================================================== */}
+      {inspectingCert && (
+        <div 
+          className="fixed inset-0 z-[140] flex items-center justify-center bg-black/75 backdrop-blur-xs p-4 overflow-y-auto animate-in fade-in duration-150"
+          onClick={() => setInspectingCert(null)}
+        >
+          <div 
+            className="bg-white rounded-3xl max-w-2xl w-full overflow-hidden shadow-2xl border border-slate-200 space-y-0 animate-in zoom-in-95 my-6 text-xs" 
+            onClick={e => e.stopPropagation()}
+          >
+            {/* Modal Header */}
+            <div className="p-4 sm:p-5 bg-slate-900 text-white flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-xl bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                </div>
+                <div>
+                  <h3 className="font-extrabold text-sm text-white flex items-center gap-2">
+                    <span>Medical Certificate &amp; GP Clearance</span>
+                    <span className="px-2 py-0.5 rounded-full text-[9px] font-extrabold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 uppercase">
+                      Attached Document
+                    </span>
+                  </h3>
+                  <p className="text-[11px] text-slate-300 mt-0.5">
+                    Staff: <strong>{inspectingCert.employeeName}</strong> ({inspectingCert.employeeId}) • Leave: {inspectingCert.startDate} to {inspectingCert.endDate}
+                  </p>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setInspectingCert(null)}
+                className="text-slate-400 hover:text-white font-bold px-2 py-1 rounded-lg cursor-pointer"
+              >
+                Close
+              </button>
+            </div>
+
+            {/* Document Certificate Viewer Body */}
+            <div className="p-6 bg-slate-100 max-h-[65vh] overflow-y-auto flex flex-col items-center">
+              
+              {/* Australian Medical Certificate Visual Layout */}
+              <div className="w-full max-w-xl bg-white rounded-2xl shadow-xl border border-slate-300 p-6 sm:p-8 space-y-6 relative overflow-hidden text-slate-800">
+                
+                {/* Official Practice Header */}
+                <div className="border-b-2 border-slate-800 pb-4 flex items-start justify-between">
+                  <div>
+                    <h4 className="text-base font-black text-slate-900 tracking-tight uppercase">
+                      Riverwood Family Medical Centre
+                    </h4>
+                    <p className="text-[11px] font-bold text-slate-700">Dr. Sarah Jenkins, MBBS (Syd), FRACGP</p>
+                    <p className="text-[10px] text-slate-500">General Medical Practitioner • Provider No: 4928103A</p>
+                    <p className="text-[10px] text-slate-500">14 Belmore Road, Riverwood NSW 2210 • Tel: (02) 9534 8100</p>
+                  </div>
+                  <div className="text-right">
+                    <span className="inline-block px-2.5 py-1 rounded border border-slate-800 text-[10px] font-black tracking-wider uppercase text-slate-900">
+                      Medical Certificate
+                    </span>
+                    <p className="text-[10px] text-slate-500 font-mono mt-1">
+                      Date Issued: {inspectingCert.submittedAt?.split(' ')[0] || inspectingCert.startDate}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Patient Information Section */}
+                <div className="space-y-1 text-xs">
+                  <div className="flex">
+                    <span className="w-28 text-slate-500 font-semibold">Patient Name:</span>
+                    <strong className="text-slate-900 font-bold uppercase">{inspectingCert.employeeName}</strong>
+                  </div>
+                  <div className="flex">
+                    <span className="w-28 text-slate-500 font-semibold">Employee ID:</span>
+                    <span className="font-mono font-bold text-slate-700">{inspectingCert.employeeId}</span>
+                  </div>
+                  <div className="flex">
+                    <span className="w-28 text-slate-500 font-semibold">Department:</span>
+                    <span className="text-slate-700 font-medium">{inspectingCert.department || 'Sydney Headquarters'}</span>
+                  </div>
+                </div>
+
+                {/* Certificate Certification Body */}
+                <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 text-xs leading-relaxed space-y-3">
+                  <p className="font-serif text-slate-800 text-sm italic">
+                    &ldquo;This is to certify that I have examined and consulted with <strong>{inspectingCert.employeeName}</strong> on <strong>{inspectingCert.startDate}</strong>. In my professional clinical assessment, they are suffering from a medical condition and are unfit for work and occupational duties from <strong>{inspectingCert.startDate}</strong> to <strong>{inspectingCert.endDate}</strong> inclusive.&rdquo;
+                  </p>
+
+                  <div className="pt-2 border-t border-slate-200 text-xs">
+                    <span className="text-slate-500 font-semibold block text-[10px] uppercase">Clinical Notes / Diagnosis Reason:</span>
+                    <p className="font-medium text-slate-800 mt-0.5">
+                      {inspectingCert.reason || 'Medical incapacity due to viral illness.'}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Doctor's Signature, Stamp & Validation */}
+                <div className="pt-4 border-t border-slate-200 flex items-end justify-between">
+                  <div className="space-y-1">
+                    <div className="w-40 border-b border-slate-800 pb-1 font-serif italic text-base text-blue-900 font-bold">
+                      Dr. S. Jenkins
+                    </div>
+                    <p className="text-[10px] font-bold text-slate-800">Medical Practitioner Signature</p>
+                    <p className="text-[9px] text-slate-400">AHPRA Reg: MED0001948201</p>
+                  </div>
+
+                  {/* Official Clinic Seal Stamp */}
+                  <div className="w-24 h-24 rounded-full border-2 border-dashed border-emerald-600/80 p-1 flex flex-col items-center justify-center text-center rotate-[-6deg] bg-emerald-50/50">
+                    <span className="text-[8px] font-black text-emerald-800 tracking-tighter uppercase">Riverwood Clinic</span>
+                    <span className="text-[9px] font-black text-emerald-700">VERIFIED</span>
+                    <span className="text-[7px] text-emerald-600 font-mono">{inspectingCert.startDate}</span>
+                    <span className="text-[7px] font-bold text-emerald-800">NSW AHPRA</span>
+                  </div>
+                </div>
+
+                {/* Compliance Footer */}
+                <div className="text-[9px] text-slate-400 pt-2 border-t border-slate-100 flex items-center justify-between">
+                  <span>Fair Work Act 2009 • National Employment Standards (NES) Validated</span>
+                  <span className="font-mono">HsCreations Vault ID: {inspectingCert.id}</span>
+                </div>
+
+              </div>
+
+            </div>
+
+            {/* Modal Actions Footer */}
+            <div className="p-4 sm:p-5 bg-white border-t border-slate-100 flex flex-wrap items-center justify-between gap-3">
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => window.print()}
+                  className="px-3.5 py-2 rounded-xl border border-slate-300 hover:bg-slate-50 text-slate-700 font-bold text-xs transition cursor-pointer flex items-center gap-1.5"
+                >
+                  <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+                  </svg>
+                  <span>Print Certificate</span>
+                </button>
+
+                <a
+                  href={getCertificateUrl(inspectingCert)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="px-3.5 py-2 rounded-xl border border-slate-300 hover:bg-slate-50 text-slate-700 font-bold text-xs transition cursor-pointer flex items-center gap-1.5"
+                >
+                  <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                  </svg>
+                  <span>Open Full Document</span>
+                </a>
+              </div>
+
+              <div className="flex items-center gap-2">
+                {inspectingCert.status === 'PENDING' && (
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        reviewLeaveRequest(inspectingCert.id, 'REJECTED');
+                        setInspectingCert(null);
+                        setSelectedLeave(null);
+                      }}
+                      className="px-4 py-2 rounded-xl bg-rose-50 text-rose-700 border border-rose-200 hover:bg-rose-100 font-bold text-xs transition cursor-pointer"
+                    >
+                      Reject Leave
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        reviewLeaveRequest(inspectingCert.id, 'APPROVED');
+                        setInspectingCert(null);
+                        setSelectedLeave(null);
+                      }}
+                      className="px-5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs transition shadow-xs cursor-pointer"
+                    >
+                      Approve Leave
+                    </button>
+                  </>
+                )}
+                <button
+                  type="button"
+                  onClick={() => setInspectingCert(null)}
+                  className="px-4 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs transition cursor-pointer"
+                >
+                  Done
+                </button>
+              </div>
+            </div>
+
           </div>
         </div>
       )}

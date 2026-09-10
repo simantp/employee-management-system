@@ -1,5 +1,53 @@
 [
   {
+    "id": "aud-1789009292467",
+    "action": "APPROVE_DOCUMENT",
+    "targetType": "Document",
+    "targetId": "doc-4",
+    "details": "Admin reviewed document (Verified) for Suman Thapa. Notes: None",
+    "actorId": "usr-1",
+    "actorName": "Admin User",
+    "actorRole": "SUPER_ADMIN",
+    "timestamp": "10/09/2026, 1:01:32 pm AEST",
+    "ipAddress": "127.0.0.1 (Localhost)"
+  },
+  {
+    "id": "aud-1789009290002",
+    "action": "APPROVED_LEAVE_REQUEST",
+    "targetType": "LeaveRequest",
+    "targetId": "lr-104",
+    "details": "Admin marked request lr-104 as APPROVED",
+    "actorId": "usr-1",
+    "actorName": "Admin User",
+    "actorRole": "SUPER_ADMIN",
+    "timestamp": "10/09/2026, 1:01:30 pm AEST",
+    "ipAddress": "127.0.0.1 (Localhost)"
+  },
+  {
+    "id": "aud-1789009288714",
+    "action": "APPROVED_LEAVE_REQUEST",
+    "targetType": "LeaveRequest",
+    "targetId": "lr-103",
+    "details": "Admin marked request lr-103 as APPROVED",
+    "actorId": "usr-1",
+    "actorName": "Admin User",
+    "actorRole": "SUPER_ADMIN",
+    "timestamp": "10/09/2026, 1:01:28 pm AEST",
+    "ipAddress": "127.0.0.1 (Localhost)"
+  },
+  {
+    "id": "aud-1789009273961",
+    "action": "USER_LOGIN",
+    "targetType": "User",
+    "targetId": "usr-1",
+    "details": "User logged in with role SUPER_ADMIN",
+    "actorId": "usr-1",
+    "actorName": "Admin User",
+    "actorRole": "SUPER_ADMIN",
+    "timestamp": "10/09/2026, 1:01:13 pm AEST",
+    "ipAddress": "127.0.0.1 (Localhost)"
+  },
+  {
     "id": "aud-1789008256226",
     "action": "USER_LOGOUT",
     "targetType": "User",

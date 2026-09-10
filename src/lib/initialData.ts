@@ -429,6 +429,7 @@ export const INITIAL_LEAVE_REQUESTS: LeaveRequest[] = [
     isAdvanceNoticeMet: true,
     advanceNoticeDays: 0,
     certificateUploaded: true,
+    certificateUrl: 'https://images.unsplash.com/photo-1584515979956-d9f6e5d09982?w=1000&auto=format&fit=crop&q=80',
     reminderCount: 0,
     reviewedBy: 'Admin User',
     reviewedAt: '12/08/2026 08:30 AM',

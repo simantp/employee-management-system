@@ -105,8 +105,9 @@
         "name": "Driving License Copy",
         "type": "License",
         "uploadDate": "12/05/2025",
-        "status": "Pending",
-        "fileSize": "3.1 MB"
+        "status": "Verified",
+        "fileSize": "3.1 MB",
+        "rejectionReason": null
       },
       {
         "id": "doc-5",
@@ -163,7 +164,7 @@
     "accountNumberMasked": "••••••102",
     "accountNumberEncrypted": "AES256_GCM:yATMwETOygDO",
     "leaveBalance": {
-      "annual": 14,
+      "annual": 9,
       "sick": 8,
       "carers": 3,
       "longService": 0
@@ -367,7 +368,7 @@
     "accountNumberEncrypted": "AES256_GCM:yQDNyATM5QDN",
     "leaveBalance": {
       "annual": 6,
-      "sick": 4,
+      "sick": 3,
       "carers": 2,
       "longService": 5
     },
