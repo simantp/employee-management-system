@@ -2,7 +2,6 @@
 
 import React, { useState } from 'react';
 import { useApp } from '@/lib/store';
-import LeaveBalanceDonut from '../LeaveBalanceDonut';
 import ApplyLeaveModal from '../ApplyLeaveModal';
 import SickLeaveModal from '../SickLeaveModal';
 
@@ -37,29 +36,6 @@ export default function StaffLeaveView() {
           >
             <span>Apply for Leave</span>
           </button>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <LeaveBalanceDonut onApplyLeave={() => setShowApplyModal(true)} />
-
-        <div className="bg-white rounded-2xl p-6 border border-slate-200/80 shadow-sm space-y-3">
-          <h3 className="font-extrabold text-sm text-slate-900">Leave Policies &amp; Lead Times (Australia)</h3>
-          
-          <div className="space-y-2.5 text-slate-600 text-[11px]">
-            <div className="p-2.5 rounded-xl bg-amber-50 border border-amber-200 text-amber-900">
-              <strong>Sick Leave:</strong> Must be reported before <strong>7:00 AM Mon-Fri</strong>. Certificate can be attached now or within 3 days (daily reminders sent).
-            </div>
-            <div className="p-2.5 rounded-xl bg-blue-50 border border-blue-200 text-blue-900">
-              <strong>1-Day Leave:</strong> Requires at least <strong>2 days advance notice</strong>.
-            </div>
-            <div className="p-2.5 rounded-xl bg-blue-50 border border-blue-200 text-blue-900">
-              <strong>2 to 5 Days Leave:</strong> Requires at least <strong>2 weeks advance notice</strong>.
-            </div>
-            <div className="p-2.5 rounded-xl bg-purple-50 border border-purple-200 text-purple-900">
-              <strong>5+ Days Leave:</strong> Requires at least <strong>4 weeks advance notice</strong>.
-            </div>
-          </div>
         </div>
       </div>
 
