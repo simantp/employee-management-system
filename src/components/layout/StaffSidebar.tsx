@@ -18,8 +18,6 @@ export default function StaffSidebar({
     { id: 'documents', label: 'Documents' },
     { id: 'leave', label: 'Leave Management' },
     { id: 'timesheet', label: 'Timesheet Records' },
-    { id: 'emergency', label: 'Emergency Contacts' },
-    { id: 'directory', label: 'Company Directory' },
   ];
 
   const handleNav = (id: string) => {
@@ -77,8 +75,36 @@ export default function StaffSidebar({
         })}
       </div>
 
-      {/* Resignation Notice at Bottom of Sidebar */}
-      <div className="p-3 border-t border-slate-800/60">
+      {/* Bottom Section: Emergency Contacts, Company Directory, Resignation Notice */}
+      <div className="p-3 border-t border-slate-800/60 space-y-1">
+        <button
+          onClick={() => handleNav('emergency')}
+          className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs transition-all duration-150 group relative cursor-pointer ${
+            activeTab === 'emergency'
+              ? 'bg-gradient-to-r from-blue-600/30 to-cyan-600/20 text-cyan-300 border border-cyan-500/40 font-bold shadow-sm shadow-cyan-950/40'
+              : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900/60 font-semibold'
+          }`}
+        >
+          <div className="flex items-center gap-2.5 min-w-0">
+            {activeTab === 'emergency' && <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 flex-shrink-0 animate-pulse" />}
+            <span className="truncate">Emergency Contacts</span>
+          </div>
+        </button>
+
+        <button
+          onClick={() => handleNav('directory')}
+          className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs transition-all duration-150 group relative cursor-pointer ${
+            activeTab === 'directory'
+              ? 'bg-gradient-to-r from-blue-600/30 to-cyan-600/20 text-cyan-300 border border-cyan-500/40 font-bold shadow-sm shadow-cyan-950/40'
+              : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900/60 font-semibold'
+          }`}
+        >
+          <div className="flex items-center gap-2.5 min-w-0">
+            {activeTab === 'directory' && <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 flex-shrink-0 animate-pulse" />}
+            <span className="truncate">Company Directory</span>
+          </div>
+        </button>
+
         <button
           onClick={() => handleNav('resignation')}
           className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs transition-all duration-150 group relative cursor-pointer ${
