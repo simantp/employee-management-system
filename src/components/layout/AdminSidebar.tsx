@@ -19,7 +19,7 @@ export default function AdminSidebar({
     { id: 'timecards', label: 'Timecard & Shifts', badge: activeWorkingStaffCount > 0 ? `${activeWorkingStaffCount} Active` : null },
     { id: 'employees', label: 'Employees', badge: null },
     { id: 'alerts', label: 'Visa and License Alerts', badge: null },
-    { id: 'announcements', label: 'Announcements', badge: announcements.length > 0 ? `${announcements.length}` : null },
+    { id: 'announcements', label: 'Announcements', badge: null },
   ];
 
   const handleNav = (id: string) => {
