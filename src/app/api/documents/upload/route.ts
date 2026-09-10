@@ -56,17 +56,24 @@ export async function POST(req: Request) {
     let fileType: 'image' | 'pdf' | 'doc' = 'image';
 
     if (filePayload) {
-      const saveResult = await saveEmployeeFile({
-        employeeName: empName,
-        employeeId: empId,
-        fileName,
-        dataUrlOrBuffer: filePayload,
-      });
+      if (typeof filePayload === 'string' && (filePayload.startsWith('http://') || filePayload.startsWith('https://') || filePayload.startsWith('/uploads/'))) {
+        filePath = filePayload;
+        previewUrl = filePayload;
+        fileSize = '1.2 MB';
+        fileType = filePayload.toLowerCase().endsWith('.pdf') ? 'pdf' : 'image';
+      } else {
+        const saveResult = await saveEmployeeFile({
+          employeeName: empName,
+          employeeId: empId,
+          fileName,
+          dataUrlOrBuffer: filePayload,
+        });
 
-      filePath = saveResult.relativeFilePath;
-      previewUrl = saveResult.relativeFilePath;
-      fileSize = saveResult.fileSizeFormatted;
-      fileType = saveResult.fileType;
+        filePath = saveResult.relativeFilePath;
+        previewUrl = saveResult.relativeFilePath;
+        fileSize = saveResult.fileSizeFormatted;
+        fileType = saveResult.fileType;
+      }
     } else {
       previewUrl = 'https://images.unsplash.com/photo-1589829545856-d10d557cf95f?w=600&auto=format&fit=crop&q=80';
     }

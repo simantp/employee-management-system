@@ -49,7 +49,7 @@
     "accountNumberEncrypted": "AES256_GCM:5gzN2UDO0ATM",
     "leaveBalance": {
       "annual": 8,
-      "sick": 10,
+      "sick": 9,
       "carers": 2,
       "longService": 15
     },

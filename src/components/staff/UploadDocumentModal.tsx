@@ -23,7 +23,7 @@ export default function UploadDocumentModal({
   const [filePreview, setFilePreview] = useState<string | null>(initialDoc?.previewUrl || null);
   const [fileName, setFileName] = useState(initialDoc ? `${initialDoc.name}.png` : '');
   const [fileSize, setFileSize] = useState(initialDoc?.fileSize || '');
-  const [fileType, setFileType] = useState<'image' | 'pdf'>((initialDoc?.fileType as any) || 'image');
+  const [fileType, setFileType] = useState<'image' | 'pdf' | 'doc'>((initialDoc?.fileType as any) || 'image');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -45,17 +45,16 @@ export default function UploadDocumentModal({
     if (file) {
       setFileName(file.name);
       setFileSize((file.size / (1024 * 1024)).toFixed(2) + ' MB');
-      if (file.type.includes('image')) {
-        setFileType('image');
-        const reader = new FileReader();
-        reader.onload = (event) => {
-          setFilePreview(event.target?.result as string);
-        };
-        reader.readAsDataURL(file);
-      } else {
-        setFileType('pdf');
-        setFilePreview(null);
-      }
+      const isPdf = file.type.includes('pdf') || file.name.toLowerCase().endsWith('.pdf');
+      const isDoc = file.name.toLowerCase().endsWith('.doc') || file.name.toLowerCase().endsWith('.docx');
+      setFileType(isPdf ? 'pdf' : isDoc ? 'doc' : 'image');
+
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        setFilePreview(event.target?.result as string);
+      };
+      reader.readAsDataURL(file);
+
       if (!docName) {
         setDocName(file.name.replace(/\.[^/.]+$/, ''));
       }
@@ -81,27 +80,23 @@ export default function UploadDocumentModal({
 
     setIsSubmitting(true);
     setTimeout(() => {
+      const payloadDoc = {
+        name: docName || selectedDocType,
+        type: selectedDocType,
+        fileSize: fileSize || '1.6 MB',
+        previewUrl: filePreview || initialDoc?.previewUrl || 'https://images.unsplash.com/photo-1589829545856-d10d557cf95f?w=400&auto=format&fit=crop&q=80',
+        fileType,
+        expiryDate: expiryDate || undefined,
+        documentNumber: documentNumber || undefined,
+      };
+
       if (isEditing && initialDoc) {
         updateDocument(currentStaff.id, initialDoc.id, {
-          name: docName || selectedDocType,
-          type: selectedDocType,
-          fileSize: fileSize || '1.6 MB',
-          previewUrl: filePreview || initialDoc.previewUrl || 'https://images.unsplash.com/photo-1589829545856-d10d557cf95f?w=400&auto=format&fit=crop&q=80',
-          fileType,
-          expiryDate: expiryDate || undefined,
-          documentNumber: documentNumber || undefined,
+          ...payloadDoc,
           status: 'Pending',
         });
       } else {
-        uploadDocument(currentStaff.id, {
-          name: docName || selectedDocType,
-          type: selectedDocType,
-          fileSize: fileSize || '1.6 MB',
-          previewUrl: filePreview || 'https://images.unsplash.com/photo-1589829545856-d10d557cf95f?w=400&auto=format&fit=crop&q=80',
-          fileType,
-          expiryDate: expiryDate || undefined,
-          documentNumber: documentNumber || undefined,
-        });
+        uploadDocument(currentStaff.id, payloadDoc);
       }
       setIsSubmitting(false);
       onClose();
@@ -309,19 +304,35 @@ export default function UploadDocumentModal({
             <div className="p-3 bg-slate-50 border border-slate-200 rounded-2xl space-y-2 animate-in fade-in duration-150">
               <div className="flex items-center justify-between">
                 <span className="font-bold text-slate-700 text-[11px]">
-                  Document Thumbnail Preview:
+                  Document Preview:
                 </span>
                 <span className="text-[10px] text-slate-400 font-mono">{fileSize || '1.8 MB'}</span>
               </div>
-              <div className="relative rounded-xl overflow-hidden border border-slate-200 bg-white max-h-36 flex items-center justify-center">
-                <img 
-                  src={filePreview} 
-                  alt="Preview" 
-                  className="w-full h-36 object-cover"
-                />
-                <div className="absolute bottom-2 left-2 bg-black/20 text-white text-[9px] px-2 py-0.5 rounded font-mono">
-                  {fileName || 'document_preview.jpg'}
-                </div>
+              <div className="relative rounded-xl overflow-hidden border border-slate-200 bg-white max-h-36 flex items-center justify-center p-2">
+                {fileType === 'pdf' ? (
+                  <div className="flex items-center gap-3 p-3 bg-rose-50 border border-rose-200 rounded-xl w-full">
+                    <div className="p-2.5 rounded-lg bg-rose-100 text-rose-600">
+                      <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                      </svg>
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <span className="font-bold text-slate-900 text-xs block truncate">{fileName || 'Attached_Document.pdf'}</span>
+                      <span className="text-[10px] text-rose-700 font-bold">PDF Document Attached</span>
+                    </div>
+                  </div>
+                ) : (
+                  <img 
+                    src={filePreview} 
+                    alt="Preview" 
+                    className="w-full h-36 object-cover rounded-lg"
+                  />
+                )}
+                {fileType !== 'pdf' && (
+                  <div className="absolute bottom-2 left-2 bg-black/40 backdrop-blur-xs text-white text-[9px] px-2 py-0.5 rounded font-mono">
+                    {fileName || 'document_preview.jpg'}
+                  </div>
+                )}
               </div>
             </div>
           )}

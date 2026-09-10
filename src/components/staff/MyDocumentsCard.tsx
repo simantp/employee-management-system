@@ -2,22 +2,11 @@
 
 import React, { useState } from 'react';
 import { useApp } from '@/lib/store';
+import UploadDocumentModal from './UploadDocumentModal';
 
 export default function MyDocumentsCard() {
-  const { currentStaff, uploadDocument } = useApp();
-  const [uploading, setUploading] = useState(false);
-
-  const handleSimulatedUpload = () => {
-    setUploading(true);
-    setTimeout(() => {
-      uploadDocument(currentStaff.id, {
-        name: 'Medical_Cert_Aug2026.pdf',
-        type: 'Medical Certificate',
-        fileSize: '1.2 MB',
-      });
-      setUploading(false);
-    }, 600);
-  };
+  const { currentStaff } = useApp();
+  const [showUploadModal, setShowUploadModal] = useState(false);
 
   return (
     <div className="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-sm flex flex-col justify-between">
@@ -26,9 +15,6 @@ export default function MyDocumentsCard() {
           <h3 className="text-sm font-bold text-slate-900">My Documents &amp; Compliance</h3>
           <p className="text-[11px] text-slate-500">ID, Visas, Licenses &amp; Declarations</p>
         </div>
-        <button className="text-xs font-bold text-blue-600 hover:underline">
-          View All &rarr;
-        </button>
       </div>
 
       <div className="space-y-2 my-1">
@@ -48,12 +34,15 @@ export default function MyDocumentsCard() {
       </div>
 
       <button
-        onClick={handleSimulatedUpload}
-        disabled={uploading}
-        className="w-full py-2 px-4 rounded-xl border border-dashed border-blue-300 hover:border-blue-500 bg-blue-50/50 hover:bg-blue-50 text-blue-700 font-bold text-xs transition flex items-center justify-center gap-2 mt-2 cursor-pointer"
+        onClick={() => setShowUploadModal(true)}
+        className="w-full py-2 px-4 rounded-xl border border-dashed border-orange-300 hover:border-orange-500 bg-orange-50/50 hover:bg-orange-50 text-orange-700 font-bold text-xs transition flex items-center justify-center gap-2 mt-2 cursor-pointer"
       >
-        <span>{uploading ? 'Uploading Document...' : '+ Upload Renewal / Certificate'}</span>
+        <span>+ Upload Renewal / Certificate</span>
       </button>
+
+      {showUploadModal && (
+        <UploadDocumentModal onClose={() => setShowUploadModal(false)} />
+      )}
     </div>
   );
 }

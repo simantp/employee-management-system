@@ -27,6 +27,7 @@ export default function EmployeeDocumentsTab({ employeeId }: { employeeId: strin
   const [showUploadModal, setShowUploadModal] = useState<boolean>(false);
   const [editingDoc, setEditingDoc] = useState<EmployeeDocument | null>(null);
   const [inspectDoc, setInspectDoc] = useState<EmployeeDocument | null>(null);
+  const [zoomDoc, setZoomDoc] = useState<boolean>(false);
   const [rejectingDoc, setRejectingDoc] = useState<EmployeeDocument | null>(null);
   const [rejectReason, setRejectReason] = useState<string>('');
   const [deletingDoc, setDeletingDoc] = useState<EmployeeDocument | null>(null);
@@ -143,17 +144,16 @@ export default function EmployeeDocumentsTab({ employeeId }: { employeeId: strin
     const file = e.target.files?.[0];
     if (file) {
       setFormFileSize((file.size / (1024 * 1024)).toFixed(2) + ' MB');
-      if (file.type.includes('image')) {
-        setFormFileType('image');
-        const reader = new FileReader();
-        reader.onload = (event) => {
-          setFormFilePreview(event.target?.result as string);
-        };
-        reader.readAsDataURL(file);
-      } else {
-        setFormFileType('pdf');
-        setFormFilePreview(null);
-      }
+      const isPdf = file.type.includes('pdf') || file.name.toLowerCase().endsWith('.pdf');
+      const isDoc = file.name.toLowerCase().endsWith('.doc') || file.name.toLowerCase().endsWith('.docx');
+      setFormFileType(isPdf ? 'pdf' : isDoc ? 'doc' : 'image');
+
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        setFormFilePreview(event.target?.result as string);
+      };
+      reader.readAsDataURL(file);
+
       if (!formDocName) {
         setFormDocName(file.name.replace(/\.[^/.]+$/, ''));
       }
@@ -354,6 +354,7 @@ export default function EmployeeDocumentsTab({ employeeId }: { employeeId: strin
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
           {filteredDocs.map(doc => {
+            const isPdf = doc.fileType === 'pdf' || (doc.previewUrl && doc.previewUrl.toLowerCase().includes('.pdf')) || (doc.previewUrl && doc.previewUrl.startsWith('data:application/pdf'));
             const previewImg = doc.previewUrl || 'https://images.unsplash.com/photo-1589829545856-d10d557cf95f?w=600&auto=format&fit=crop&q=80';
             const isExpired = doc.status === 'Expired';
             const isPending = doc.status === 'Pending';
@@ -369,14 +370,23 @@ export default function EmployeeDocumentsTab({ employeeId }: { employeeId: strin
                   {/* Thumbnail */}
                   <div
                     onClick={() => setInspectDoc(doc)}
-                    className="w-16 h-16 rounded-xl bg-slate-100 border border-slate-200 overflow-hidden shrink-0 cursor-pointer relative group flex items-center justify-center"
+                    className="w-16 h-16 rounded-xl bg-slate-100 border border-slate-200 overflow-hidden shrink-0 cursor-pointer relative group flex items-center justify-center shadow-2xs"
                     title="Click to inspect"
                   >
-                    <img
-                      src={previewImg}
-                      alt={doc.name}
-                      className="w-full h-full object-cover group-hover:scale-105 transition"
-                    />
+                    {isPdf ? (
+                      <div className="w-full h-full bg-rose-50 flex flex-col items-center justify-center text-rose-600 p-1">
+                        <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                        </svg>
+                        <span className="text-[8px] font-black uppercase tracking-tight text-rose-700">PDF</span>
+                      </div>
+                    ) : (
+                      <img
+                        src={previewImg}
+                        alt={doc.name}
+                        className="w-full h-full object-cover group-hover:scale-105 transition"
+                      />
+                    )}
                     <div className="absolute inset-0 bg-slate-900/30 opacity-0 group-hover:opacity-100 transition flex items-center justify-center">
                       <span className="text-[9px] font-bold text-white bg-slate-950/80 px-1 py-0.5 rounded">
                         View
@@ -637,11 +647,23 @@ export default function EmployeeDocumentsTab({ employeeId }: { employeeId: strin
                 >
                   {formFilePreview ? (
                     <div className="space-y-2">
-                      <img
-                        src={formFilePreview}
-                        alt="Preview"
-                        className="max-h-28 mx-auto rounded-lg object-cover border border-slate-200"
-                      />
+                      {formFileType === 'pdf' ? (
+                        <div className="flex items-center justify-center gap-3 p-3 bg-rose-50 border border-rose-200 rounded-xl">
+                          <div className="p-2 rounded-lg bg-rose-100 text-rose-600 font-bold">
+                            📄 PDF
+                          </div>
+                          <div className="text-left">
+                            <span className="font-bold text-slate-900 block text-xs truncate max-w-xs">{formDocName || 'Attached PDF Document'}</span>
+                            <span className="text-[10px] text-rose-700 font-semibold">PDF Document Selected ({formFileSize})</span>
+                          </div>
+                        </div>
+                      ) : (
+                        <img
+                          src={formFilePreview}
+                          alt="Preview"
+                          className="max-h-28 mx-auto rounded-lg object-cover border border-slate-200"
+                        />
+                      )}
                       <span className="text-[10px] font-bold text-slate-600 block">
                         Click to change selected image / file ({formFileSize})
                       </span>
@@ -679,127 +701,196 @@ export default function EmployeeDocumentsTab({ employeeId }: { employeeId: strin
       {/* ======================================================== */}
       {/* 2. DOCUMENT INSPECT / LIGHTBOX PREVIEW MODAL */}
       {/* ======================================================== */}
-      {inspectDoc && (
-        <div className="fixed inset-0 z-[130] flex items-center justify-center bg-black/70 backdrop-blur-xs p-4 overflow-y-auto" onClick={() => setInspectDoc(null)}>
-          <div className="bg-white rounded-3xl max-w-2xl w-full overflow-hidden shadow-2xl border border-slate-200 space-y-0 animate-in zoom-in-95 my-6 text-xs" onClick={e => e.stopPropagation()}>
-            
-            {/* Lightbox Header */}
-            <div className="p-4 sm:p-5 bg-slate-900 text-white flex items-center justify-between">
-              <div>
-                <h3 className="font-extrabold text-sm text-white flex items-center gap-2">
-                  <span>{inspectDoc.name}</span>
-                  <span className={`px-2 py-0.5 rounded-full text-[9px] font-bold uppercase ${
-                    inspectDoc.status === 'Verified' ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30' :
-                    inspectDoc.status === 'Pending' ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30' :
-                    'bg-rose-500/20 text-rose-300 border border-rose-500/30'
-                  }`}>
-                    {inspectDoc.status}
+      {inspectDoc && (() => {
+        const isPdf = !!inspectDoc.previewUrl && (
+          inspectDoc.previewUrl.toLowerCase().endsWith('.pdf') ||
+          inspectDoc.previewUrl.includes('.pdf?') ||
+          inspectDoc.previewUrl.startsWith('data:application/pdf') ||
+          inspectDoc.type?.toLowerCase().includes('pdf') ||
+          inspectDoc.name?.toLowerCase().endsWith('.pdf') ||
+          (inspectDoc as any).fileType === 'pdf'
+        );
+
+        return (
+          <div className="fixed inset-0 z-[130] flex items-center justify-center bg-black/80 backdrop-blur-xs p-4 overflow-y-auto" onClick={() => setInspectDoc(null)}>
+            <div className="bg-white rounded-3xl max-w-3xl w-full overflow-hidden shadow-2xl border border-slate-200 space-y-0 animate-in zoom-in-95 my-6 text-xs" onClick={e => e.stopPropagation()}>
+              
+              {/* Lightbox Header */}
+              <div className="p-4 sm:p-5 bg-slate-900 text-white flex items-center justify-between">
+                <div>
+                  <h3 className="font-extrabold text-sm text-white flex items-center gap-2">
+                    <span>{inspectDoc.name}</span>
+                    <span className={`px-2 py-0.5 rounded-full text-[9px] font-bold uppercase ${
+                      inspectDoc.status === 'Verified' ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30' :
+                      inspectDoc.status === 'Pending' ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30' :
+                      'bg-rose-500/20 text-rose-300 border border-rose-500/30'
+                    }`}>
+                      {inspectDoc.status}
+                    </span>
+                  </h3>
+                  <p className="text-[11px] text-slate-300 mt-0.5">
+                    Staff: <strong>{currentEmp.firstName} {currentEmp.lastName}</strong> • {inspectDoc.type}
+                  </p>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => setInspectDoc(null)}
+                  className="text-slate-400 hover:text-white font-bold p-1.5 rounded-lg hover:bg-slate-800 transition cursor-pointer"
+                >
+                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+
+              {/* Document Controls Bar */}
+              <div className="flex items-center justify-between px-5 py-2.5 bg-slate-800 border-b border-slate-700 text-xs">
+                <div className="flex items-center gap-2 text-slate-300 font-medium">
+                  <span className="font-semibold text-slate-200">
+                    {isPdf ? '📄 PDF Document Preview' : '🖼️ Image Attachment Preview'}
                   </span>
-                </h3>
-                <p className="text-[11px] text-slate-300 mt-0.5">
-                  Staff: {currentEmp.firstName} {currentEmp.lastName} • {inspectDoc.type}
-                </p>
-              </div>
-
-              <button
-                type="button"
-                onClick={() => setInspectDoc(null)}
-                className="text-slate-400 hover:text-white font-bold px-2 py-1 rounded-lg cursor-pointer"
-              >
-                Close
-              </button>
-            </div>
-
-            {/* Document Full Image Preview */}
-            <div className="p-6 bg-slate-950 flex items-center justify-center max-h-[50vh] overflow-hidden">
-              <img
-                src={inspectDoc.previewUrl || 'https://images.unsplash.com/photo-1589829545856-d10d557cf95f?w=800&auto=format&fit=crop&q=80'}
-                alt={inspectDoc.name}
-                className="max-h-[46vh] w-auto max-w-full rounded-xl object-contain shadow-2xl border border-slate-800"
-              />
-            </div>
-
-            {/* Lightbox Meta Details & Actions */}
-            <div className="p-5 bg-white space-y-4">
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 p-3 bg-slate-50 rounded-2xl border border-slate-200">
-                <div>
-                  <span className="text-[10px] font-bold text-slate-500 block">Document ID</span>
-                  <span className="font-mono font-bold text-slate-900 text-xs">{inspectDoc.documentNumber || 'N/A'}</span>
-                </div>
-                <div>
-                  <span className="text-[10px] font-bold text-slate-500 block">Expiry Date</span>
-                  <span className="font-bold text-slate-900 text-xs">{inspectDoc.expiryDate || 'No Expiry'}</span>
-                </div>
-                <div>
-                  <span className="text-[10px] font-bold text-slate-500 block">Upload Date</span>
-                  <span className="font-bold text-slate-900 text-xs">{inspectDoc.uploadDate || 'Active'}</span>
-                </div>
-                <div>
-                  <span className="text-[10px] font-bold text-slate-500 block">File Size</span>
-                  <span className="font-bold text-slate-900 text-xs">{inspectDoc.fileSize || '1.8 MB'}</span>
-                </div>
-              </div>
-
-              {/* Action Toolbar */}
-              <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-slate-100">
-                <div className="flex items-center gap-2">
-                  <a
-                    href={inspectDoc.previewUrl || '#'}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="px-3.5 py-2 rounded-xl border border-slate-300 hover:bg-slate-50 text-slate-700 font-bold transition cursor-pointer"
-                  >
-                    Open in New Window
-                  </a>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      const doc = inspectDoc;
-                      setInspectDoc(null);
-                      handleOpenEdit(doc);
-                    }}
-                    className="px-3.5 py-2 rounded-xl border border-slate-300 hover:bg-slate-50 text-slate-700 font-bold transition cursor-pointer"
-                  >
-                    Edit Details
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      const doc = inspectDoc;
-                      setDeletingDoc(doc);
-                    }}
-                    className="px-3 py-2 text-rose-600 hover:bg-rose-50 rounded-xl font-bold transition cursor-pointer"
-                  >
-                    Delete
-                  </button>
                 </div>
 
                 <div className="flex items-center gap-2">
-                  {inspectDoc.status !== 'Verified' && (
+                  {!isPdf && (
                     <button
                       type="button"
-                      onClick={() => handleVerify(inspectDoc)}
-                      className="px-5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold transition shadow-sm cursor-pointer"
+                      onClick={() => setZoomDoc(!zoomDoc)}
+                      className="px-2.5 py-1 rounded-lg bg-slate-700 hover:bg-slate-600 text-slate-200 text-xs font-semibold flex items-center gap-1 transition cursor-pointer"
                     >
-                      Verify Document
-                    </button>
-                  )}
-                  {inspectDoc.status !== 'Rejected' && (
-                    <button
-                      type="button"
-                      onClick={() => setRejectingDoc(inspectDoc)}
-                      className="px-4 py-2 rounded-xl bg-rose-50 text-rose-700 border border-rose-200 hover:bg-rose-100 font-bold transition cursor-pointer"
-                    >
-                      Reject Document
+                      <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7" />
+                      </svg>
+                      <span>{zoomDoc ? 'Fit to Window' : 'Zoom 100%'}</span>
                     </button>
                   )}
                 </div>
               </div>
-            </div>
 
+              {/* Document Body / PDF Viewer / Image Viewer */}
+              <div className="p-4 sm:p-6 bg-slate-950 flex flex-col items-center justify-center min-h-[380px] max-h-[65vh] overflow-auto">
+                {isPdf ? (
+                  <iframe
+                    src={inspectDoc.previewUrl || ''}
+                    title={inspectDoc.name}
+                    className="w-full h-[52vh] rounded-2xl bg-white border border-slate-800 shadow-2xl"
+                  />
+                ) : (
+                  <div className={`transition-all duration-200 flex items-center justify-center ${zoomDoc ? 'max-w-none w-auto' : 'max-w-full max-h-[55vh]'}`}>
+                    <img
+                      src={inspectDoc.previewUrl || 'https://images.unsplash.com/photo-1589829545856-d10d557cf95f?w=800&auto=format&fit=crop&q=80'}
+                      alt={inspectDoc.name}
+                      className={`rounded-2xl object-contain shadow-2xl border border-slate-800 bg-white transition-transform ${
+                        zoomDoc ? 'w-auto h-auto max-w-[90vw]' : 'max-h-[50vh] max-w-full'
+                      }`}
+                    />
+                  </div>
+                )}
+                <div className="mt-3 text-center">
+                  <span className="text-[11px] text-slate-400 font-medium">
+                    Official document uploaded by <strong>{currentEmp.firstName} {currentEmp.lastName}</strong> ({inspectDoc.uploadDate || 'Active'})
+                  </span>
+                </div>
+              </div>
+
+              {/* Lightbox Meta Details & Actions */}
+              <div className="p-5 bg-white space-y-4">
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 p-3 bg-slate-50 rounded-2xl border border-slate-200">
+                  <div>
+                    <span className="text-[10px] font-bold text-slate-500 block">Document ID / Number</span>
+                    <span className="font-mono font-bold text-slate-900 text-xs">{inspectDoc.documentNumber || 'N/A'}</span>
+                  </div>
+                  <div>
+                    <span className="text-[10px] font-bold text-slate-500 block">Expiry Date</span>
+                    <span className="font-bold text-slate-900 text-xs">{inspectDoc.expiryDate || 'No Expiry'}</span>
+                  </div>
+                  <div>
+                    <span className="text-[10px] font-bold text-slate-500 block">Upload Date</span>
+                    <span className="font-bold text-slate-900 text-xs">{inspectDoc.uploadDate || 'Active'}</span>
+                  </div>
+                  <div>
+                    <span className="text-[10px] font-bold text-slate-500 block">File Size</span>
+                    <span className="font-bold text-slate-900 text-xs">{inspectDoc.fileSize || '1.8 MB'}</span>
+                  </div>
+                </div>
+
+                {/* Action Toolbar */}
+                <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-slate-100">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => window.print()}
+                      className="px-3.5 py-2 rounded-xl border border-slate-300 hover:bg-slate-50 text-slate-700 font-bold transition cursor-pointer flex items-center gap-1.5"
+                    >
+                      <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+                      </svg>
+                      <span>Print Document</span>
+                    </button>
+
+                    <a
+                      href={inspectDoc.previewUrl || '#'}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="px-3.5 py-2 rounded-xl border border-slate-300 hover:bg-slate-50 text-slate-700 font-bold transition cursor-pointer flex items-center gap-1.5"
+                    >
+                      <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                      </svg>
+                      <span>Open Full File</span>
+                    </a>
+                    
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const doc = inspectDoc;
+                        setInspectDoc(null);
+                        handleOpenEdit(doc);
+                      }}
+                      className="px-3.5 py-2 rounded-xl border border-slate-300 hover:bg-slate-50 text-slate-700 font-bold transition cursor-pointer"
+                    >
+                      Edit Details
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const doc = inspectDoc;
+                        setDeletingDoc(doc);
+                      }}
+                      className="px-3 py-2 text-rose-600 hover:bg-rose-50 rounded-xl font-bold transition cursor-pointer"
+                    >
+                      Delete
+                    </button>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    {inspectDoc.status !== 'Verified' && (
+                      <button
+                        type="button"
+                        onClick={() => handleVerify(inspectDoc)}
+                        className="px-5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold transition shadow-sm cursor-pointer"
+                      >
+                        Verify Document
+                      </button>
+                    )}
+                    {inspectDoc.status !== 'Rejected' && (
+                      <button
+                        type="button"
+                        onClick={() => setRejectingDoc(inspectDoc)}
+                        className="px-4 py-2 rounded-xl bg-rose-50 text-rose-700 border border-rose-200 hover:bg-rose-100 font-bold transition cursor-pointer"
+                      >
+                        Reject Document
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+            </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
 
       {/* ======================================================== */}
       {/* 3. REJECTION REASON DIALOG */}

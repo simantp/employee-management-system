@@ -1246,6 +1246,14 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
     // MySQL Backend & Server File Sync (Saves to /public/uploads/{staff_name}_{staff_id}/ and inserts into employee_documents)
     try {
+      const isPdf = doc.fileType === 'pdf' || (doc.previewUrl && doc.previewUrl.startsWith('data:application/pdf'));
+      const isDoc = doc.fileType === 'doc';
+      const ext = isPdf ? '.pdf' : isDoc ? '.docx' : '.png';
+      const cleanDocName = doc.name.replace(/[^a-zA-Z0-9_-]/g, '_');
+      const safeFileName = cleanDocName.endsWith('.pdf') || cleanDocName.endsWith('.png') || cleanDocName.endsWith('.jpg') || cleanDocName.endsWith('.jpeg')
+        ? cleanDocName
+        : `${cleanDocName}${ext}`;
+
       fetch('/api/documents/upload', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -1257,7 +1265,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           documentNumber: doc.documentNumber || '',
           expiryDate: doc.expiryDate || '',
           status: doc.status || 'Pending',
-          fileName: `${doc.name.replace(/[^a-zA-Z0-9_-]/g, '_')}.png`,
+          fileName: safeFileName,
           fileData: doc.previewUrl,
         }),
       }).then(async res => {
@@ -1268,7 +1276,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
             if (emp.id === empId) {
               return {
                 ...emp,
-                documents: emp.documents.map(d => d.id === tempDocId ? { ...d, id: json.document.id, previewUrl: json.document.previewUrl, fileSize: json.document.fileSize } : d)
+                documents: emp.documents.map(d => d.id === tempDocId ? { 
+                  ...d, 
+                  id: json.document.id, 
+                  previewUrl: json.document.previewUrl || d.previewUrl, 
+                  fileSize: json.document.fileSize || d.fileSize,
+                  fileType: json.document.fileType || d.fileType
+                } : d)
               };
             }
             return emp;
