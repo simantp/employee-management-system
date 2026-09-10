@@ -17,7 +17,7 @@ export default function StaffSidebar({
     { id: 'profile', label: 'My Profile' },
     { id: 'documents', label: 'Documents' },
     { id: 'leave', label: 'Leave Management' },
-    { id: 'timesheet', label: 'Timesheet & Roster' },
+    { id: 'timesheet', label: 'Timesheet Records' },
     { id: 'employment', label: 'Employment Details' },
     { id: 'emergency', label: 'Emergency Contacts' },
     { id: 'directory', label: 'Company Directory' },
