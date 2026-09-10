@@ -5,6 +5,11 @@ import NotificationToast from '@/components/common/NotificationToast';
 export const metadata = {
   title: 'HsCreations Employee Records Management',
   description: 'Enterprise HR, Payroll, Leave Management, and Australian Compliance System',
+  icons: {
+    icon: '/favicon.ico',
+    shortcut: '/favicon.ico',
+    apple: '/favicon.png',
+  },
 };
 
 export default function RootLayout({
@@ -13,8 +18,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en">
-      <body className="bg-slate-50 text-slate-900 min-h-screen antialiased">
+    <html lang="en" suppressHydrationWarning>
+      <body className="bg-slate-50 text-slate-900 min-h-screen antialiased" suppressHydrationWarning>
         <AppProvider>
           {children}
           <NotificationToast />
