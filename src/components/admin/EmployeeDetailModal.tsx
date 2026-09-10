@@ -235,7 +235,7 @@ export default function EmployeeDetailModal({
             }`}
           >
             <span>Uploaded Documents</span>
-            <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-extrabold ${
+            <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-extrabold ${
               (currentEmp.documents?.filter(d => d.status === 'Pending').length || 0) > 0 
                 ? 'bg-amber-100 text-amber-800 border border-amber-200' 
                 : 'bg-slate-200 text-slate-700'

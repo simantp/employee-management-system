@@ -191,7 +191,7 @@ export default function EmployeeManagementView({
                         <button
                           type="button"
                           onClick={() => setSelectedEmployee(emp)}
-                          className="px-2.5 py-1.5 rounded-xl bg-slate-900 hover:bg-orange-600 text-white font-bold text-[11px] transition inline-flex items-center shadow-xs cursor-pointer"
+                          className="px-3 py-1.5 rounded-xl bg-slate-900 hover:bg-orange-600 text-white font-bold text-[11px] transition inline-flex items-center shadow-xs cursor-pointer"
                           title="Manage & Edit Profile"
                         >
                           Manage
@@ -200,24 +200,28 @@ export default function EmployeeManagementView({
                         <button
                           type="button"
                           onClick={() => setEmployeeToArchive(emp)}
-                          className={`px-2.5 py-1.5 rounded-xl font-bold text-[11px] transition inline-flex items-center gap-1 cursor-pointer border ${
+                          className={`px-3 py-1.5 rounded-xl font-bold text-[11px] transition inline-flex items-center gap-1.5 cursor-pointer border ${
                             emp.status === 'Archived'
                               ? 'bg-purple-50 hover:bg-purple-100 text-purple-700 border-purple-200'
                               : 'bg-amber-50 hover:bg-amber-100 text-amber-800 border-amber-200'
                           }`}
                           title={emp.status === 'Archived' ? 'Restore / Unarchive staff member' : 'Archive staff member'}
                         >
-                          <span>📦</span>
+                          <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" />
+                          </svg>
                           <span>{emp.status === 'Archived' ? 'Restore' : 'Archive'}</span>
                         </button>
 
                         <button
                           type="button"
                           onClick={() => setEmployeeToDelete(emp)}
-                          className="px-2.5 py-1.5 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 font-bold text-[11px] transition inline-flex items-center gap-1 cursor-pointer"
+                          className="px-3 py-1.5 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 font-bold text-[11px] transition inline-flex items-center gap-1.5 cursor-pointer"
                           title="Permanently delete employee"
                         >
-                          <span>🗑️</span>
+                          <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                          </svg>
                           <span>Delete</span>
                         </button>
                       </div>

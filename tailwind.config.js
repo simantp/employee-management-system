@@ -27,9 +27,17 @@ module.exports = {
         sans: ['Segoe UI', 'Inter', 'system-ui', 'sans-serif'],
       },
       boxShadow: {
+        '2xs': '0 1px 2px 0 rgba(0, 0, 0, 0.03)',
+        'xs': '0 1px 2px 0 rgba(0, 0, 0, 0.05)',
         'card': '0 2px 10px rgba(0, 0, 0, 0.04)',
         'card-hover': '0 8px 24px rgba(0, 0, 0, 0.08)',
         'glow-blue': '0 0 20px rgba(37, 99, 235, 0.25)',
+      },
+      backdropBlur: {
+        'xs': '2px',
+      },
+      spacing: {
+        '13': '3.25rem',
       }
     },
   },

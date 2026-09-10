@@ -326,9 +326,9 @@ export default function AdminComplianceManagement({
                             {emp.licenseCountry || 'NSW, Australia'}
                           </div>
                           <div className="flex items-center gap-1.5 mt-0.5">
-                            <span className="px-1.5 py-0.2 rounded bg-slate-100 text-slate-700 font-mono text-[10px] font-bold">Class C</span>
+                            <span className="px-1.5 py-0.5 rounded bg-slate-100 text-slate-700 font-mono text-[10px] font-bold">Class C</span>
                             {isForklift && (
-                              <span className="px-1.5 py-0.2 rounded bg-purple-100 text-purple-700 font-mono text-[10px] font-bold">Class LF (Forklift)</span>
+                              <span className="px-1.5 py-0.5 rounded bg-purple-100 text-purple-700 font-mono text-[10px] font-bold">Class LF (Forklift)</span>
                             )}
                           </div>
                         </td>

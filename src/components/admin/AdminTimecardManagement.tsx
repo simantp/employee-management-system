@@ -605,7 +605,7 @@ export default function AdminTimecardManagement() {
 
                   {/* Weekend Closed Pill / Shift Count Indicator */}
                   {day.isWeekend ? (
-                    <span className={`mt-1 px-1.5 py-0.2 rounded text-[8px] font-black uppercase tracking-tight ${
+                    <span className={`mt-1 px-1.5 py-0.5 rounded text-[8px] font-black uppercase tracking-tight ${
                       isSelected 
                         ? 'bg-white/20 text-white' 
                         : hasShifts 
@@ -615,7 +615,7 @@ export default function AdminTimecardManagement() {
                       {hasShifts ? `${day.shiftCount} OT` : 'Closed'}
                     </span>
                   ) : (
-                    <span className={`mt-1 px-1.5 py-0.2 rounded text-[8px] font-bold ${
+                    <span className={`mt-1 px-1.5 py-0.5 rounded text-[8px] font-bold ${
                       isSelected
                         ? 'bg-white/20 text-white'
                         : hasShifts

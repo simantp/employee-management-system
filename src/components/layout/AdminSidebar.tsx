@@ -39,7 +39,7 @@ export default function AdminSidebar({
           <div>
             <div className="flex items-center gap-1.5">
               <h2 className="text-white font-bold text-xs tracking-wide">HSCREATIONS</h2>
-              <span className="text-[9px] font-black px-1.5 py-0.2 rounded bg-orange-500/20 text-orange-400 border border-orange-500/30">
+              <span className="text-[9px] font-black px-1.5 py-0.5 rounded bg-orange-500/20 text-orange-400 border border-orange-500/30">
                 ADMIN
               </span>
             </div>

@@ -260,7 +260,7 @@ export default function Topbar({
                   <div>
                     <h4 className="text-xs font-black tracking-tight text-white flex items-center gap-1.5">
                       <span>Latest Activities</span>
-                      <span className="px-1.5 py-0.2 rounded-full bg-slate-800 text-slate-300 text-[9px] font-bold border border-slate-700">
+                      <span className="px-1.5 py-0.5 rounded-full bg-slate-800 text-slate-300 text-[9px] font-bold border border-slate-700">
                         {latestActivities.length}
                       </span>
                     </h4>

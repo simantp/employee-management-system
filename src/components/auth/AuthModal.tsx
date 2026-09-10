@@ -367,7 +367,7 @@ export default function AuthModal({ onClose }: { onClose: () => void }) {
                   value={digit}
                   onChange={e => handleOtpChange(i, e.target.value)}
                   onKeyDown={e => handleOtpKeyDown(i, e)}
-                  className="w-11 h-13 text-center text-lg font-mono font-bold border-2 rounded-xl bg-slate-50 border-slate-200 focus:border-slate-600 focus:bg-white focus:outline-none transition shadow-xs"
+                  className="w-11 h-12 text-center text-lg font-mono font-bold border-2 rounded-xl bg-slate-50 border-slate-200 focus:border-slate-600 focus:bg-white focus:outline-none transition shadow-xs"
                 />
               ))}
             </div>
