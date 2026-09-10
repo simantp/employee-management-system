@@ -45,121 +45,140 @@ export default function Topbar({
   const userRef = useRef<HTMLDivElement>(null);
 
   const isAdmin = currentUser?.role === 'SUPER_ADMIN' || currentUser?.role === 'ADMIN' || currentUser?.role === 'HR_MANAGER';
-  const unreadCount = activePortal === 'ADMIN' ? unreadAdminCount : unreadStaffCount;
 
-  // Compile unified latest activities & notifications stream
-  const latestActivities = useMemo<ActivityNotificationItem[]>(() => {
+  // Compile only important staff requests and action items needing attention (removes routine audit log noise)
+  const staffActionNotifications = useMemo<ActivityNotificationItem[]>(() => {
     const list: ActivityNotificationItem[] = [];
 
-    // 1. Audit logs (Clock-ins, shift adjustments, leave submissions, approvals, etc.)
-    auditLogs.forEach(aud => {
-      let icon = '⚡';
-      let badge = 'ACTIVITY';
-      let badgeColor = 'bg-slate-100 text-slate-700 border-slate-200';
+    if (activePortal === 'ADMIN') {
+      // 1. Pending Staff Leave Requests
+      const pendingLeaves = leaveRequests.filter(l => l.status === 'PENDING');
+      pendingLeaves.forEach(lr => {
+        const emp = employees.find(e => e.id === lr.employeeId);
+        const hasMedCert = !!(lr.certificateUrl || lr.certificateUploaded);
+        const leaveTypeName = lr.leaveType ? lr.leaveType.replace(/_/g, ' ') : 'Leave';
 
-      const actionUpper = aud.action.toUpperCase();
-      if (actionUpper.includes('CLOCK_IN')) {
-        icon = '🟢';
-        badge = 'CLOCK IN';
-        badgeColor = 'bg-emerald-50 text-emerald-700 border-emerald-200';
-      } else if (actionUpper.includes('CLOCK_OUT')) {
-        icon = '🔴';
-        badge = 'CLOCK OUT';
-        badgeColor = 'bg-rose-50 text-rose-700 border-rose-200';
-      } else if (actionUpper.includes('LEAVE')) {
-        icon = '📋';
-        badge = 'LEAVE';
-        badgeColor = 'bg-blue-50 text-blue-700 border-blue-200';
-      } else if (actionUpper.includes('DOCUMENT') || actionUpper.includes('DOC')) {
-        icon = '📄';
-        badge = 'DOCUMENT';
-        badgeColor = 'bg-purple-50 text-purple-700 border-purple-200';
-      } else if (actionUpper.includes('ANNOUNCEMENT') || actionUpper.includes('BROADCAST')) {
-        icon = '📢';
-        badge = 'BROADCAST';
-        badgeColor = 'bg-orange-50 text-orange-700 border-orange-200';
-      } else if (actionUpper.includes('TIMECARD') || actionUpper.includes('ADJUST') || actionUpper.includes('SHIFT')) {
-        icon = '⏱️';
-        badge = 'TIMECARD';
-        badgeColor = 'bg-indigo-50 text-indigo-700 border-indigo-200';
-      } else if (actionUpper.includes('BANK') || actionUpper.includes('PAYROLL') || actionUpper.includes('ENCRYPT')) {
-        icon = '💳';
-        badge = 'PAYROLL / BANK';
-        badgeColor = 'bg-amber-50 text-amber-700 border-amber-200';
-      } else if (actionUpper.includes('LOGIN') || actionUpper.includes('AUTH')) {
-        icon = '🔑';
-        badge = 'SECURITY';
-        badgeColor = 'bg-cyan-50 text-cyan-700 border-cyan-200';
-      }
-
-      list.push({
-        id: `aud-${aud.id}`,
-        source: 'AUDIT',
-        badge,
-        badgeColor,
-        icon,
-        title: `${aud.actorName || 'System'} • ${aud.action.replace(/_/g, ' ')}`,
-        description: aud.details || `${aud.actorName} performed ${aud.action}`,
-        timestamp: aud.timestamp || 'Recent',
-        actorName: aud.actorName,
-        isUnread: false,
-      });
-    });
-
-    // 2. Notifications (relevant to current portal / user)
-    const relevantNotifs = activePortal === 'ADMIN'
-      ? notifications.filter(n => n.recipient === 'ADMIN' || n.recipient === 'ALL')
-      : notifications.filter(n => {
-          if (n.recipient !== 'STAFF' && n.recipient !== 'ALL') return false;
-          if (n.recipientId) {
-            return n.recipientId === currentUser?.id || n.recipientId === currentUser?.staffId;
-          }
-          return currentUser?.email === 'suman.thapa@company.com';
+        list.push({
+          id: `leave-${lr.id}`,
+          source: 'LEAVE',
+          badge: hasMedCert ? 'SICK LEAVE + CERT' : `${leaveTypeName.toUpperCase()}`,
+          badgeColor: hasMedCert ? 'bg-rose-50 text-rose-700 border-rose-200' : 'bg-amber-50 text-amber-800 border-amber-200',
+          icon: hasMedCert ? '🏥' : '📋',
+          title: `${lr.employeeName || (emp ? `${emp.firstName} ${emp.lastName}` : 'Staff Member')} • Leave Request`,
+          description: `${leaveTypeName}: ${lr.startDate} to ${lr.endDate} (${lr.totalDays || 1} days)${lr.reason ? ` — "${lr.reason}"` : ''}${hasMedCert ? ' • 📎 Medical Cert Attached' : ''}`,
+          timestamp: lr.submittedAt || 'Pending Review',
+          actorName: lr.employeeName,
+          actorAvatar: emp?.avatarUrl,
+          isUnread: true,
         });
-
-    relevantNotifs.forEach(n => {
-      let icon = '🔔';
-      let badge = 'NOTIFICATION';
-      let badgeColor = 'bg-slate-100 text-slate-700 border-slate-200';
-
-      const nType = (n.type as string) || '';
-      if (nType.includes('ANNOUNCEMENT') || nType.includes('BROADCAST')) {
-        icon = '📢';
-        badge = 'ANNOUNCEMENT';
-        badgeColor = 'bg-orange-50 text-orange-700 border-orange-200';
-      } else if (nType.includes('LEAVE')) {
-        icon = '📋';
-        badge = 'LEAVE NOTICE';
-        badgeColor = 'bg-blue-50 text-blue-700 border-blue-200';
-      } else if (nType.includes('DOC') || nType.includes('CERTIFICATE')) {
-        icon = '📄';
-        badge = 'DOCUMENT';
-        badgeColor = 'bg-purple-50 text-purple-700 border-purple-200';
-      } else if (nType.includes('VISA') || nType.includes('LICENSE')) {
-        icon = '⚠️';
-        badge = 'EXPIRY ALERT';
-        badgeColor = 'bg-rose-50 text-rose-700 border-rose-200';
-      } else if (nType.includes('TIMECARD') || nType.includes('CLOCK')) {
-        icon = nType.includes('IN') ? '🟢' : '🔴';
-        badge = 'TIMECARD';
-        badgeColor = 'bg-emerald-50 text-emerald-700 border-emerald-200';
-      }
-
-      list.push({
-        id: `notif-${n.id}`,
-        source: 'NOTIFICATION',
-        badge,
-        badgeColor,
-        icon,
-        title: n.title,
-        description: n.message,
-        timestamp: n.timestamp || 'Recent',
-        isUnread: !n.read,
       });
-    });
+
+      // 2. Pending Staff Uploaded Documents needing verification
+      employees.forEach(emp => {
+        if (Array.isArray(emp.documents)) {
+          emp.documents.forEach(doc => {
+            if (doc.status === 'Pending') {
+              list.push({
+                id: `doc-${emp.id}-${doc.id}`,
+                source: 'COMPLIANCE',
+                badge: 'DOC VERIFICATION',
+                badgeColor: 'bg-purple-50 text-purple-700 border-purple-200',
+                icon: '📄',
+                title: `${emp.firstName} ${emp.lastName} • ${doc.name}`,
+                description: `Category: ${doc.type || 'Document'}${doc.expiryDate ? ` • Expiry: ${doc.expiryDate}` : ''} — Uploaded by staff, awaiting admin approval`,
+                timestamp: (doc as any).uploadedAt || 'Pending Review',
+                actorName: `${emp.firstName} ${emp.lastName}`,
+                actorAvatar: emp.avatarUrl,
+                isUnread: true,
+              });
+            }
+          });
+        }
+      });
+
+      // 3. Critical & Warning Expiry Alerts
+      alerts.forEach(alert => {
+        const isUrgent = alert.severity === 'URGENT';
+        list.push({
+          id: `alert-${alert.id}`,
+          source: 'COMPLIANCE',
+          badge: isUrgent ? 'URGENT EXPIRY' : 'EXPIRY WARNING',
+          badgeColor: isUrgent ? 'bg-rose-50 text-rose-700 border-rose-200 font-bold' : 'bg-amber-50 text-amber-800 border-amber-200',
+          icon: isUrgent ? '🚨' : '⚠️',
+          title: alert.title || `${alert.employeeName} • Expiry Alert`,
+          description: alert.description || 'Compliance renewal action needed',
+          timestamp: alert.dueDate ? `Due ${alert.dueDate}` : 'Action Required',
+          actorName: alert.employeeName,
+          isUnread: true,
+        });
+      });
+
+      // 4. Actionable Admin Notifications & Announcements
+      const adminNotifs = notifications.filter(n => (n.recipient === 'ADMIN' || n.recipient === 'ALL'));
+      adminNotifs.forEach(n => {
+        let icon = '🔔';
+        let badge = 'ADMIN NOTICE';
+        let badgeColor = 'bg-blue-50 text-blue-700 border-blue-200';
+
+        const nType = (n.type as string) || '';
+        if (nType.includes('LEAVE')) {
+          badge = 'LEAVE NOTICE';
+          badgeColor = 'bg-amber-50 text-amber-700 border-amber-200';
+          icon = '📋';
+        } else if (nType.includes('EXPIRY') || nType.includes('VISA') || nType.includes('LICENSE')) {
+          badge = 'COMPLIANCE';
+          badgeColor = 'bg-rose-50 text-rose-700 border-rose-200';
+          icon = '⚠️';
+        } else if (nType.includes('ANNOUNCEMENT')) {
+          badge = 'ANNOUNCEMENT';
+          badgeColor = 'bg-orange-50 text-orange-700 border-orange-200';
+          icon = '📢';
+        }
+
+        list.push({
+          id: `notif-${n.id}`,
+          source: 'NOTIFICATION',
+          badge,
+          badgeColor,
+          icon,
+          title: n.title,
+          description: n.message,
+          timestamp: n.timestamp || 'Recent',
+          isUnread: !n.read,
+        });
+      });
+
+    } else {
+      // Staff Portal notifications
+      const relevantNotifs = notifications.filter(n => {
+        if (n.recipient !== 'STAFF' && n.recipient !== 'ALL') return false;
+        if (n.recipientId) {
+          return n.recipientId === currentUser?.id || n.recipientId === currentUser?.staffId;
+        }
+        return true;
+      });
+
+      relevantNotifs.forEach(n => {
+        list.push({
+          id: `notif-${n.id}`,
+          source: 'NOTIFICATION',
+          badge: 'STAFF NOTICE',
+          badgeColor: 'bg-blue-50 text-blue-700 border-blue-200',
+          icon: '🔔',
+          title: n.title,
+          description: n.message,
+          timestamp: n.timestamp || 'Recent',
+          isUnread: !n.read,
+        });
+      });
+    }
 
     return list;
-  }, [notifications, auditLogs, activePortal, currentUser]);
+  }, [leaveRequests, employees, alerts, notifications, activePortal, currentUser]);
+
+  const attentionCount = useMemo(() => {
+    return staffActionNotifications.filter(item => item.isUnread).length;
+  }, [staffActionNotifications]);
 
   // Close dropdowns on click outside
   useEffect(() => {
@@ -198,25 +217,26 @@ export default function Topbar({
       <div className="flex items-center gap-2.5">
         
         {/* ========================================================================= */}
-        {/* ALERTS NOTIFICATION BELL BUTTON & LATEST ACTIVITIES HUB */}
+        {/* STAFF REQUESTS & ALERTS NOTIFICATION BELL BUTTON */}
         {/* ========================================================================= */}
         <div className="relative" ref={notifRef}>
           <button
             onClick={() => setShowAlertsHub(!showAlertsHub)}
-            className={`relative flex items-center gap-2 px-3.5 py-2 rounded-2xl border text-xs font-black transition-all cursor-pointer select-none ${
+            className={`relative flex items-center justify-center p-2.5 rounded-2xl border transition-all cursor-pointer select-none ${
               showAlertsHub
                 ? 'bg-slate-900 border-slate-900 text-white shadow-md'
-                : unreadCount > 0
+                : attentionCount > 0
                 ? 'bg-rose-50 hover:bg-rose-100 border-rose-200 text-rose-800 ring-2 ring-rose-500/30 shadow-xs'
                 : 'bg-slate-100 hover:bg-slate-200/80 border-slate-200 text-slate-700'
             }`}
-            title="Latest Activities & Notifications"
+            title={activePortal === 'ADMIN' ? 'Staff Requests & Action Items' : 'Notifications'}
+            aria-label="Staff Requests & Notifications"
           >
             {/* Animated Ringing Bell Icon */}
             <span className="relative flex items-center justify-center">
               <svg 
                 className={`w-4 h-4 transition-transform duration-300 ${
-                  unreadCount > 0 ? 'animate-[swing_2.5s_ease-in-out_infinite] text-rose-600' : 'text-slate-600'
+                  attentionCount > 0 ? 'animate-[swing_2.5s_ease-in-out_infinite] text-rose-600' : 'text-slate-600'
                 }`} 
                 fill="none" 
                 viewBox="0 0 24 24" 
@@ -226,29 +246,19 @@ export default function Topbar({
               </svg>
 
               {/* Pulsing Alert Badge */}
-              {unreadCount > 0 && (
+              {attentionCount > 0 && (
                 <span className="absolute -top-2.5 -right-2.5 flex h-4 w-4">
                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75" />
                   <span className="relative inline-flex rounded-full h-4 w-4 bg-rose-600 text-[9px] text-white font-black items-center justify-center shadow-xs">
-                    {unreadCount > 9 ? '9+' : unreadCount}
+                    {attentionCount > 9 ? '9+' : attentionCount}
                   </span>
                 </span>
               )}
             </span>
-
-            <span className="tracking-wide">Latest Activities</span>
-
-            {/* Glowing Live Indicator Dot if unread */}
-            {unreadCount > 0 && (
-              <span className="relative flex h-2 w-2 ml-0.5">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75" />
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-500" />
-              </span>
-            )}
           </button>
 
           {/* ========================================================================= */}
-          {/* LATEST ACTIVITIES NOTIFICATION PANEL */}
+          {/* STAFF REQUESTS & ACTION CENTER NOTIFICATION PANEL */}
           {/* ========================================================================= */}
           {showAlertsHub && (
             <div className="absolute right-0 top-full mt-2.5 w-84 sm:w-[420px] bg-white border border-slate-200 rounded-2xl shadow-2xl overflow-hidden z-50 animate-in fade-in zoom-in-95 duration-150 text-xs">
@@ -256,21 +266,23 @@ export default function Topbar({
               {/* Dropdown Header */}
               <div className="px-4 py-3 border-b border-slate-100 bg-slate-900 text-white flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
+                  <span className={`w-2 h-2 rounded-full ${attentionCount > 0 ? 'bg-amber-400 animate-ping' : 'bg-emerald-400'}`} />
                   <div>
                     <h4 className="text-xs font-black tracking-tight text-white flex items-center gap-1.5">
-                      <span>Latest Activities</span>
+                      <span>{activePortal === 'ADMIN' ? 'Staff Requests & Attention' : 'Notifications'}</span>
                       <span className="px-1.5 py-0.5 rounded-full bg-slate-800 text-slate-300 text-[9px] font-bold border border-slate-700">
-                        {latestActivities.length}
+                        {staffActionNotifications.length}
                       </span>
                     </h4>
                     <p className="text-[10px] text-slate-400 font-medium">
-                      Real-time activity logs &amp; notifications
+                      {activePortal === 'ADMIN' 
+                        ? 'Requests and compliance items needing administrator action'
+                        : 'Your portal notifications & updates'}
                     </p>
                   </div>
                 </div>
 
-                {unreadCount > 0 && (
+                {attentionCount > 0 && (
                   <button
                     onClick={() => markAllNotificationsRead(activePortal === 'ADMIN' ? 'ADMIN' : 'STAFF')}
                     className="text-[10px] font-black text-orange-400 hover:text-orange-300 transition py-1 px-2.5 rounded-lg bg-slate-800 hover:bg-slate-700 cursor-pointer"
@@ -280,18 +292,20 @@ export default function Topbar({
                 )}
               </div>
 
-              {/* Activity List */}
+              {/* Request & Alert List */}
               <div className="max-h-[380px] overflow-y-auto p-3 space-y-2 scrollbar-thin scrollbar-thumb-slate-200">
-                {latestActivities.length === 0 ? (
+                {staffActionNotifications.length === 0 ? (
                   <div className="text-center py-8 text-slate-400 space-y-1">
-                    <span className="text-2xl block mb-1">⚡</span>
-                    <p className="text-xs font-bold text-slate-700">No Recent Activities</p>
-                    <p className="text-[11px] text-slate-400 max-w-[220px] mx-auto">
-                      Activity notifications will appear here automatically when actions occur.
+                    <span className="text-2xl block mb-1">🎉</span>
+                    <p className="text-xs font-bold text-slate-700">All Staff Requests Up to Date</p>
+                    <p className="text-[11px] text-slate-400 max-w-[240px] mx-auto">
+                      {activePortal === 'ADMIN' 
+                        ? 'No pending leave approvals, document reviews, or compliance alerts.' 
+                        : 'You are all caught up. No new notifications.'}
                     </p>
                   </div>
                 ) : (
-                  latestActivities.map(item => (
+                  staffActionNotifications.map(item => (
                     <div
                       key={item.id}
                       onClick={() => {
@@ -301,7 +315,7 @@ export default function Topbar({
                       }}
                       className={`p-3 rounded-xl border transition-all flex items-start gap-2.5 ${
                         item.isUnread
-                          ? 'bg-orange-50/60 border-orange-200/90 shadow-2xs hover:bg-orange-50 cursor-pointer'
+                          ? 'bg-amber-50/60 border-amber-200/90 shadow-2xs hover:bg-amber-50 cursor-pointer'
                           : 'bg-slate-50/80 border-slate-200/70 hover:bg-slate-100/70'
                       }`}
                     >
@@ -337,10 +351,10 @@ export default function Topbar({
               {/* Dropdown Footer */}
               <div className="p-2 border-t border-slate-100 bg-slate-50/80 text-center flex items-center justify-between px-3">
                 <span className="text-[9px] text-slate-400 font-medium">
-                  Live real-time activity telemetry
+                  {activePortal === 'ADMIN' ? 'Staff section action queue' : 'Portal notifications'}
                 </span>
-                <span className="text-[9px] text-slate-400 font-mono font-semibold">
-                  {latestActivities.length} items logged
+                <span className="text-[9px] text-slate-500 font-mono font-bold">
+                  {staffActionNotifications.length} items
                 </span>
               </div>
 

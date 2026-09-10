@@ -7,5 +7,7 @@
     "licenseCriticalDays": 30,
     "warningFrequencyDays": 5,
     "criticalFrequencyDays": 3
-  }
+  },
+  "auditRetentionDays": 60,
+  "autoPruneAuditLogs": true
 }

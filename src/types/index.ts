@@ -262,3 +262,16 @@ export interface ExpiryReminderSettings {
   warningFrequencyDays: number;
   criticalFrequencyDays: number;
 }
+
+export interface AuditRetentionSettings {
+  retentionDays: number; // e.g. 30, 60, 90, 180, 365
+  autoPruneEnabled: boolean;
+  lastPrunedAt?: string;
+}
+
+export interface SystemSettingsConfig {
+  expirySettings: ExpiryReminderSettings;
+  auditRetentionDays: number;
+  autoPruneAuditLogs: boolean;
+}
+

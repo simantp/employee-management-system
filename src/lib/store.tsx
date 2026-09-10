@@ -208,6 +208,11 @@ interface AppContextType {
     daysRemaining: number;
     severity?: 'WARNING' | 'CRITICAL';
   }) => Promise<{ success: boolean; message: string }>;
+
+  // Audit Retention Settings & Actions
+  auditRetentionDays: number;
+  updateAuditRetentionDays: (days: number) => Promise<void>;
+  pruneAuditLogs: (days?: number) => Promise<{ success: boolean; prunedCount: number; message: string }>;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -231,6 +236,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [announcements, setAnnouncements] = useState<Announcement[]>(INITIAL_ANNOUNCEMENTS);
   const [timecards, setTimecards] = useState<TimecardRecord[]>(INITIAL_TIMECARDS);
   const [expirySettings, setExpirySettings] = useState<ExpiryReminderSettings>(INITIAL_EXPIRY_SETTINGS);
+  const [auditRetentionDays, setAuditRetentionDays] = useState<number>(90);
 
   const currentStaff = employees.find(e => e.id === currentStaffId) || employees[0];
 
@@ -280,6 +286,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
       const savedAudit = localStorage.getItem('ems_audit_v1');
       if (savedAudit) setAuditLogs(JSON.parse(savedAudit));
+
+      const savedRetention = localStorage.getItem('ems_audit_retention_days_v1');
+      if (savedRetention) setAuditRetentionDays(Number(savedRetention) || 90);
 
       const savedAnn = localStorage.getItem('ems_announcements_v1');
       if (savedAnn) setAnnouncements(JSON.parse(savedAnn));
@@ -346,8 +355,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         if (usrRes.status === 'fulfilled' && usrRes.value?.success && Array.isArray(usrRes.value.users) && usrRes.value.users.length > 0) {
           setUsers(usrRes.value.users);
         }
-        if (setRes.status === 'fulfilled' && setRes.value?.success && setRes.value.settings?.expirySettings) {
-          setExpirySettings(prev => ({ ...prev, ...setRes.value.settings.expirySettings }));
+        if (setRes.status === 'fulfilled' && setRes.value?.success && setRes.value.settings) {
+          if (setRes.value.settings.expirySettings) {
+            setExpirySettings(prev => ({ ...prev, ...setRes.value.settings.expirySettings }));
+          }
+          if (setRes.value.settings.auditRetentionDays !== undefined) {
+            setAuditRetentionDays(Number(setRes.value.settings.auditRetentionDays) || 90);
+          }
         }
       } catch (err) {
         console.warn('Backend database synchronization fallback to cached state:', err);
@@ -481,6 +495,74 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setToasts(prev => prev.filter(t => t.id !== id));
   };
 
+  // Audit Log Retention Helper
+  const getLogEpochMs = (log: AuditLog): number => {
+    if (log.id && log.id.startsWith('aud-')) {
+      const epoch = parseInt(log.id.replace('aud-', ''));
+      if (!isNaN(epoch) && epoch > 1000000000000) return epoch;
+    }
+    if (log.timestamp) {
+      const t = new Date(log.timestamp).getTime();
+      if (!isNaN(t)) return t;
+      const match = log.timestamp.match(/(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+      if (match) {
+        const d = parseInt(match[1]);
+        const m = parseInt(match[2]) - 1;
+        const y = parseInt(match[3]);
+        const parsed = new Date(y, m, d).getTime();
+        if (!isNaN(parsed)) return parsed;
+      }
+    }
+    return Date.now();
+  };
+
+  const updateAuditRetentionDays = async (days: number) => {
+    const validDays = Math.max(1, days || 90);
+    setAuditRetentionDays(validDays);
+    try {
+      localStorage.setItem('ems_audit_retention_days_v1', JSON.stringify(validDays));
+    } catch(e) {}
+
+    const cutoff = Date.now() - (validDays * 24 * 60 * 60 * 1000);
+    setAuditLogs(prev => prev.filter(l => getLogEpochMs(l) >= cutoff));
+
+    try {
+      await fetch('/api/settings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ auditRetentionDays: validDays }),
+      });
+      addToast('Audit Retention Policy Saved', `Audit logs older than ${validDays} days will be automatically purged.`, 'success');
+      addAudit('AUDIT_RETENTION_UPDATED', 'Settings', 'audit', `Updated audit log retention period to ${validDays} days`, 'Admin', 'SuperAdmin');
+    } catch (err) {
+      console.warn('Failed to update audit retention settings:', err);
+    }
+  };
+
+  const pruneAuditLogs = async (days?: number): Promise<{ success: boolean; prunedCount: number; message: string }> => {
+    const targetDays = days || auditRetentionDays || 90;
+    try {
+      const res = await fetch('/api/audit', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'PRUNE_AUDIT_LOGS', retentionDays: targetDays }),
+      }).then(r => r.json());
+
+      const cutoff = Date.now() - (targetDays * 24 * 60 * 60 * 1000);
+      setAuditLogs(prev => prev.filter(l => getLogEpochMs(l) >= cutoff));
+
+      const pruned = res.prunedCount ?? 0;
+      addToast('Audit Logs Pruned', `Cleaned up ${pruned} records older than ${targetDays} days.`, 'info');
+      addAudit('AUDIT_LOGS_PRUNED', 'Audit', 'all', `Manually pruned ${pruned} audit logs older than ${targetDays} days`, 'Admin', 'SuperAdmin');
+      return { success: true, prunedCount: pruned, message: res.message || `Pruned ${pruned} records.` };
+    } catch (err: any) {
+      const cutoff = Date.now() - (targetDays * 24 * 60 * 60 * 1000);
+      setAuditLogs(prev => prev.filter(l => getLogEpochMs(l) >= cutoff));
+      addToast('Audit Logs Cleaned', `Pruned records older than ${targetDays} days.`, 'info');
+      return { success: true, prunedCount: 0, message: 'Local logs pruned.' };
+    }
+  };
+
   const addAudit = (action: string, targetType: string, targetId: string, details: string, actorName?: string, actorRole?: string) => {
     const actName = actorName || (currentUser ? currentUser.name : 'System');
     const actRole = actorRole || (currentUser ? currentUser.role : 'System');
@@ -497,7 +579,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       details,
       ipAddress: '203.14.182.91 (Sydney, AU)',
     };
-    setAuditLogs(prev => [newLog, ...prev]);
+
+    const cutoff = Date.now() - (auditRetentionDays * 24 * 60 * 60 * 1000);
+    setAuditLogs(prev => [newLog, ...prev.filter(l => getLogEpochMs(l) >= cutoff)]);
 
     // Asynchronously persist to backend MySQL database
     try {
@@ -1980,6 +2064,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       expirySettings,
       updateExpirySettings,
       sendInstantExpiryNotification,
+      auditRetentionDays,
+      updateAuditRetentionDays,
+      pruneAuditLogs,
     }}>
       {children}
     </AppContext.Provider>

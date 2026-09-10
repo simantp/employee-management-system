@@ -5,22 +5,43 @@ import { useApp } from '@/lib/store';
 import DocumentTypesManager from './DocumentTypesManager';
 import RolesManagement from './RolesManagement';
 
-export type SettingsTab = 'COMPANY' | 'SHIFTS' | 'LEAVE' | 'DOCUMENTS' | 'ROLES' | 'EXPIRY' | 'SECURITY' | 'NOTIFS' | 'BACKUP';
+export type SettingsTab = 'COMPANY' | 'SHIFTS' | 'LEAVE' | 'DOCUMENTS' | 'ROLES' | 'EXPIRY' | 'SECURITY' | 'RETENTION' | 'NOTIFS' | 'BACKUP';
 
 export default function AdminSettingsHub({
   defaultTab = 'COMPANY'
 }: {
   defaultTab?: SettingsTab;
 }) {
-  const { addToast, addAudit, employees, timecards, leaveRequests, expirySettings, updateExpirySettings } = useApp();
+  const { 
+    addToast, 
+    addAudit, 
+    employees, 
+    timecards, 
+    leaveRequests, 
+    auditLogs, 
+    expirySettings, 
+    updateExpirySettings, 
+    auditRetentionDays, 
+    updateAuditRetentionDays, 
+    pruneAuditLogs 
+  } = useApp();
 
   const [activeTab, setActiveTab] = useState<SettingsTab>(defaultTab);
+  const [retentionDaysInput, setRetentionDaysInput] = useState<number>(auditRetentionDays || 90);
+  const [isPruning, setIsPruning] = useState(false);
+  const [isSavingRetention, setIsSavingRetention] = useState(false);
 
   useEffect(() => {
     if (defaultTab) {
       setActiveTab(defaultTab);
     }
   }, [defaultTab]);
+
+  useEffect(() => {
+    if (auditRetentionDays) {
+      setRetentionDaysInput(auditRetentionDays);
+    }
+  }, [auditRetentionDays]);
 
   // 1. Company Profile State
   const [companyForm, setCompanyForm] = useState({
@@ -82,13 +103,31 @@ export default function AdminSettingsHub({
     notifyStaffOnShiftApproval: true,
   });
 
-  const handleSaveSettings = (section: string) => {
+  const handleSaveSettings = async (section: string) => {
     if (activeTab === 'EXPIRY') {
       updateExpirySettings(expiryForm);
       return;
     }
+    if (activeTab === 'RETENTION') {
+      setIsSavingRetention(true);
+      await updateAuditRetentionDays(retentionDaysInput);
+      setIsSavingRetention(false);
+      return;
+    }
     addToast('Settings Saved', `${section} preferences updated and persisted successfully.`, 'success');
     addAudit('SYSTEM_SETTINGS_UPDATED', 'Settings', 'global', `Updated ${section} configuration settings`, 'Admin', 'SuperAdmin');
+  };
+
+  const handleManualPruneLogs = async () => {
+    setIsPruning(true);
+    try {
+      const res = await pruneAuditLogs(retentionDaysInput);
+      addToast('Audit Logs Pruned', res.message || `Pruned records older than ${retentionDaysInput} days.`, 'success');
+    } catch (e: any) {
+      addToast('Pruning Error', e.message || 'Failed to prune logs.', 'error');
+    } finally {
+      setIsPruning(false);
+    }
   };
 
   const handleExportSystemBackup = () => {
@@ -304,6 +343,22 @@ export default function AdminSettingsHub({
             }`}
           >
             Security &amp; Encryption
+          </button>
+
+          <button
+            onClick={() => setActiveTab('RETENTION')}
+            className={`w-full text-left p-2.5 rounded-xl text-xs font-bold transition cursor-pointer flex items-center justify-between ${
+              activeTab === 'RETENTION' 
+                ? 'bg-slate-900 text-white font-bold' 
+                : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
+            }`}
+          >
+            <span>Audit Log &amp; Retention</span>
+            <span className={`text-[10px] px-1.5 py-0.5 rounded-md font-mono font-bold ${
+              activeTab === 'RETENTION' ? 'bg-slate-800 text-orange-400' : 'bg-slate-100 text-slate-500'
+            }`}>
+              {retentionDaysInput}d
+            </span>
           </button>
 
           <button
@@ -836,6 +891,151 @@ export default function AdminSettingsHub({
                     className="w-4 h-4 rounded text-orange-500 cursor-pointer"
                   />
                 </div>
+              </div>
+            </div>
+          )}
+
+          {/* TAB: AUDIT LOG & RETENTION POLICY */}
+          {activeTab === 'RETENTION' && (
+            <div className="space-y-6">
+              <div className="border-b border-slate-100 pb-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                <div>
+                  <h3 className="font-bold text-sm text-slate-900">Audit Log &amp; Record Retention Policy</h3>
+                  <p className="text-slate-500 text-[11px]">
+                    Configure how long system activity trails and audit logs are kept in database &amp; server records before automated deletion
+                  </p>
+                </div>
+                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 font-mono text-[10px] font-bold border border-emerald-200 self-start sm:self-auto">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                  Auto-Purge Engine Active
+                </span>
+              </div>
+
+              {/* Status Overview Cards */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
+                <div className="p-4 rounded-2xl bg-slate-900 text-white border border-slate-800 space-y-1">
+                  <span className="text-[10px] font-mono text-slate-400 uppercase tracking-wider block">Retention Window</span>
+                  <div className="text-2xl font-black text-orange-400 flex items-baseline gap-1">
+                    <span>{retentionDaysInput}</span>
+                    <span className="text-xs font-bold text-slate-300">Days</span>
+                  </div>
+                  <p className="text-[10px] text-slate-400">
+                    Records older than {retentionDaysInput} days are automatically deleted
+                  </p>
+                </div>
+
+                <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-1">
+                  <span className="text-[10px] font-mono text-slate-500 uppercase tracking-wider block">Audit Records on File</span>
+                  <div className="text-2xl font-black text-slate-900 flex items-baseline gap-1">
+                    <span>{auditLogs.length}</span>
+                    <span className="text-xs font-medium text-slate-500">entries</span>
+                  </div>
+                  <p className="text-[10px] text-slate-500">
+                    Live records currently maintained in storage
+                  </p>
+                </div>
+
+                <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-1">
+                  <span className="text-[10px] font-mono text-slate-500 uppercase tracking-wider block">Deletion Schedule</span>
+                  <div className="text-sm font-black text-slate-900 pt-1">
+                    Continuous &amp; Real-time
+                  </div>
+                  <p className="text-[10px] text-slate-500">
+                    Purged across MySQL database &amp; disk storage automatically
+                  </p>
+                </div>
+              </div>
+
+              {/* Retention Setting Controls */}
+              <div className="p-5 rounded-2xl bg-white border border-slate-200 space-y-4 shadow-2xs">
+                <div>
+                  <h4 className="font-bold text-xs text-slate-900">Set Maximum Audit Log Retention Period</h4>
+                  <p className="text-slate-500 text-[11px]">
+                    Select a standard compliance preset or enter a custom number of days.
+                  </p>
+                </div>
+
+                {/* Preset Buttons */}
+                <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-7 gap-2">
+                  {[
+                    { label: '7 Days', days: 7, desc: '1 Wk' },
+                    { label: '14 Days', days: 14, desc: '2 Wks' },
+                    { label: '30 Days', days: 30, desc: '1 Mo' },
+                    { label: '60 Days', days: 60, desc: '2 Mos' },
+                    { label: '90 Days', days: 90, desc: 'Default' },
+                    { label: '180 Days', days: 180, desc: '6 Mos' },
+                    { label: '365 Days', days: 365, desc: '1 Yr' },
+                  ].map(preset => (
+                    <button
+                      key={preset.days}
+                      type="button"
+                      onClick={() => setRetentionDaysInput(preset.days)}
+                      className={`p-2.5 rounded-xl border text-center transition cursor-pointer ${
+                        retentionDaysInput === preset.days
+                          ? 'bg-slate-900 border-slate-900 text-white shadow-xs'
+                          : 'bg-slate-50 hover:bg-slate-100 border-slate-200 text-slate-700'
+                      }`}
+                    >
+                      <div className="font-bold text-xs">{preset.label}</div>
+                      <div className={`text-[10px] ${retentionDaysInput === preset.days ? 'text-orange-400' : 'text-slate-400'}`}>
+                        {preset.desc}
+                      </div>
+                    </button>
+                  ))}
+                </div>
+
+                {/* Custom Days Input */}
+                <div className="pt-2 border-t border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                  <div className="flex items-center gap-3">
+                    <label className="font-bold text-xs text-slate-800">
+                      Custom Retention Window:
+                    </label>
+                    <div className="flex items-center gap-1.5">
+                      <input
+                        type="number"
+                        min="1"
+                        max="3650"
+                        value={retentionDaysInput}
+                        onChange={e => setRetentionDaysInput(Math.max(1, parseInt(e.target.value) || 1))}
+                        className="w-24 px-3 py-1.5 text-xs font-bold border border-slate-200 rounded-xl bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 text-slate-900 text-center"
+                      />
+                      <span className="text-slate-500 font-bold text-xs">Days</span>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      disabled={isPruning}
+                      onClick={handleManualPruneLogs}
+                      className="px-3.5 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-xs transition cursor-pointer disabled:opacity-50"
+                    >
+                      {isPruning ? 'Pruning...' : 'Prune Expired Logs Now'}
+                    </button>
+
+                    <button
+                      type="button"
+                      disabled={isSavingRetention}
+                      onClick={() => handleSaveSettings('RETENTION')}
+                      className="px-4 py-2 rounded-xl bg-orange-600 hover:bg-orange-700 text-white font-bold text-xs shadow-xs transition cursor-pointer disabled:opacity-50"
+                    >
+                      {isSavingRetention ? 'Saving...' : 'Save Retention Policy'}
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* Policy & Compliance Information */}
+              <div className="p-4 rounded-2xl bg-amber-50/60 border border-amber-200/80 text-amber-950 space-y-2">
+                <div className="flex items-center gap-2">
+                  <span className="text-base">📋</span>
+                  <h4 className="font-bold text-xs text-amber-900">Automated Audit Lifecycle Rules</h4>
+                </div>
+                <ul className="list-disc list-inside space-y-1 text-[11px] text-amber-800/90 leading-relaxed pl-1">
+                  <li>Audit logs and activity records older than the specified duration are automatically purged on every database sync and background maintenance cycle.</li>
+                  <li>Pruning operates synchronously across both local JSON file snapshots and the MySQL production database (<code className="bg-amber-100/80 px-1 py-0.5 rounded text-[10px] font-mono">audit_logs</code> table).</li>
+                  <li>Essential employee profile records, timecards, and approved leave records remain permanently intact and are not deleted by the audit log retention policy.</li>
+                </ul>
               </div>
             </div>
           )}

@@ -107,9 +107,48 @@ export async function saveStoredUsers(users: AuthUser[]): Promise<void> {
 export async function getStoredSettings(): Promise<any> {
   return readJsonFile<any>('settings.json', {
     expirySettings: INITIAL_EXPIRY_SETTINGS,
+    auditRetentionDays: 90,
+    autoPruneAuditLogs: true,
   });
 }
 
 export async function saveStoredSettings(settings: any): Promise<void> {
   await writeJsonFile('settings.json', settings);
 }
+
+export function getAuditLogTimestampMs(log: { id?: string; timestamp?: string; created_at?: string }): number {
+  if (log.id && log.id.startsWith('aud-')) {
+    const epoch = parseInt(log.id.replace('aud-', ''));
+    if (!isNaN(epoch) && epoch > 1000000000000) {
+      return epoch;
+    }
+  }
+  if (log.created_at) {
+    const t = new Date(log.created_at).getTime();
+    if (!isNaN(t)) return t;
+  }
+  if (log.timestamp) {
+    const t = new Date(log.timestamp).getTime();
+    if (!isNaN(t)) return t;
+    // Check AU date format "DD/MM/YYYY, HH:MM:SS"
+    const match = log.timestamp.match(/(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+    if (match) {
+      const d = parseInt(match[1]);
+      const m = parseInt(match[2]) - 1;
+      const y = parseInt(match[3]);
+      const parsed = new Date(y, m, d).getTime();
+      if (!isNaN(parsed)) return parsed;
+    }
+  }
+  return Date.now();
+}
+
+export function pruneLogsByDays(logs: AuditLog[], retentionDays: number): { kept: AuditLog[]; prunedCount: number } {
+  const days = Math.max(1, retentionDays || 90);
+  const cutoff = Date.now() - (days * 24 * 60 * 60 * 1000);
+  const kept = logs.filter(l => getAuditLogTimestampMs(l) >= cutoff);
+  const prunedCount = logs.length - kept.length;
+  return { kept, prunedCount };
+}
+
+
