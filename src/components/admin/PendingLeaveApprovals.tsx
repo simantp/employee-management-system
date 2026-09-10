@@ -19,6 +19,7 @@ export default function PendingLeaveApprovals({
   const [selectedLeave, setSelectedLeave] = useState<LeaveRequest | null>(null);
   const [inspectingCert, setInspectingCert] = useState<LeaveRequest | null>(null);
   const [zoomCert, setZoomCert] = useState<boolean>(false);
+  const [certViewTab, setCertViewTab] = useState<'image' | 'summary'>('image');
 
   const pendingRequests = leaveRequests.filter(r => r.status === 'PENDING');
   const approvedRequests = leaveRequests.filter(r => r.status === 'APPROVED');
@@ -769,90 +770,156 @@ export default function PendingLeaveApprovals({
               </button>
             </div>
 
-            {/* Document Certificate Viewer Body */}
-            <div className="p-6 bg-slate-100 max-h-[65vh] overflow-y-auto flex flex-col items-center">
-              
-              {/* Australian Medical Certificate Visual Layout */}
-              <div className="w-full max-w-xl bg-white rounded-2xl shadow-xl border border-slate-300 p-6 sm:p-8 space-y-6 relative overflow-hidden text-slate-800">
-                
-                {/* Official Practice Header */}
-                <div className="border-b-2 border-slate-800 pb-4 flex items-start justify-between">
-                  <div>
-                    <h4 className="text-base font-black text-slate-900 tracking-tight uppercase">
-                      Riverwood Family Medical Centre
-                    </h4>
-                    <p className="text-[11px] font-bold text-slate-700">Dr. Sarah Jenkins, MBBS (Syd), FRACGP</p>
-                    <p className="text-[10px] text-slate-500">General Medical Practitioner • Provider No: 4928103A</p>
-                    <p className="text-[10px] text-slate-500">14 Belmore Road, Riverwood NSW 2210 • Tel: (02) 9534 8100</p>
-                  </div>
-                  <div className="text-right">
-                    <span className="inline-block px-2.5 py-1 rounded border border-slate-800 text-[10px] font-black tracking-wider uppercase text-slate-900">
-                      Medical Certificate
-                    </span>
-                    <p className="text-[10px] text-slate-500 font-mono mt-1">
-                      Date Issued: {inspectingCert.submittedAt?.split(' ')[0] || inspectingCert.startDate}
-                    </p>
-                  </div>
-                </div>
-
-                {/* Patient Information Section */}
-                <div className="space-y-1 text-xs">
-                  <div className="flex">
-                    <span className="w-28 text-slate-500 font-semibold">Patient Name:</span>
-                    <strong className="text-slate-900 font-bold uppercase">{inspectingCert.employeeName}</strong>
-                  </div>
-                  <div className="flex">
-                    <span className="w-28 text-slate-500 font-semibold">Employee ID:</span>
-                    <span className="font-mono font-bold text-slate-700">{inspectingCert.employeeId}</span>
-                  </div>
-                  <div className="flex">
-                    <span className="w-28 text-slate-500 font-semibold">Department:</span>
-                    <span className="text-slate-700 font-medium">{inspectingCert.department || 'Sydney Headquarters'}</span>
-                  </div>
-                </div>
-
-                {/* Certificate Certification Body */}
-                <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 text-xs leading-relaxed space-y-3">
-                  <p className="font-serif text-slate-800 text-sm italic">
-                    &ldquo;This is to certify that I have examined and consulted with <strong>{inspectingCert.employeeName}</strong> on <strong>{inspectingCert.startDate}</strong>. In my professional clinical assessment, they are suffering from a medical condition and are unfit for work and occupational duties from <strong>{inspectingCert.startDate}</strong> to <strong>{inspectingCert.endDate}</strong> inclusive.&rdquo;
-                  </p>
-
-                  <div className="pt-2 border-t border-slate-200 text-xs">
-                    <span className="text-slate-500 font-semibold block text-[10px] uppercase">Clinical Notes / Diagnosis Reason:</span>
-                    <p className="font-medium text-slate-800 mt-0.5">
-                      {inspectingCert.reason || 'Medical incapacity due to viral illness.'}
-                    </p>
-                  </div>
-                </div>
-
-                {/* Doctor's Signature, Stamp & Validation */}
-                <div className="pt-4 border-t border-slate-200 flex items-end justify-between">
-                  <div className="space-y-1">
-                    <div className="w-40 border-b border-slate-800 pb-1 font-serif italic text-base text-blue-900 font-bold">
-                      Dr. S. Jenkins
-                    </div>
-                    <p className="text-[10px] font-bold text-slate-800">Medical Practitioner Signature</p>
-                    <p className="text-[9px] text-slate-400">AHPRA Reg: MED0001948201</p>
-                  </div>
-
-                  {/* Official Clinic Seal Stamp */}
-                  <div className="w-24 h-24 rounded-full border-2 border-dashed border-emerald-600/80 p-1 flex flex-col items-center justify-center text-center rotate-[-6deg] bg-emerald-50/50">
-                    <span className="text-[8px] font-black text-emerald-800 tracking-tighter uppercase">Riverwood Clinic</span>
-                    <span className="text-[9px] font-black text-emerald-700">VERIFIED</span>
-                    <span className="text-[7px] text-emerald-600 font-mono">{inspectingCert.startDate}</span>
-                    <span className="text-[7px] font-bold text-emerald-800">NSW AHPRA</span>
-                  </div>
-                </div>
-
-                {/* Compliance Footer */}
-                <div className="text-[9px] text-slate-400 pt-2 border-t border-slate-100 flex items-center justify-between">
-                  <span>Fair Work Act 2009 • National Employment Standards (NES) Validated</span>
-                  <span className="font-mono">HsCreations Vault ID: {inspectingCert.id}</span>
-                </div>
-
+            {/* Tab Navigation Header */}
+            <div className="flex items-center justify-between px-5 py-2.5 bg-slate-800 border-b border-slate-700 text-xs">
+              <div className="flex items-center gap-1 bg-slate-900/90 p-1 rounded-xl border border-slate-700">
+                <button
+                  type="button"
+                  onClick={() => setCertViewTab('image')}
+                  className={`px-3 py-1 rounded-lg font-bold text-xs transition cursor-pointer flex items-center gap-1.5 ${
+                    certViewTab === 'image'
+                      ? 'bg-emerald-600 text-white shadow-xs'
+                      : 'text-slate-400 hover:text-white'
+                  }`}
+                >
+                  <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                  </svg>
+                  <span>Uploaded Document / Photo</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setCertViewTab('summary')}
+                  className={`px-3 py-1 rounded-lg font-bold text-xs transition cursor-pointer flex items-center gap-1.5 ${
+                    certViewTab === 'summary'
+                      ? 'bg-emerald-600 text-white shadow-xs'
+                      : 'text-slate-400 hover:text-white'
+                  }`}
+                >
+                  <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                  <span>GP Letterhead &amp; Clearance</span>
+                </button>
               </div>
 
+              {certViewTab === 'image' && (
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setZoomCert(!zoomCert)}
+                    className="px-2.5 py-1 rounded-lg bg-slate-700 hover:bg-slate-600 text-slate-200 text-xs font-semibold flex items-center gap-1 cursor-pointer"
+                  >
+                    <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7" />
+                    </svg>
+                    <span>{zoomCert ? 'Fit to Window' : 'Zoom 100%'}</span>
+                  </button>
+                </div>
+              )}
             </div>
+
+            {/* Document Certificate Viewer Body */}
+            {certViewTab === 'image' ? (
+              <div className="p-4 sm:p-6 bg-slate-950 flex flex-col items-center justify-center min-h-[350px] max-h-[65vh] overflow-auto">
+                <div className={`transition-all duration-200 flex items-center justify-center ${zoomCert ? 'max-w-none w-auto' : 'max-w-full max-h-[55vh]'}`}>
+                  <img
+                    src={getCertificateUrl(inspectingCert)}
+                    alt={`Medical certificate uploaded by ${inspectingCert.employeeName}`}
+                    className={`rounded-2xl object-contain shadow-2xl border border-slate-800 bg-white transition-transform ${
+                      zoomCert ? 'w-auto h-auto max-w-[90vw]' : 'max-h-[52vh] max-w-full'
+                    }`}
+                  />
+                </div>
+                <div className="mt-3 text-center">
+                  <span className="text-[11px] text-slate-400 font-medium">
+                    Official medical certificate uploaded by <strong>{inspectingCert.employeeName}</strong> on {inspectingCert.submittedAt || inspectingCert.startDate}
+                  </span>
+                </div>
+              </div>
+            ) : (
+              <div className="p-6 bg-slate-100 max-h-[65vh] overflow-y-auto flex flex-col items-center">
+                {/* Australian Medical Certificate Visual Layout */}
+                <div className="w-full max-w-xl bg-white rounded-2xl shadow-xl border border-slate-300 p-6 sm:p-8 space-y-6 relative overflow-hidden text-slate-800">
+                  
+                  {/* Official Practice Header */}
+                  <div className="border-b-2 border-slate-800 pb-4 flex items-start justify-between">
+                    <div>
+                      <h4 className="text-base font-black text-slate-900 tracking-tight uppercase">
+                        Riverwood Family Medical Centre
+                      </h4>
+                      <p className="text-[11px] font-bold text-slate-700">Dr. Sarah Jenkins, MBBS (Syd), FRACGP</p>
+                      <p className="text-[10px] text-slate-500">General Medical Practitioner • Provider No: 4928103A</p>
+                      <p className="text-[10px] text-slate-500">14 Belmore Road, Riverwood NSW 2210 • Tel: (02) 9534 8100</p>
+                    </div>
+                    <div className="text-right">
+                      <span className="inline-block px-2.5 py-1 rounded border border-slate-800 text-[10px] font-black tracking-wider uppercase text-slate-900">
+                        Medical Certificate
+                      </span>
+                      <p className="text-[10px] text-slate-500 font-mono mt-1">
+                        Date Issued: {inspectingCert.submittedAt?.split(' ')[0] || inspectingCert.startDate}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Patient Information Section */}
+                  <div className="space-y-1 text-xs">
+                    <div className="flex">
+                      <span className="w-28 text-slate-500 font-semibold">Patient Name:</span>
+                      <strong className="text-slate-900 font-bold uppercase">{inspectingCert.employeeName}</strong>
+                    </div>
+                    <div className="flex">
+                      <span className="w-28 text-slate-500 font-semibold">Employee ID:</span>
+                      <span className="font-mono font-bold text-slate-700">{inspectingCert.employeeId}</span>
+                    </div>
+                    <div className="flex">
+                      <span className="w-28 text-slate-500 font-semibold">Department:</span>
+                      <span className="text-slate-700 font-medium">{inspectingCert.department || 'Sydney Headquarters'}</span>
+                    </div>
+                  </div>
+
+                  {/* Certificate Certification Body */}
+                  <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 text-xs leading-relaxed space-y-3">
+                    <p className="font-serif text-slate-800 text-sm italic">
+                      &ldquo;This is to certify that I have examined and consulted with <strong>{inspectingCert.employeeName}</strong> on <strong>{inspectingCert.startDate}</strong>. In my professional clinical assessment, they are suffering from a medical condition and are unfit for work and occupational duties from <strong>{inspectingCert.startDate}</strong> to <strong>{inspectingCert.endDate}</strong> inclusive.&rdquo;
+                    </p>
+
+                    <div className="pt-2 border-t border-slate-200 text-xs">
+                      <span className="text-slate-500 font-semibold block text-[10px] uppercase">Clinical Notes / Diagnosis Reason:</span>
+                      <p className="font-medium text-slate-800 mt-0.5">
+                        {inspectingCert.reason || 'Medical incapacity due to viral illness.'}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Doctor's Signature, Stamp & Validation */}
+                  <div className="pt-4 border-t border-slate-200 flex items-end justify-between">
+                    <div className="space-y-1">
+                      <div className="w-40 border-b border-slate-800 pb-1 font-serif italic text-base text-blue-900 font-bold">
+                        Dr. S. Jenkins
+                      </div>
+                      <p className="text-[10px] font-bold text-slate-800">Medical Practitioner Signature</p>
+                      <p className="text-[9px] text-slate-400">AHPRA Reg: MED0001948201</p>
+                    </div>
+
+                    {/* Official Clinic Seal Stamp */}
+                    <div className="w-24 h-24 rounded-full border-2 border-dashed border-emerald-600/80 p-1 flex flex-col items-center justify-center text-center rotate-[-6deg] bg-emerald-50/50">
+                      <span className="text-[8px] font-black text-emerald-800 tracking-tighter uppercase">Riverwood Clinic</span>
+                      <span className="text-[9px] font-black text-emerald-700">VERIFIED</span>
+                      <span className="text-[7px] text-emerald-600 font-mono">{inspectingCert.startDate}</span>
+                      <span className="text-[7px] font-bold text-emerald-800">NSW AHPRA</span>
+                    </div>
+                  </div>
+
+                  {/* Compliance Footer */}
+                  <div className="text-[9px] text-slate-400 pt-2 border-t border-slate-100 flex items-center justify-between">
+                    <span>Fair Work Act 2009 • National Employment Standards (NES) Validated</span>
+                    <span className="font-mono">HsCreations Vault ID: {inspectingCert.id}</span>
+                  </div>
+
+                </div>
+              </div>
+            )}
 
             {/* Modal Actions Footer */}
             <div className="p-4 sm:p-5 bg-white border-t border-slate-100 flex flex-wrap items-center justify-between gap-3">

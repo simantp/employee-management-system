@@ -1,5 +1,77 @@
 [
   {
+    "id": "aud-1789009702842",
+    "action": "USER_LOGIN",
+    "targetType": "User",
+    "targetId": "usr-1",
+    "details": "User logged in with role SUPER_ADMIN",
+    "actorId": "usr-1",
+    "actorName": "Admin User",
+    "actorRole": "SUPER_ADMIN",
+    "timestamp": "10/09/2026, 1:08:22 pm AEST",
+    "ipAddress": "127.0.0.1 (Localhost)"
+  },
+  {
+    "id": "aud-1789009701835",
+    "action": "USER_LOGOUT",
+    "targetType": "User",
+    "targetId": "usr-2",
+    "details": "User Suman Thapa logged out",
+    "actorId": "usr-1",
+    "actorName": "Suman Thapa",
+    "actorRole": "STAFF",
+    "timestamp": "10/09/2026, 1:08:21 pm AEST",
+    "ipAddress": "127.0.0.1 (Localhost)"
+  },
+  {
+    "id": "aud-1789009691742",
+    "action": "SUBMIT_LEAVE_REQUEST",
+    "targetType": "LeaveRequest",
+    "targetId": "lr-1789009691741",
+    "details": "Submitted SICK leave (1 days) starting 10/09/2026",
+    "actorId": "usr-1",
+    "actorName": "Suman Thapa",
+    "actorRole": "STAFF",
+    "timestamp": "10/09/2026, 1:08:11 pm AEST",
+    "ipAddress": "127.0.0.1 (Localhost)"
+  },
+  {
+    "id": "aud-1789009659820",
+    "action": "USER_LOGIN",
+    "targetType": "User",
+    "targetId": "usr-2",
+    "details": "User logged in with role STAFF",
+    "actorId": "usr-1",
+    "actorName": "Suman Thapa",
+    "actorRole": "STAFF",
+    "timestamp": "10/09/2026, 1:07:39 pm AEST",
+    "ipAddress": "127.0.0.1 (Localhost)"
+  },
+  {
+    "id": "aud-1789009658204",
+    "action": "USER_LOGOUT",
+    "targetType": "User",
+    "targetId": "usr-1",
+    "details": "User Admin User logged out",
+    "actorId": "usr-1",
+    "actorName": "Admin User",
+    "actorRole": "SUPER_ADMIN",
+    "timestamp": "10/09/2026, 1:07:38 pm AEST",
+    "ipAddress": "127.0.0.1 (Localhost)"
+  },
+  {
+    "id": "aud-1789009609431",
+    "action": "USER_LOGIN",
+    "targetType": "User",
+    "targetId": "usr-1",
+    "details": "User logged in with role SUPER_ADMIN",
+    "actorId": "usr-1",
+    "actorName": "Admin User",
+    "actorRole": "SUPER_ADMIN",
+    "timestamp": "10/09/2026, 1:06:49 pm AEST",
+    "ipAddress": "127.0.0.1 (Localhost)"
+  },
+  {
     "id": "aud-1789009292467",
     "action": "APPROVE_DOCUMENT",
     "targetType": "Document",

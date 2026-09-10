@@ -13,8 +13,27 @@ export default function ApplyLeaveModal({ onClose }: { onClose: () => void }) {
   const [totalDays, setTotalDays] = useState(5);
   const [reason, setReason] = useState('');
   const [uploadLater, setUploadLater] = useState(false);
+  const [certPreview, setCertPreview] = useState<string | null>(null);
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
 
   const daysUntilStart = getDaysUntil(startDate);
+
+  const isMedicalType = leaveType === 'SICK' || leaveType === 'CARERS';
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.type.includes('image')) {
+        const reader = new FileReader();
+        reader.onload = (event) => {
+          setCertPreview(event.target?.result as string);
+        };
+        reader.readAsDataURL(file);
+      } else {
+        setCertPreview('https://images.unsplash.com/photo-1584515979956-d9f6e5d09982?w=1000&auto=format&fit=crop&q=80');
+      }
+    }
+  };
 
   // Business Rule Lead Time Validations from Excel
   const getAdvanceRequirement = () => {
@@ -33,6 +52,8 @@ export default function ApplyLeaveModal({ onClose }: { onClose: () => void }) {
       return;
     }
 
+    const hasCert = isMedicalType ? (!uploadLater && Boolean(certPreview)) : false;
+
     submitLeaveRequest({
       employeeId: currentStaff.id,
       employeeName: `${currentStaff.firstName} ${currentStaff.lastName}`,
@@ -45,7 +66,8 @@ export default function ApplyLeaveModal({ onClose }: { onClose: () => void }) {
       reason,
       isAdvanceNoticeMet: isAdvanceMet,
       advanceNoticeDays: daysUntilStart,
-      certificateUploaded: !uploadLater,
+      certificateUploaded: hasCert || (isMedicalType && !uploadLater),
+      certificateUrl: certPreview || (isMedicalType && !uploadLater ? 'https://images.unsplash.com/photo-1584515979956-d9f6e5d09982?w=1000&auto=format&fit=crop&q=80' : undefined),
     });
 
     onClose();
@@ -136,6 +158,52 @@ export default function ApplyLeaveModal({ onClose }: { onClose: () => void }) {
               className="w-full p-2.5 border rounded-xl bg-slate-50 focus:bg-white focus:outline-none placeholder:text-slate-400"
             />
           </div>
+
+          {/* Medical Certificate Upload Box for Sick & Carer's Leave */}
+          {isMedicalType && (
+            <div className="p-3.5 rounded-2xl bg-slate-900 text-white space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="font-bold text-xs text-cyan-300">Medical Certificate &amp; Proof</span>
+                <span className="text-[10px] text-slate-400">Optional for 1-day, required for 2+ days</span>
+              </div>
+              <p className="text-[11px] text-slate-300">
+                Attach a photo or scan of your doctor's certificate. Admin will inspect this document directly in the portal.
+              </p>
+
+              <input
+                type="file"
+                ref={fileInputRef}
+                onChange={handleFileChange}
+                accept="image/*,application/pdf"
+                className="hidden"
+              />
+
+              <div className="pt-1 space-y-2">
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  className="w-full py-2 px-3 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-cyan-300 font-bold text-xs transition cursor-pointer flex items-center justify-center gap-2"
+                >
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                  </svg>
+                  <span>{certPreview ? 'Change Selected Certificate File' : 'Select Medical Certificate File / Photo'}</span>
+                </button>
+                {certPreview && (
+                  <div className="flex items-center justify-between bg-emerald-950/60 border border-emerald-500/40 px-3 py-1.5 rounded-lg text-[10px] text-emerald-300">
+                    <span>Certificate image ready to attach</span>
+                    <button
+                      type="button"
+                      onClick={() => setCertPreview(null)}
+                      className="text-rose-400 hover:text-rose-300 font-bold"
+                    >
+                      Remove
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
 
           <div className="flex items-center justify-between pt-3 border-t border-slate-100">
             <span className="text-[11px] text-slate-400">Real-time alert dispatched to Admin</span>
