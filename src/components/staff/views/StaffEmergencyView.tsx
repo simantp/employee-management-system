@@ -26,7 +26,7 @@ export default function StaffEmergencyView() {
         </button>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className="max-w-2xl">
         <div className="bg-white rounded-2xl p-6 border border-slate-200/80 shadow-sm space-y-4">
           <div className="flex items-center justify-between border-b pb-3">
             <h3 className="font-bold text-sm text-slate-900 flex items-center gap-2">
@@ -35,7 +35,7 @@ export default function StaffEmergencyView() {
             <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-rose-100 text-rose-800">Primary</span>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <span className="text-slate-400 uppercase text-[10px] font-semibold block">Contact Name</span>
               <span className="font-bold text-slate-900 text-sm">{currentStaff.emergencyNextOfKin}</span>
@@ -52,25 +52,9 @@ export default function StaffEmergencyView() {
               <span className="text-slate-400 uppercase text-[10px] font-semibold block">Home Phone</span>
               <span className="font-bold text-slate-900 text-sm">{currentStaff.emergencyHomePhone || 'N/A'}</span>
             </div>
-            <div className="col-span-2">
+            <div className="col-span-1 sm:col-span-2">
               <span className="text-slate-400 uppercase text-[10px] font-semibold block">Address</span>
               <span className="font-bold text-slate-900">{currentStaff.emergencyAddress}, {currentStaff.emergencySuburb} {currentStaff.emergencyState} {currentStaff.emergencyPostcode}</span>
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-slate-900 text-white rounded-2xl p-6 border border-slate-800 shadow-sm space-y-4">
-          <h3 className="font-bold text-sm text-white flex items-center gap-2 border-b border-slate-800 pb-3">
-            <span>Workplace Incident Protocol</span>
-          </h3>
-
-          <div className="space-y-3 text-slate-300">
-            <p>
-              In the event of an on-site medical emergency or plant evacuation, our designated safety officers will immediately notify the primary emergency contact above.
-            </p>
-            <div className="p-3 rounded-xl bg-slate-800 border border-slate-700 space-y-1">
-              <span className="font-bold text-cyan-300 block">Plant First Aid Officer:</span>
-              <span>Binod Gurung (Riverwood Operations) • Ext: 402</span>
             </div>
           </div>
         </div>

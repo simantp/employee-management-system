@@ -20,8 +20,6 @@ export default function StaffSidebar({
     { id: 'timesheet', label: 'Timesheet Records' },
     { id: 'emergency', label: 'Emergency Contacts' },
     { id: 'directory', label: 'Company Directory' },
-    { id: 'resignation', label: 'Resignation Notice' },
-    { id: 'support', label: 'HR Helpdesk' },
   ];
 
   const handleNav = (id: string) => {
@@ -77,6 +75,23 @@ export default function StaffSidebar({
             </button>
           );
         })}
+      </div>
+
+      {/* Resignation Notice at Bottom of Sidebar */}
+      <div className="p-3 border-t border-slate-800/60">
+        <button
+          onClick={() => handleNav('resignation')}
+          className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs transition-all duration-150 group relative cursor-pointer ${
+            activeTab === 'resignation'
+              ? 'bg-gradient-to-r from-rose-600/30 to-amber-600/20 text-rose-300 border border-rose-500/40 font-bold shadow-sm shadow-rose-950/40'
+              : 'text-slate-400 hover:text-rose-300 hover:bg-rose-950/20 font-semibold'
+          }`}
+        >
+          <div className="flex items-center gap-2.5 min-w-0">
+            {activeTab === 'resignation' && <span className="w-1.5 h-1.5 rounded-full bg-rose-400 flex-shrink-0 animate-pulse" />}
+            <span className="truncate">Resignation Notice</span>
+          </div>
+        </button>
       </div>
 
       {/* Bottom Sleek User Bar */}
