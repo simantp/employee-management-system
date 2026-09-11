@@ -210,7 +210,12 @@ export default function AuthPortal() {
 
   const handleClockIn = () => {
     if (!clockUsername || !clockPin || !matchedStaff) return;
-    const res = clockInWithKiosk(clockUsername, clockPin);
+    const user = clockUsername;
+    const pin = clockPin;
+    // Clear the input fields immediately once used
+    setClockUsername('');
+    setClockPin('');
+    const res = clockInWithKiosk(user, pin);
     if (res.success && res.employee) {
       try {
         confetti({ particleCount: 80, spread: 70, origin: { y: 0.6 } });
@@ -225,8 +230,6 @@ export default function AuthPortal() {
         message: res.message
       });
       setTimeout(() => {
-        setClockUsername('');
-        setClockPin('');
         setClockFeedback(null);
       }, 4000);
     }
@@ -234,7 +237,12 @@ export default function AuthPortal() {
 
   const handleClockOut = () => {
     if (!clockUsername || !clockPin || !matchedStaff) return;
-    const res = clockOutWithKiosk(clockUsername, clockPin, 30);
+    const user = clockUsername;
+    const pin = clockPin;
+    // Clear the input fields immediately once used
+    setClockUsername('');
+    setClockPin('');
+    const res = clockOutWithKiosk(user, pin, 30);
     if (res.success && res.employee) {
       try {
         confetti({ particleCount: 80, spread: 70, origin: { y: 0.6 } });
@@ -250,8 +258,6 @@ export default function AuthPortal() {
         message: res.message
       });
       setTimeout(() => {
-        setClockUsername('');
-        setClockPin('');
         setClockFeedback(null);
       }, 4000);
     }
@@ -261,9 +267,14 @@ export default function AuthPortal() {
     e.preventDefault();
     if (!loginEmail) return;
     setErrorMessage(null);
-    const success = login(loginEmail);
+    const emailToLogin = loginEmail.trim();
+    const passToLogin = loginPassword;
+    // Clear input fields immediately once used
+    setLoginEmail('');
+    setLoginPassword('');
+    const success = login(emailToLogin, passToLogin);
     if (!success) {
-      const emp = employees.find(e => e.email.toLowerCase() === loginEmail.trim().toLowerCase());
+      const emp = employees.find(e => e.email.toLowerCase() === emailToLogin.toLowerCase());
       if (emp?.status === 'Archived') {
         setErrorMessage('This staff account has been archived by administration. Login and Shift Clock punch access are disabled. Please contact your manager or HR.');
       }
@@ -272,6 +283,9 @@ export default function AuthPortal() {
 
   const handleQuickLogin = (email: string) => {
     setErrorMessage(null);
+    // Clear input fields immediately once used
+    setLoginEmail('');
+    setLoginPassword('');
     const success = login(email);
     if (!success) {
       const emp = employees.find(e => e.email.toLowerCase() === email.trim().toLowerCase());
@@ -318,6 +332,10 @@ export default function AuthPortal() {
   const handleVerifyCode = (codeToVerify: string) => {
     const success = verifyOTP(codeToVerify);
     if (success) {
+      // Clear OTP and login inputs once used
+      setOtpDigits(['', '', '', '', '', '']);
+      setLoginEmail('');
+      setLoginPassword('');
       try {
         confetti({
           particleCount: 110,

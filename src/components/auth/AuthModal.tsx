@@ -25,7 +25,7 @@ export default function AuthModal({ onClose }: { onClose: () => void }) {
 
   // Login form
   const [loginEmail, setLoginEmail] = useState('');
-  const [loginPassword, setLoginPassword] = useState('password123');
+  const [loginPassword, setLoginPassword] = useState('');
 
   // Register form
   const [regForm, setRegForm] = useState({
@@ -51,12 +51,17 @@ export default function AuthModal({ onClose }: { onClose: () => void }) {
 
   const handleLoginSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    const success = login(loginEmail, loginPassword);
+    const emailToLogin = loginEmail;
+    const passToLogin = loginPassword;
+    setLoginEmail('');
+    setLoginPassword('');
+    const success = login(emailToLogin, passToLogin);
     if (success) onClose();
   };
 
   const handleQuickLogin = (email: string) => {
-    setLoginEmail(email);
+    setLoginEmail('');
+    setLoginPassword('');
     const success = login(email);
     if (success) onClose();
   };
