@@ -232,10 +232,35 @@ export default function Topbar({
       });
 
     } else {
-      // Staff Portal notifications: show resolved shift queries, notifications addressed to this user, or broadcast to ALL
+      // Staff Portal notifications: show reviewed leave requests, resolved shift queries, notifications addressed to this user, or broadcast to ALL
       const myStaffId = currentStaff?.id || currentStaffId || currentUser?.staffId || 'emp-42';
 
-      // 1. Direct real-time resolved shift inquiries from timecard records
+      // 1. Direct real-time reviewed leave requests (Approved or Rejected)
+      const myReviewedLeaves = leaveRequests.filter(l => l.employeeId === myStaffId && (l.status === 'APPROVED' || l.status === 'REJECTED'));
+      myReviewedLeaves.forEach(lr => {
+        const itemId = `staff-leave-${lr.id}-${lr.status}-${lr.reviewedAt || 'rev'}`;
+        const leaveTypeName = lr.leaveType ? lr.leaveType.replace(/_/g, ' ') : 'Leave';
+        const isApproved = lr.status === 'APPROVED';
+        const adminNotesPart = lr.adminNotes ? ` — Note: "${lr.adminNotes}"` : '';
+        const rawTime = lr.reviewedAt ? new Date(lr.reviewedAt).getTime() : (lr.submittedAt ? new Date(lr.submittedAt).getTime() : Date.now());
+
+        list.push({
+          id: itemId,
+          source: 'LEAVE',
+          badge: isApproved ? 'LEAVE APPROVED' : 'LEAVE REJECTED',
+          badgeColor: isApproved ? 'bg-emerald-50 text-emerald-800 border-emerald-300 font-bold' : 'bg-rose-50 text-rose-800 border-rose-300 font-bold',
+          title: `${leaveTypeName} Request ${isApproved ? 'Approved' : 'Rejected'} (${lr.startDate})`,
+          description: `Your ${leaveTypeName.toLowerCase()} leave request (${lr.startDate} to ${lr.endDate}, ${lr.totalDays || 1} day${(lr.totalDays || 1) > 1 ? 's' : ''}) has been ${lr.status.toLowerCase()} by ${lr.reviewedBy || 'Administration'}.${adminNotesPart}`,
+          timestamp: lr.reviewedAt ? `Reviewed ${lr.reviewedAt}` : (lr.submittedAt || 'Reviewed'),
+          rawTimestamp: rawTime,
+          actorName: lr.reviewedBy || 'Admin',
+          actorAvatar: currentStaff?.avatarUrl,
+          isUnread: !viewedActionIds.includes(itemId),
+          targetTab: 'leave',
+        });
+      });
+
+      // 2. Direct real-time resolved shift inquiries from timecard records
       const myResolvedNotes = timecards.filter(t => t.employeeId === myStaffId && t.staffNote && t.staffNote.trim() && t.staffNoteStatus === 'RESOLVED');
       myResolvedNotes.forEach(tc => {
         const itemId = `staff-shift-resolved-${tc.id}-${tc.adjustedAt || tc.staffNoteSubmittedAt || 'res'}`;
@@ -257,7 +282,7 @@ export default function Topbar({
         });
       });
 
-      // 2. Real-time Notification Center items
+      // 3. Real-time Notification Center items
       const relevantNotifs = notifications.filter(n => {
         if (n.recipient !== 'STAFF' && n.recipient !== 'ALL') return false;
         if (n.recipientId) {
@@ -276,11 +301,16 @@ export default function Topbar({
       });
 
       relevantNotifs.forEach(n => {
+        const nType = (n.type as string) || '';
+        // Avoid duplicate leave status entry if already captured in myReviewedLeaves
+        if (nType === 'LEAVE_STATUS' && myReviewedLeaves.length > 0) {
+          return;
+        }
+
         let badge = 'STAFF NOTICE';
         let badgeColor = 'bg-blue-50 text-blue-700 border-blue-200';
         let targetTab = 'dashboard';
 
-        const nType = (n.type as string) || '';
         if (nType === 'TIMECARD_RESOLVED') {
           badge = 'SHIFT RESOLVED';
           badgeColor = 'bg-emerald-50 text-emerald-800 border-emerald-300 font-bold';

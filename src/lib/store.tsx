@@ -2771,6 +2771,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       read: false,
     };
     setNotifications(prev => [adminNotif, ...prev]);
+    try {
+      fetch('/api/notifications', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(adminNotif),
+      }).catch(() => {});
+    } catch (e) {}
 
     // Dispatch Official Email Notification to Admin
     try {
@@ -2808,12 +2815,15 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     const req = leaveRequests.find(r => r.id === id);
     if (!req) return;
 
+    const reviewedBy = currentUser?.name || 'Admin User';
+    const reviewedAt = new Date().toLocaleString('en-AU', { timeZone: 'Australia/Sydney' });
+
     setLeaveRequests(prev => prev.map(r => r.id === id ? { 
       ...r, 
       status, 
       adminNotes: notes, 
-      reviewedBy: currentUser?.name || 'Admin User',
-      reviewedAt: new Date().toLocaleString('en-AU', { timeZone: 'Australia/Sydney' })
+      reviewedBy,
+      reviewedAt
     } : r));
 
     if (status === 'APPROVED') {
@@ -2854,21 +2864,33 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       fetch('/api/leave', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id, status, notes }),
+        body: JSON.stringify({ id, status, notes, reviewedBy, reviewedAt }),
       }).catch(err => console.warn('Leave review DB sync skipped:', err));
     } catch (e) {}
 
+    const leaveTypeName = req.leaveType ? req.leaveType.replace(/_/g, ' ') : 'Leave';
+    const isApproved = status === 'APPROVED';
+    const notesPart = notes ? ` — Note: "${notes}"` : '';
+
     const staffNotif: NotificationItem = {
-      id: 'notif-' + Date.now(),
+      id: 'notif-leave-' + Date.now(),
       recipient: 'STAFF',
       recipientId: req.employeeId,
-      title: `Leave Request ${status}`,
-      message: `Your ${req.leaveType.toLowerCase()} leave request for ${req.startDate} has been ${status.toLowerCase()}.`,
+      title: `${leaveTypeName} Request ${isApproved ? 'Approved' : 'Rejected'} (${req.startDate})`,
+      message: `Your ${leaveTypeName.toLowerCase()} leave request (${req.startDate} to ${req.endDate}, ${req.totalDays || 1} day${(req.totalDays || 1) > 1 ? 's' : ''}) has been ${status.toLowerCase()} by ${reviewedBy}.${notesPart}`,
       type: 'LEAVE_STATUS',
       timestamp: 'Just now',
       read: false,
     };
     setNotifications(prev => [staffNotif, ...prev]);
+
+    try {
+      fetch('/api/notifications', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(staffNotif),
+      }).catch(() => {});
+    } catch (e) {}
     
     addAudit(`${status}_LEAVE_REQUEST`, 'LeaveRequest', id, `Admin marked request ${id} as ${status}`);
     addToast(`Leave ${status}`, `Request for ${req.employeeName} has been marked as ${status}.`, status === 'APPROVED' ? 'success' : 'warning');
