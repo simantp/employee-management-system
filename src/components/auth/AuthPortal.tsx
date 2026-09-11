@@ -19,8 +19,11 @@ export default function AuthPortal() {
     setPasswordFromInvite,
   } = useApp();
 
-  // Mode on right side: 'LOGIN' | 'VERIFY_OTP'
+  // Mode on right side / inside login modal: 'LOGIN' | 'VERIFY_OTP'
   const [rightMode, setRightMode] = useState<'LOGIN' | 'VERIFY_OTP'>('LOGIN');
+
+  // Sign In Modal state
+  const [showLoginModal, setShowLoginModal] = useState(false);
 
   // Forgot Password & Reset Modal states
   const [showForgotModal, setShowForgotModal] = useState(false);
@@ -191,6 +194,7 @@ export default function AuthPortal() {
   useEffect(() => {
     if (pendingOTP) {
       setRightMode('VERIFY_OTP');
+      setShowLoginModal(true);
       setOtpDigits(['', '', '', '', '', '']);
       setResendTimer(45);
     }
@@ -500,75 +504,108 @@ export default function AuthPortal() {
           </div>
         </div>
 
-        {/* Live Sydney Time Badge */}
-        <div className="flex items-center gap-2.5 px-3.5 py-1.5 sm:px-4 sm:py-2 rounded-full bg-slate-900/90 border border-slate-800 text-xs text-slate-300 backdrop-blur-md shadow-lg shadow-black/20">
-          <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-          <span className="font-mono font-bold text-orange-400 text-[11px] sm:text-xs">
-            {sydneyTimeStr || 'AEST Live'}
-          </span>
-          <span className="hidden md:inline text-[10px] text-slate-400 font-semibold border-l border-slate-700 pl-2">
-            Sydney Plant
-          </span>
+        <div className="flex items-center gap-3">
+          {/* Live Sydney Time Badge */}
+          <div className="flex items-center gap-2.5 px-3.5 py-1.5 sm:px-4 sm:py-2 rounded-full bg-slate-900/90 border border-slate-800 text-xs text-slate-300 backdrop-blur-md shadow-lg shadow-black/20">
+            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+            <span className="font-mono font-bold text-orange-400 text-[11px] sm:text-xs">
+              {sydneyTimeStr || 'AEST Live'}
+            </span>
+            <span className="hidden md:inline text-[10px] text-slate-400 font-semibold border-l border-slate-700 pl-2">
+              Sydney Plant
+            </span>
+          </div>
+
+          {/* Sign In Button on Top Navbar */}
+          <button
+            type="button"
+            onClick={() => {
+              setErrorMessage(null);
+              setRightMode('LOGIN');
+              setShowLoginModal(true);
+            }}
+            className="px-4 py-2 rounded-xl bg-gradient-to-r from-orange-500 via-amber-500 to-orange-500 hover:from-orange-400 hover:to-amber-400 text-slate-950 font-black text-xs shadow-lg shadow-orange-500/25 transition-all hover:scale-105 active:scale-95 flex items-center gap-1.5 cursor-pointer"
+          >
+            <span>Sign In</span>
+          </button>
         </div>
       </header>
 
-      {/* Main 2-Column Workspace */}
-      <main className="flex-1 flex items-center justify-center px-4 sm:px-6 lg:px-8 py-6 sm:py-10 relative z-20 max-w-7xl mx-auto w-full">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8 items-start w-full max-w-6xl">
+      {/* Main Full-Page Workspace: SHIFT CLOCK TERMINAL */}
+      <main className="flex-1 flex items-center justify-center px-4 sm:px-6 lg:px-8 py-6 sm:py-10 relative z-20 max-w-4xl mx-auto w-full">
+        <div className="w-full">
           
           {/* ========================================================================= */}
-          {/* COLUMN 1 (LEFT): SHIFT CLOCK TERMINAL */}
+          {/* SHIFT CLOCK TERMINAL CARD (FULL-PAGE WORKSPACE) */}
           {/* ========================================================================= */}
-          <div className="bg-slate-900/90 backdrop-blur-2xl rounded-3xl shadow-2xl border border-slate-800/90 p-5 sm:p-7 flex flex-col space-y-5 text-xs shadow-black/50">
+          <div className="bg-slate-900/90 backdrop-blur-2xl rounded-3xl shadow-2xl border border-slate-800/90 p-6 sm:p-9 flex flex-col space-y-6 text-xs shadow-black/50 w-full">
             
-            {/* Header */}
-            <div>
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-[10px] font-black uppercase tracking-widest text-emerald-400 flex items-center gap-1.5">
-                  <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
-                  <span>SHIFT CLOCK TERMINAL</span>
-                </span>
-                <span className="text-[10px] font-extrabold px-2.5 py-0.5 rounded-full bg-emerald-950/80 text-emerald-300 border border-emerald-500/30">
-                  Sydney Facility
-                </span>
+            {/* Header with Top-Right Sign In Action Button */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-800/80">
+              <div>
+                <div className="flex items-center gap-2 mb-2">
+                  <span className="text-[10px] font-black uppercase tracking-widest text-emerald-400 flex items-center gap-1.5">
+                    <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
+                    <span>SHIFT CLOCK TERMINAL</span>
+                  </span>
+                  <span className="text-[10px] font-extrabold px-2.5 py-0.5 rounded-full bg-emerald-950/80 text-emerald-300 border border-emerald-500/30">
+                    Sydney Facility
+                  </span>
+                </div>
+
+                <h2 className="text-2xl sm:text-3xl font-black text-white tracking-tight">
+                  Shift Clock Punch
+                </h2>
+                
+                <p className="text-xs text-slate-400 mt-1">
+                  Instant 4-digit PIN timecard punch with real-time manager synchronization.
+                </p>
               </div>
 
-              <h2 className="text-xl sm:text-2xl font-black text-white tracking-tight">
-                Shift Clock Punch
-              </h2>
-              
-              <p className="text-xs text-slate-400 mt-1">
-                Instant 4-digit PIN timecard punch with real-time manager synchronization.
-              </p>
+              {/* Top-Right Card Sign In Action Button */}
+              <div className="flex items-center gap-2 self-start sm:self-center">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setErrorMessage(null);
+                    setRightMode('LOGIN');
+                    setShowLoginModal(true);
+                  }}
+                  className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-orange-500 via-amber-500 to-orange-500 hover:from-orange-400 hover:to-amber-400 text-slate-950 font-black text-xs shadow-lg shadow-orange-500/25 transition-all hover:scale-105 active:scale-95 flex items-center gap-2 cursor-pointer"
+                >
+                  <span>Portal Sign In</span>
+                  <span className="font-bold text-[11px] opacity-75">→</span>
+                </button>
+              </div>
             </div>
 
             {/* Real-time Clock Display */}
-            <div className="p-4 rounded-2xl bg-slate-950/90 border border-slate-800 text-center space-y-1 shadow-inner">
+            <div className="p-5 rounded-2xl bg-slate-950/90 border border-slate-800 text-center space-y-1.5 shadow-inner">
               <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
                 Sydney Plant Live Timecard Clock
               </div>
-              <div className="text-2xl sm:text-3xl font-black font-mono text-orange-400 tracking-wider">
+              <div className="text-3xl sm:text-4xl font-black font-mono text-orange-400 tracking-wider">
                 {sydneyTimeStr || '08:30:00 AM'}
               </div>
-              <div className="text-[11px] text-slate-400 font-medium">
+              <div className="text-xs text-slate-400 font-medium">
                 {sydneyDateStr || 'Monday, 17 August 2026'} • AEST
               </div>
             </div>
 
             {/* Feedback Message / Overlay when Clocked */}
             {clockFeedback ? (
-              <div className="p-5 rounded-2xl bg-gradient-to-br from-slate-900 to-slate-950 border-2 border-emerald-500/60 text-center space-y-3 shadow-2xl animate-in zoom-in-95">
+              <div className="p-6 rounded-2xl bg-gradient-to-br from-slate-900 to-slate-950 border-2 border-emerald-500/60 text-center space-y-3 shadow-2xl animate-in zoom-in-95">
                 <div>
                   <span className={`px-3 py-1 rounded-full text-[11px] font-bold uppercase tracking-wider ${
                     clockFeedback.type === 'IN' ? 'bg-emerald-500/20 text-emerald-400' : 'bg-rose-500/20 text-rose-400'
                   }`}>
                     {clockFeedback.type === 'IN' ? 'Clocked IN Successfully' : 'Clocked OUT Successfully'}
                   </span>
-                  <h4 className="text-lg font-bold text-white mt-2">{clockFeedback.staffName}</h4>
+                  <h4 className="text-xl font-bold text-white mt-2">{clockFeedback.staffName}</h4>
                   <p className="text-xs text-slate-400">{clockFeedback.department}</p>
                 </div>
 
-                <div className="p-3 rounded-xl bg-slate-950 border border-slate-800 font-mono text-xs text-slate-300">
+                <div className="p-3.5 rounded-xl bg-slate-950 border border-slate-800 font-mono text-xs text-slate-300 max-w-md mx-auto">
                   <div>Punch Time: <strong className="text-orange-400">{clockFeedback.time} AEST</strong></div>
                   {clockFeedback.hours !== undefined && (
                     <div className="mt-1">Logged Shift: <strong className="text-emerald-400">{clockFeedback.hours.toFixed(2)} Hours</strong></div>
@@ -576,20 +613,20 @@ export default function AuthPortal() {
                 </div>
 
                 <div className="text-[10px] text-slate-500 font-semibold">
-                  Terminal resets automatically in 3 seconds...
+                  Terminal resets automatically in 4 seconds...
                 </div>
               </div>
             ) : (
-              <div className="space-y-4">
+              <div className="space-y-5">
                 
                 {/* Username & 4-Digit PIN Grid */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
-                    <label className="font-bold text-slate-200 block mb-1 text-xs">
+                    <label className="font-bold text-slate-200 block mb-1.5 text-xs">
                       Staff Username *
                     </label>
                     <div className="relative">
-                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 font-mono text-xs font-bold select-none">
+                      <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500 font-mono text-xs font-bold select-none">
                         @
                       </span>
                       <input
@@ -597,13 +634,13 @@ export default function AuthPortal() {
                         placeholder="e.g. suman.thapa"
                         value={clockUsername}
                         onChange={e => setClockUsername(e.target.value.toLowerCase().replace(/\s+/g, ''))}
-                        className="w-full pl-7 pr-3 py-2.5 rounded-xl bg-slate-950 border border-slate-700 text-white placeholder-slate-600 focus:border-emerald-500 focus:outline-none transition font-mono text-xs shadow-inner h-[46px]"
+                        className="w-full pl-8 pr-3.5 py-3 rounded-xl bg-slate-950 border border-slate-700 text-white placeholder-slate-600 focus:border-emerald-500 focus:outline-none transition font-mono text-xs shadow-inner h-[50px]"
                       />
                     </div>
                   </div>
 
                   <div>
-                    <div className="flex justify-between items-center mb-1">
+                    <div className="flex justify-between items-center mb-1.5">
                       <label className="font-bold text-slate-200 text-xs">4-Digit PIN *</label>
                       <span className="text-[10px] text-orange-400 font-semibold">Must match username</span>
                     </div>
@@ -614,7 +651,7 @@ export default function AuthPortal() {
                       placeholder="••••"
                       value={clockPin}
                       onChange={e => setClockPin(e.target.value.replace(/\D/g, '').slice(0, 4))}
-                      className="w-full text-center text-2xl font-mono font-black tracking-widest py-1.5 rounded-xl bg-slate-950 border border-slate-700 text-white focus:border-emerald-500 focus:outline-none transition shadow-inner h-[46px]"
+                      className="w-full text-center text-2xl font-mono font-black tracking-widest py-2 rounded-xl bg-slate-950 border border-slate-700 text-white focus:border-emerald-500 focus:outline-none transition shadow-inner h-[50px]"
                     />
                   </div>
                 </div>
@@ -623,41 +660,41 @@ export default function AuthPortal() {
                 {(clockUsername.trim() || clockPin.trim()) && (
                   <div>
                     {matchedStaff ? (
-                      <div className="p-3.5 rounded-2xl bg-slate-950/90 border border-emerald-500/40 space-y-2.5 animate-in fade-in shadow-lg shadow-emerald-950/30">
-                        <div className="flex items-center gap-3">
+                      <div className="p-4 rounded-2xl bg-slate-950/90 border border-emerald-500/40 space-y-3 animate-in fade-in shadow-lg shadow-emerald-950/30">
+                        <div className="flex items-center gap-3.5">
                           <img
                             src={matchedStaff.avatarUrl || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150'}
                             alt={matchedStaff.firstName}
-                            className="w-11 h-11 rounded-xl object-cover ring-2 ring-emerald-500/50"
+                            className="w-12 h-12 rounded-xl object-cover ring-2 ring-emerald-500/50"
                           />
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center justify-between">
-                              <h4 className="font-bold text-white text-sm truncate">
+                              <h4 className="font-bold text-white text-sm sm:text-base truncate">
                                 {matchedStaff.firstName} {matchedStaff.lastName}
                               </h4>
-                              <span className="text-[10px] font-mono text-emerald-400 font-bold bg-emerald-950/60 px-2 py-0.5 rounded-md border border-emerald-500/30">
+                              <span className="text-[10px] font-mono text-emerald-400 font-bold bg-emerald-950/60 px-2.5 py-0.5 rounded-md border border-emerald-500/30">
                                 @{matchedStaff.username || clockUsername}
                               </span>
                             </div>
-                            <p className="text-[11px] text-slate-400 truncate">{matchedStaff.jobTitle} • {matchedStaff.department || 'Production'}</p>
+                            <p className="text-xs text-slate-400 truncate mt-0.5">{matchedStaff.jobTitle} • {matchedStaff.department || 'Production'}</p>
                           </div>
                         </div>
 
                         {/* Live Clock Status Indicator */}
-                        <div className="pt-2 border-t border-slate-800 flex items-center justify-between text-xs">
+                        <div className="pt-2.5 border-t border-slate-800 flex items-center justify-between text-xs">
                           <span className="text-slate-400 font-bold">Shift Status:</span>
                           {matchedStaff.status === 'Archived' ? (
-                            <span className="px-2.5 py-0.5 rounded-full bg-purple-500/20 text-purple-300 font-bold text-[10px] border border-purple-500/30 flex items-center gap-1">
+                            <span className="px-3 py-1 rounded-full bg-purple-500/20 text-purple-300 font-bold text-[11px] border border-purple-500/30 flex items-center gap-1.5">
                               <span className="w-1.5 h-1.5 rounded-full bg-purple-400" />
                               ACCOUNT ARCHIVED (Punch Disabled)
                             </span>
                           ) : matchedStaff.clockState === 'CLOCKED_IN' ? (
-                            <span className="px-2.5 py-0.5 rounded-full bg-rose-500/20 text-rose-300 font-bold text-[10px] border border-rose-500/30 flex items-center gap-1">
+                            <span className="px-3 py-1 rounded-full bg-rose-500/20 text-rose-300 font-bold text-[11px] border border-rose-500/30 flex items-center gap-1.5">
                               <span className="w-1.5 h-1.5 rounded-full bg-rose-400 animate-pulse" />
                               ON SHIFT (Clocked In)
                             </span>
                           ) : (
-                            <span className="px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 font-bold text-[10px] border border-emerald-500/30 flex items-center gap-1">
+                            <span className="px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-300 font-bold text-[11px] border border-emerald-500/30 flex items-center gap-1.5">
                               <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
                               OFF DUTY (Clocked Out)
                             </span>
@@ -666,7 +703,7 @@ export default function AuthPortal() {
                       </div>
                     ) : (
                       clockUsername.trim().length >= 2 && clockPin.trim().length === 4 && (
-                        <div className="p-3 bg-rose-950/40 border border-rose-500/30 rounded-xl text-center text-rose-300 text-xs font-bold animate-in fade-in">
+                        <div className="p-3.5 bg-rose-950/40 border border-rose-500/30 rounded-xl text-center text-rose-300 text-xs font-bold animate-in fade-in">
                           No employee record matches &quot;@{clockUsername}&quot; with PIN {clockPin}.
                         </div>
                       )
@@ -675,22 +712,22 @@ export default function AuthPortal() {
                 )}
 
                 {/* Dual Action Buttons */}
-                <div className="grid grid-cols-2 gap-3 pt-1">
+                <div className="grid grid-cols-2 gap-4 pt-1">
                   {/* Clock In Button */}
                   <button
                     type="button"
                     disabled={!matchedStaff || matchedStaff.clockState === 'CLOCKED_IN' || matchedStaff.status === 'Archived'}
                     onClick={handleClockIn}
-                    className={`py-3 px-4 rounded-xl font-bold text-xs flex flex-col items-center justify-center gap-1 transition-all ${
+                    className={`py-3.5 px-4 rounded-xl font-bold text-xs flex flex-col items-center justify-center gap-1 transition-all ${
                       matchedStaff && matchedStaff.clockState !== 'CLOCKED_IN' && matchedStaff.status !== 'Archived'
                         ? 'bg-gradient-to-r from-emerald-500 to-teal-500 text-slate-950 shadow-lg shadow-emerald-500/30 hover:scale-[1.02] cursor-pointer'
                         : 'bg-slate-950 border border-slate-800 text-slate-600 opacity-40 cursor-not-allowed'
                     }`}
                   >
-                    <span className="text-sm font-black">
+                    <span className="text-sm sm:text-base font-black">
                       Clock IN
                     </span>
-                    <span className="text-[9px] font-semibold opacity-80">
+                    <span className="text-[10px] font-semibold opacity-80">
                       {matchedStaff?.status === 'Archived' ? 'Account Archived' : matchedStaff?.clockState === 'CLOCKED_IN' ? 'Already on shift' : 'Start Shift'}
                     </span>
                   </button>
@@ -700,27 +737,27 @@ export default function AuthPortal() {
                     type="button"
                     disabled={!matchedStaff || matchedStaff.clockState !== 'CLOCKED_IN' || matchedStaff.status === 'Archived'}
                     onClick={handleClockOut}
-                    className={`py-3 px-4 rounded-xl font-bold text-xs flex flex-col items-center justify-center gap-1 transition-all ${
+                    className={`py-3.5 px-4 rounded-xl font-bold text-xs flex flex-col items-center justify-center gap-1 transition-all ${
                       matchedStaff && matchedStaff.clockState === 'CLOCKED_IN' && matchedStaff.status !== 'Archived'
                         ? 'bg-gradient-to-r from-rose-500 to-red-500 text-white shadow-lg shadow-rose-500/30 hover:scale-[1.02] cursor-pointer'
                         : 'bg-slate-950 border border-slate-800 text-slate-600 opacity-40 cursor-not-allowed'
                     }`}
                   >
-                    <span className="text-sm font-black">
+                    <span className="text-sm sm:text-base font-black">
                       Clock OUT
                     </span>
-                    <span className="text-[9px] font-semibold opacity-80">
+                    <span className="text-[10px] font-semibold opacity-80">
                       {matchedStaff?.status === 'Archived' ? 'Account Archived' : matchedStaff?.clockState !== 'CLOCKED_IN' ? 'Not clocked in' : 'End Shift'}
                     </span>
                   </button>
                 </div>
 
                 {/* Quick Demo Test Employee Credentials Chips */}
-                <div className="pt-3 border-t border-slate-800">
-                  <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider block mb-2">
+                <div className="pt-4 border-t border-slate-800">
+                  <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider block mb-2.5">
                     1-Click Demo Shift Credentials:
                   </span>
-                  <div className="flex flex-wrap gap-1.5">
+                  <div className="flex flex-wrap gap-2">
                     {employees.filter(e => e.status !== 'Archived').slice(0, 4).map(emp => {
                       const effectiveUser = emp.username || (emp.email ? emp.email.split('@')[0] : `${emp.firstName}.${emp.lastName}`.toLowerCase());
                       const effectivePin = emp.kioskPin || (emp.id === 'emp-42' ? '4829' : emp.id === 'emp-41' ? '1234' : emp.id === 'emp-40' ? '5678' : '9988');
@@ -733,10 +770,10 @@ export default function AuthPortal() {
                             setClockUsername(effectiveUser);
                             setClockPin(effectivePin);
                           }}
-                          className={`px-2.5 py-1 rounded-xl text-[10px] font-bold border transition flex items-center gap-1.5 cursor-pointer ${
+                          className={`px-3 py-1.5 rounded-xl text-[11px] font-bold border transition flex items-center gap-1.5 cursor-pointer ${
                             isSelected
                               ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40'
-                              : 'bg-slate-950 text-slate-400 border-slate-800 hover:text-white'
+                              : 'bg-slate-950 text-slate-400 border-slate-800 hover:text-white hover:border-slate-700'
                           }`}
                         >
                           <span>{emp.firstName}:</span>
@@ -753,14 +790,34 @@ export default function AuthPortal() {
 
           </div>
 
-          {/* ========================================================================= */}
-          {/* COLUMN 2 (RIGHT): PORTAL SIGN IN */}
-          {/* ========================================================================= */}
-          <div className="bg-slate-900/90 backdrop-blur-2xl rounded-3xl shadow-2xl border border-slate-800/90 p-5 sm:p-7 flex flex-col space-y-5 text-xs shadow-black/50">
-            
+        </div>
+      </main>
+
+      {/* ========================================================================= */}
+      {/* MODAL POPUP: SIGN IN TO PORTAL */}
+      {/* ========================================================================= */}
+      {showLoginModal && (
+        <div 
+          className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-md p-4 overflow-y-auto animate-in fade-in duration-200 font-sans"
+          onClick={() => setShowLoginModal(false)}
+        >
+          <div 
+            className="bg-slate-900 border border-slate-700/80 rounded-3xl shadow-2xl p-6 sm:p-8 max-w-md w-full text-slate-100 space-y-5 animate-in zoom-in-95 duration-150 relative"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Modal Close Button */}
+            <button
+              type="button"
+              onClick={() => setShowLoginModal(false)}
+              className="absolute top-5 right-5 text-slate-400 hover:text-white p-2 rounded-xl bg-slate-800 hover:bg-slate-700 transition cursor-pointer text-xs font-bold"
+              aria-label="Close"
+            >
+              ✕
+            </button>
+
             {/* Header */}
             <div>
-              <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center gap-2 mb-2">
                 <span className="text-[10px] font-black uppercase tracking-widest text-orange-400">
                   {rightMode === 'LOGIN' ? 'PORTAL ACCESS' : 'SECURITY VERIFICATION'}
                 </span>
@@ -882,7 +939,7 @@ export default function AuthPortal() {
               </div>
             )}
 
-            {/* 3. OTP VERIFICATION */}
+            {/* 2. OTP VERIFICATION */}
             {rightMode === 'VERIFY_OTP' && (
               <div className="space-y-4 text-center">
                 <div>
@@ -967,9 +1024,8 @@ export default function AuthPortal() {
             )}
 
           </div>
-
         </div>
-      </main>
+      )}
 
       {/* ========================================================================= */}
       {/* MODAL POPUP: SET PASSWORD FROM INVITATION LINK */}

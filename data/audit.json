@@ -1,5 +1,17 @@
 [
   {
+    "id": "aud-1789140541816",
+    "action": "USER_LOGOUT",
+    "targetType": "User",
+    "targetId": "usr-1789041462052",
+    "details": "User simant testing logged out",
+    "actorId": "usr-1",
+    "actorName": "simant testing",
+    "actorRole": "STAFF",
+    "timestamp": "12/09/2026, 1:29:01 am AEST",
+    "ipAddress": "127.0.0.1 (Localhost)"
+  },
+  {
     "id": "aud-1789140203137",
     "action": "USER_LOGIN",
     "targetType": "User",
