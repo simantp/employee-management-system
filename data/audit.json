@@ -1,5 +1,53 @@
 [
   {
+    "id": "aud-1789141440360",
+    "action": "USER_LOGOUT",
+    "targetType": "User",
+    "targetId": "usr-1",
+    "details": "User Admin User logged out",
+    "actorId": "usr-1",
+    "actorName": "Admin User",
+    "actorRole": "SUPER_ADMIN",
+    "timestamp": "12/09/2026, 1:44:00 am AEST",
+    "ipAddress": "127.0.0.1 (Localhost)"
+  },
+  {
+    "id": "aud-1789141055844",
+    "action": "USER_LOGIN",
+    "targetType": "User",
+    "targetId": "usr-1",
+    "details": "User logged in with role SUPER_ADMIN",
+    "actorId": "usr-1",
+    "actorName": "Admin User",
+    "actorRole": "SUPER_ADMIN",
+    "timestamp": "12/09/2026, 1:37:35 am AEST",
+    "ipAddress": "127.0.0.1 (Localhost)"
+  },
+  {
+    "id": "aud-1789141047205",
+    "action": "SHIFT_CLOCK_OUT",
+    "targetType": "Timecard",
+    "targetId": "tc-1789140997880",
+    "details": "simant testing clocked OUT at 01:37:27 am (00:00:00)",
+    "actorId": "usr-1",
+    "actorName": "simant testing",
+    "actorRole": "Staff",
+    "timestamp": "12/09/2026, 1:37:27 am AEST",
+    "ipAddress": "127.0.0.1 (Localhost)"
+  },
+  {
+    "id": "aud-1789140997954",
+    "action": "SHIFT_CLOCK_IN",
+    "targetType": "Timecard",
+    "targetId": "tc-1789140997880",
+    "details": "simant testing clocked IN at 01:36:37 am",
+    "actorId": "usr-1",
+    "actorName": "simant testing",
+    "actorRole": "Staff",
+    "timestamp": "12/09/2026, 1:36:37 am AEST",
+    "ipAddress": "127.0.0.1 (Localhost)"
+  },
+  {
     "id": "aud-1789140541816",
     "action": "USER_LOGOUT",
     "targetType": "User",
