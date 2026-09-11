@@ -4,8 +4,9 @@ import React, { useState, useEffect } from 'react';
 import { useApp } from '@/lib/store';
 import DocumentTypesManager from './DocumentTypesManager';
 import RolesManagement from './RolesManagement';
+import { GeofenceLocation, GeofenceMode } from '@/types';
 
-export type SettingsTab = 'COMPANY' | 'SHIFTS' | 'LEAVE' | 'DOCUMENTS' | 'ROLES' | 'EXPIRY' | 'SECURITY' | 'RETENTION' | 'NOTIFS' | 'BACKUP';
+export type SettingsTab = 'COMPANY' | 'SHIFTS' | 'LEAVE' | 'DOCUMENTS' | 'ROLES' | 'EXPIRY' | 'GEOFENCE' | 'SECURITY' | 'RETENTION' | 'NOTIFS' | 'BACKUP';
 
 export default function AdminSettingsHub({
   defaultTab = 'COMPANY'
@@ -23,7 +24,14 @@ export default function AdminSettingsHub({
     updateExpirySettings, 
     auditRetentionDays, 
     updateAuditRetentionDays, 
-    pruneAuditLogs 
+    pruneAuditLogs,
+    geofenceSettings,
+    updateGeofenceSettings,
+    addGeofenceLocation,
+    updateGeofenceLocation,
+    deleteGeofenceLocation,
+    toggleGeofenceLocation,
+    updateEmployee,
   } = useApp();
 
   const [activeTab, setActiveTab] = useState<SettingsTab>(defaultTab);
@@ -101,6 +109,25 @@ export default function AdminSettingsHub({
     notifyAdminOnLeaveSubmit: true,
     emailVisaExpiryDigestWeekly: true,
     notifyStaffOnShiftApproval: true,
+  });
+
+  // 7. Worksite Geofence & Location Form State
+  const [showAddSiteModal, setShowAddSiteModal] = useState(false);
+  const [editingSiteId, setEditingSiteId] = useState<string | null>(null);
+  const [siteForm, setSiteForm] = useState<{
+    name: string;
+    address: string;
+    latitude: number;
+    longitude: number;
+    radiusMeters: number;
+    isActive: boolean;
+  }>({
+    name: '',
+    address: '',
+    latitude: -33.9482,
+    longitude: 151.0505,
+    radiusMeters: 500,
+    isActive: true,
   });
 
   // Auto-sync settings to localStorage and backend in real time
@@ -420,6 +447,26 @@ export default function AdminSettingsHub({
             }`}
           >
             Visa &amp; License Expiry
+          </button>
+
+          <button
+            onClick={() => setActiveTab('GEOFENCE')}
+            className={`w-full text-left p-2.5 rounded-xl text-xs font-bold transition cursor-pointer flex items-center justify-between ${
+              activeTab === 'GEOFENCE' 
+                ? 'bg-slate-900 text-white font-bold' 
+                : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
+            }`}
+          >
+            <span>Geofence &amp; Boundaries</span>
+            <span className={`text-[10px] px-1.5 py-0.5 rounded-md font-mono font-bold ${
+              (geofenceSettings?.mode || geofenceSettings?.enforcementMode) === 'STRICT_BLOCK'
+                ? 'bg-rose-950/40 text-rose-400 border border-rose-500/30'
+                : (geofenceSettings?.mode || geofenceSettings?.enforcementMode) === 'WARN_AND_FLAG'
+                ? 'bg-amber-950/40 text-amber-400 border border-amber-500/30'
+                : 'bg-slate-100 text-slate-500'
+            }`}>
+              {geofenceSettings?.locations?.length || 0} Sites
+            </span>
           </button>
 
           <button
@@ -923,6 +970,406 @@ export default function AdminSettingsHub({
                 >
                   Save Compliance Configuration
                 </button>
+              </div>
+            </div>
+          )}
+
+          {/* TAB: GEOFENCE & WORKFORCE BOUNDARIES */}
+          {activeTab === 'GEOFENCE' && (
+            <div className="space-y-6">
+              <div className="border-b border-slate-100 pb-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div>
+                  <h3 className="font-black text-sm text-slate-900">Worksite Geofencing &amp; Network Restrictions</h3>
+                  <p className="text-slate-500 text-[11px]">Enforce GPS perimeter boundaries for Sydney facilities, remote exemptions, and network rules.</p>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setEditingSiteId(null);
+                    setSiteForm({
+                      name: '',
+                      address: '',
+                      latitude: -33.9482,
+                      longitude: 151.0505,
+                      radiusMeters: 500,
+                      isActive: true,
+                    });
+                    setShowAddSiteModal(true);
+                  }}
+                  className="px-3.5 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs shadow-xs transition flex items-center gap-1.5 cursor-pointer self-start sm:self-auto"
+                >
+                  <span>+ Add New Worksite</span>
+                </button>
+              </div>
+
+              {/* 1. Enforcement Policy Selector */}
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <h4 className="font-bold text-xs text-slate-900">1. Shift Clock Geofence Enforcement Policy</h4>
+                  <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold border font-mono ${
+                    (geofenceSettings?.mode || geofenceSettings?.enforcementMode) === 'STRICT_BLOCK'
+                      ? 'bg-rose-50 text-rose-700 border-rose-200'
+                      : (geofenceSettings?.mode || geofenceSettings?.enforcementMode) === 'WARN_AND_FLAG'
+                      ? 'bg-amber-50 text-amber-700 border-amber-200'
+                      : 'bg-slate-100 text-slate-600 border-slate-200'
+                  }`}>
+                    ACTIVE: {geofenceSettings?.mode || geofenceSettings?.enforcementMode || 'WARN_AND_FLAG'}
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3.5">
+                  {/* Option 1: STRICT_BLOCK */}
+                  <div
+                    onClick={() => updateGeofenceSettings({ mode: 'STRICT_BLOCK', enforcementMode: 'STRICT_BLOCK' })}
+                    className={`p-4 rounded-2xl border-2 cursor-pointer transition ${
+                      (geofenceSettings?.mode || geofenceSettings?.enforcementMode) === 'STRICT_BLOCK'
+                        ? 'border-rose-500 bg-rose-50/40 shadow-xs'
+                        : 'border-slate-200 hover:border-slate-300 bg-white'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="font-bold text-xs text-slate-900">Strict Block</span>
+                      <span className={`w-3 h-3 rounded-full border-2 ${
+                        (geofenceSettings?.mode || geofenceSettings?.enforcementMode) === 'STRICT_BLOCK' ? 'bg-rose-500 border-rose-500' : 'border-slate-300'
+                      }`} />
+                    </div>
+                    <p className="text-[11px] text-slate-600 leading-relaxed">
+                      Rejects out-of-bounds clock-ins and clock-outs. Staff receives distance error; violation logged in audit vault.
+                    </p>
+                    <div className="mt-2 text-[10px] font-bold text-rose-700">
+                      Highest compliance enforcement
+                    </div>
+                  </div>
+
+                  {/* Option 2: WARN_AND_FLAG */}
+                  <div
+                    onClick={() => updateGeofenceSettings({ mode: 'WARN_AND_FLAG', enforcementMode: 'WARN_AND_FLAG' })}
+                    className={`p-4 rounded-2xl border-2 cursor-pointer transition ${
+                      (geofenceSettings?.mode || geofenceSettings?.enforcementMode) === 'WARN_AND_FLAG'
+                        ? 'border-amber-500 bg-amber-50/40 shadow-xs'
+                        : 'border-slate-200 hover:border-slate-300 bg-white'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="font-bold text-xs text-slate-900">Warn &amp; Flag</span>
+                      <span className={`w-3 h-3 rounded-full border-2 ${
+                        (geofenceSettings?.mode || geofenceSettings?.enforcementMode) === 'WARN_AND_FLAG' ? 'bg-amber-500 border-amber-500' : 'border-slate-300'
+                      }`} />
+                    </div>
+                    <p className="text-[11px] text-slate-600 leading-relaxed">
+                      Allows clock punch but tags timecard as <strong className="text-amber-800">OUT_OF_BOUNDS</strong> and dispatches real-time supervisor notification.
+                    </p>
+                    <div className="mt-2 text-[10px] font-bold text-amber-700">
+                      Recommended for flexible auditing
+                    </div>
+                  </div>
+
+                  {/* Option 3: DISABLED */}
+                  <div
+                    onClick={() => updateGeofenceSettings({ mode: 'DISABLED', enforcementMode: 'DISABLED' })}
+                    className={`p-4 rounded-2xl border-2 cursor-pointer transition ${
+                      (geofenceSettings?.mode || geofenceSettings?.enforcementMode) === 'DISABLED'
+                        ? 'border-slate-500 bg-slate-100 shadow-xs'
+                        : 'border-slate-200 hover:border-slate-300 bg-white'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="font-bold text-xs text-slate-900">Disabled</span>
+                      <span className={`w-3 h-3 rounded-full border-2 ${
+                        (geofenceSettings?.mode || geofenceSettings?.enforcementMode) === 'DISABLED' ? 'bg-slate-700 border-slate-700' : 'border-slate-300'
+                      }`} />
+                    </div>
+                    <p className="text-[11px] text-slate-600 leading-relaxed">
+                      No GPS location verification. Clock punch allowed from any browser or location.
+                    </p>
+                    <div className="mt-2 text-[10px] font-bold text-slate-500">
+                      Unrestricted punching
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* 2. Registered Worksite Facilities */}
+              <div className="space-y-3 pt-3 border-t border-slate-100">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h4 className="font-bold text-xs text-slate-900">2. Authorized Facilities &amp; Geofences</h4>
+                    <p className="text-slate-500 text-[11px]">Radius and GPS coordinates where staff shift punches are verified.</p>
+                  </div>
+                  <span className="text-[11px] font-bold text-slate-600 font-mono">
+                    {geofenceSettings?.locations?.filter(l => l.isActive).length || 0} / {geofenceSettings?.locations?.length || 0} Active Sites
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5">
+                  {geofenceSettings?.locations?.map(loc => (
+                    <div
+                      key={loc.id}
+                      className={`p-4 rounded-2xl border transition relative ${
+                        loc.isActive
+                          ? 'border-slate-200 bg-white shadow-2xs hover:border-slate-300'
+                          : 'border-slate-200/60 bg-slate-50/70 opacity-70'
+                      }`}
+                    >
+                      <div className="flex items-start justify-between gap-2 mb-2">
+                        <div>
+                          <h5 className="font-black text-xs text-slate-900">{loc.name}</h5>
+                          <span className="text-[10px] text-slate-500 block leading-tight">{loc.address}</span>
+                        </div>
+                        <span className={`px-2 py-0.5 rounded-full text-[9px] font-bold border shrink-0 ${
+                          loc.isActive ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-slate-100 text-slate-500 border-slate-200'
+                        }`}>
+                          {loc.isActive ? 'Active' : 'Disabled'}
+                        </span>
+                      </div>
+
+                      <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-100 space-y-1 font-mono text-[10px] text-slate-600">
+                        <div className="flex justify-between">
+                          <span className="font-sans text-slate-400">Coordinates:</span>
+                          <span className="font-bold text-slate-800">{loc.latitude.toFixed(4)}, {loc.longitude.toFixed(4)}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="font-sans text-slate-400">Radius Perimeter:</span>
+                          <span className="font-bold text-emerald-700">{loc.radiusMeters} Meters</span>
+                        </div>
+                      </div>
+
+                      <div className="mt-3 pt-2.5 border-t border-slate-100 flex items-center justify-between text-xs">
+                        <button
+                          type="button"
+                          onClick={() => toggleGeofenceLocation(loc.id)}
+                          className="text-[11px] font-bold text-slate-600 hover:text-slate-900 cursor-pointer"
+                        >
+                          {loc.isActive ? 'Disable' : 'Enable'}
+                        </button>
+
+                        <div className="flex items-center gap-2">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setEditingSiteId(loc.id);
+                              setSiteForm({
+                                name: loc.name,
+                                address: loc.address,
+                                latitude: loc.latitude,
+                                longitude: loc.longitude,
+                                radiusMeters: loc.radiusMeters,
+                                isActive: loc.isActive,
+                              });
+                              setShowAddSiteModal(true);
+                            }}
+                            className="text-[11px] font-bold text-blue-600 hover:text-blue-800 cursor-pointer"
+                          >
+                            Edit
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (window.confirm(`Delete worksite "${loc.name}"?`)) {
+                                deleteGeofenceLocation(loc.id);
+                              }
+                            }}
+                            className="text-[11px] font-bold text-rose-600 hover:text-rose-800 cursor-pointer"
+                          >
+                            Delete
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* 3. Remote Work Exemptions */}
+              <div className="space-y-3 pt-3 border-t border-slate-100">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h4 className="font-bold text-xs text-slate-900">3. Remote Work Staff Exemptions</h4>
+                    <p className="text-slate-500 text-[11px]">Staff with remote authorization can punch in from home or off-site without geofence flags.</p>
+                  </div>
+                  <span className="text-[11px] font-bold text-slate-600 font-mono">
+                    {employees.filter(e => e.isRemoteAllowed).length} Remote Authorized
+                  </span>
+                </div>
+
+                <div className="bg-slate-50/70 p-3.5 rounded-2xl border border-slate-200 max-h-56 overflow-y-auto divide-y divide-slate-100">
+                  {employees.map(emp => (
+                    <div key={emp.id} className="py-2 flex items-center justify-between gap-3">
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <img
+                          src={emp.avatarUrl || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150'}
+                          alt={emp.firstName}
+                          className="w-7 h-7 rounded-lg object-cover ring-1 ring-slate-200 shrink-0"
+                        />
+                        <div className="truncate">
+                          <span className="font-bold text-xs text-slate-900 block truncate">{emp.firstName} {emp.lastName}</span>
+                          <span className="text-[10px] text-slate-500 font-mono truncate">{emp.jobTitle} • {emp.department || 'Operations'}</span>
+                        </div>
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const next = !emp.isRemoteAllowed;
+                          updateEmployee(emp.id, { isRemoteAllowed: next });
+                          addToast('Remote Exemption Updated', `${emp.firstName} ${emp.lastName} is ${next ? 'now authorized for remote punching' : 'now restricted to on-site'}`, 'info');
+                        }}
+                        className={`px-3 py-1 rounded-xl text-[10px] font-bold border transition cursor-pointer shrink-0 ${
+                          emp.isRemoteAllowed
+                            ? 'bg-blue-50 text-blue-700 border-blue-300 font-black'
+                            : 'bg-white text-slate-600 border-slate-200 hover:border-slate-300'
+                        }`}
+                      >
+                        {emp.isRemoteAllowed ? 'Remote Allowed' : 'On-Site Only'}
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* 4. Network IP Whitelist & Device Metadata */}
+              <div className="space-y-3 pt-3 border-t border-slate-100">
+                <h4 className="font-bold text-xs text-slate-900">4. Network Subnet Whitelist &amp; Hardware Restrictions</h4>
+                
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="font-bold text-slate-700 block mb-1">Company Network Subnet Whitelist</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. 192.168.1.0/24, 10.0.0.0/8"
+                      value={(geofenceSettings?.whitelistedIps || geofenceSettings?.ipWhitelist || []).join(', ')}
+                      onChange={e => {
+                        const ips = e.target.value.split(',').map(s => s.trim()).filter(Boolean);
+                        updateGeofenceSettings({ whitelistedIps: ips, ipWhitelist: ips });
+                      }}
+                      className="w-full p-2.5 border border-slate-200 rounded-xl bg-white font-mono text-xs focus:ring-2 focus:ring-orange-500/20"
+                    />
+                    <span className="text-[10px] text-slate-400 mt-1 block">Comma-separated list of trusted office/plant subnets.</span>
+                  </div>
+
+                  <div>
+                    <label className="font-bold text-slate-700 block mb-1">Device &amp; IP Stamping</label>
+                    <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl text-[11px] text-slate-600 space-y-1">
+                      <div className="flex items-center gap-1.5 text-emerald-700 font-bold">
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                        <span>Real-time User-Agent &amp; IP stamped on all timecard records</span>
+                      </div>
+                      <p className="text-[10px] text-slate-400">Stored immutably on each shift record for Fair Work auditing.</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Worksite Add/Edit Modal */}
+          {showAddSiteModal && (
+            <div className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-xs flex items-center justify-center p-4">
+              <div className="bg-white rounded-3xl border border-slate-200 shadow-2xl max-w-lg w-full p-6 space-y-4 animate-in zoom-in-95">
+                <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+                  <h4 className="font-black text-sm text-slate-900">
+                    {editingSiteId ? 'Edit Worksite Facility' : 'Add New Worksite Facility'}
+                  </h4>
+                  <button
+                    type="button"
+                    onClick={() => setShowAddSiteModal(false)}
+                    className="text-slate-400 hover:text-slate-600 text-xs font-bold cursor-pointer"
+                  >
+                    Cancel
+                  </button>
+                </div>
+
+                <div className="space-y-3 text-xs">
+                  <div>
+                    <label className="font-bold text-slate-700 block mb-1">Facility Name *</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. Sydney Riverwood Plant"
+                      value={siteForm.name}
+                      onChange={e => setSiteForm({ ...siteForm, name: e.target.value })}
+                      className="w-full p-2.5 border border-slate-200 rounded-xl bg-white text-xs font-medium"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="font-bold text-slate-700 block mb-1">Address *</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. 14 Belmore Road, Riverwood NSW 2210"
+                      value={siteForm.address}
+                      onChange={e => setSiteForm({ ...siteForm, address: e.target.value })}
+                      className="w-full p-2.5 border border-slate-200 rounded-xl bg-white text-xs font-medium"
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="font-bold text-slate-700 block mb-1">Latitude *</label>
+                      <input
+                        type="number"
+                        step="0.0001"
+                        value={siteForm.latitude}
+                        onChange={e => setSiteForm({ ...siteForm, latitude: parseFloat(e.target.value) || 0 })}
+                        className="w-full p-2.5 border border-slate-200 rounded-xl bg-white font-mono text-xs"
+                      />
+                    </div>
+                    <div>
+                      <label className="font-bold text-slate-700 block mb-1">Longitude *</label>
+                      <input
+                        type="number"
+                        step="0.0001"
+                        value={siteForm.longitude}
+                        onChange={e => setSiteForm({ ...siteForm, longitude: parseFloat(e.target.value) || 0 })}
+                        className="w-full p-2.5 border border-slate-200 rounded-xl bg-white font-mono text-xs"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="font-bold text-slate-700 block mb-1">Geofence Radius (Meters) *</label>
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="number"
+                        min="50"
+                        max="5000"
+                        step="50"
+                        value={siteForm.radiusMeters}
+                        onChange={e => setSiteForm({ ...siteForm, radiusMeters: parseInt(e.target.value) || 500 })}
+                        className="w-32 p-2.5 border border-slate-200 rounded-xl bg-white font-bold text-xs"
+                      />
+                      <span className="text-slate-500 font-medium text-xs">Meters from center coordinates</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-100">
+                  <button
+                    type="button"
+                    onClick={() => setShowAddSiteModal(false)}
+                    className="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs transition cursor-pointer"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (!siteForm.name || !siteForm.address) {
+                        addToast('Missing Fields', 'Worksite Name and Address are required.', 'error');
+                        return;
+                      }
+                      if (editingSiteId) {
+                        updateGeofenceLocation(editingSiteId, siteForm);
+                      } else {
+                        addGeofenceLocation(siteForm);
+                      }
+                      setShowAddSiteModal(false);
+                    }}
+                    className="px-4 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs shadow-xs transition cursor-pointer"
+                  >
+                    {editingSiteId ? 'Save Changes' : 'Add Worksite'}
+                  </button>
+                </div>
               </div>
             </div>
           )}

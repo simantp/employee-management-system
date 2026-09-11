@@ -166,9 +166,11 @@ export interface Employee {
   lastClockOut?: string;
   clockInTimestamp?: number; // ms epoch timestamp when clock-in occurred
   currentShiftId?: string;
+  isRemoteAllowed?: boolean; // Remote work / punch exemption
 }
 
 export type TimecardStatus = 'CLOCKED_IN' | 'COMPLETED' | 'ON_LEAVE' | 'MANUALLY_ADJUSTED';
+export type LocationVerificationStatus = 'VERIFIED_ON_SITE' | 'OUT_OF_BOUNDS' | 'GPS_UNAVAILABLE' | 'REMOTE_EXEMPT';
 
 export interface TimecardRecord {
   id: string;
@@ -195,6 +197,14 @@ export interface TimecardRecord {
   staffNoteStatus?: 'PENDING_REVIEW' | 'RESOLVED';
   adjustedBy?: string;
   adjustedAt?: string;
+
+  // Geofence & Device Tracking
+  locationStatus?: LocationVerificationStatus;
+  matchedSiteName?: string;
+  distanceMeters?: number;
+  punchCoordinates?: { latitude: number; longitude: number };
+  ipAddress?: string;
+  deviceInfo?: string;
 }
 
 export interface LeaveRequest {
@@ -296,9 +306,32 @@ export interface AuditRetentionSettings {
   lastPrunedAt?: string;
 }
 
+export type GeofenceMode = 'STRICT_BLOCK' | 'WARN_AND_FLAG' | 'DISABLED';
+
+export interface GeofenceLocation {
+  id: string;
+  name: string;
+  address: string;
+  latitude: number;
+  longitude: number;
+  radiusMeters: number;
+  isActive: boolean;
+}
+
+export interface GeofenceSettings {
+  enabled: boolean;
+  mode: GeofenceMode;
+  enforcementMode?: GeofenceMode;
+  requireIpWhitelist: boolean;
+  whitelistedIps: string[];
+  ipWhitelist?: string[];
+  locations: GeofenceLocation[];
+}
+
 export interface SystemSettingsConfig {
   expirySettings: ExpiryReminderSettings;
   auditRetentionDays: number;
   autoPruneAuditLogs: boolean;
+  geofenceSettings?: GeofenceSettings;
 }
 

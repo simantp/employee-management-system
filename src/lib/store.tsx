@@ -19,7 +19,11 @@ import {
   Announcement,
   TimecardRecord,
   TimecardStatus,
-  ExpiryReminderSettings
+  ExpiryReminderSettings,
+  GeofenceLocation,
+  GeofenceSettings,
+  GeofenceMode,
+  LocationVerificationStatus
 } from '@/types';
 import { 
   INITIAL_EMPLOYEES, 
@@ -31,6 +35,12 @@ import {
 } from './initialData';
 import { encryptAES256, maskSensitive } from './crypto';
 import { getOnboardingProgress } from './onboarding';
+import { 
+  INITIAL_GEOFENCE_SETTINGS, 
+  evaluatePunchLocation, 
+  getDeviceDescription, 
+  formatDistanceDisplay 
+} from './geoUtils';
 
 interface ToastMessage {
   id: string;
@@ -244,8 +254,17 @@ interface AppContextType {
   // Timecard & Shift Clock-In System
   timecards: TimecardRecord[];
   activeWorkingStaffCount: number;
-  clockInWithKiosk: (username: string, pin: string) => { success: boolean; message: string; employee?: Employee };
-  clockOutWithKiosk: (username: string, pin: string, breakMinutes?: number) => { success: boolean; message: string; employee?: Employee; totalHours?: number };
+  clockInWithKiosk: (
+    username: string, 
+    pin: string, 
+    options?: { coords?: { latitude: number; longitude: number } | null; ip?: string; device?: string }
+  ) => { success: boolean; message: string; employee?: Employee; locationStatus?: LocationVerificationStatus; distanceMeters?: number; matchedSiteName?: string };
+  clockOutWithKiosk: (
+    username: string, 
+    pin: string, 
+    breakMinutes?: number, 
+    options?: { coords?: { latitude: number; longitude: number } | null; ip?: string; device?: string }
+  ) => { success: boolean; message: string; employee?: Employee; totalHours?: number; locationStatus?: LocationVerificationStatus; distanceMeters?: number; matchedSiteName?: string };
   adminClockOutStaff: (employeeId: string, options?: { breakMinutes?: number; note?: string }) => { success: boolean; message: string; totalHours?: number };
   updateStaffUsername: (empId: string, newUsername: string) => { success: boolean; message?: string };
   updateStaffKioskPin: (empId: string, newPin: string) => void;
@@ -323,6 +342,14 @@ interface AppContextType {
   auditRetentionDays: number;
   updateAuditRetentionDays: (days: number) => Promise<void>;
   pruneAuditLogs: (days?: number) => Promise<{ success: boolean; prunedCount: number; message: string }>;
+
+  // Worksite Geofencing & Network Restrictions
+  geofenceSettings: GeofenceSettings;
+  updateGeofenceSettings: (settings: Partial<GeofenceSettings>) => Promise<void> | void;
+  addGeofenceLocation: (location: Omit<GeofenceLocation, 'id'>) => void;
+  updateGeofenceLocation: (id: string, updates: Partial<GeofenceLocation>) => void;
+  deleteGeofenceLocation: (id: string) => void;
+  toggleGeofenceLocation: (id: string) => void;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -401,6 +428,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [timecards, setTimecards] = useState<TimecardRecord[]>(INITIAL_TIMECARDS);
   const [expirySettings, setExpirySettings] = useState<ExpiryReminderSettings>(INITIAL_EXPIRY_SETTINGS);
   const [auditRetentionDays, setAuditRetentionDays] = useState<number>(90);
+  const [geofenceSettings, setGeofenceSettings] = useState<GeofenceSettings>(INITIAL_GEOFENCE_SETTINGS);
   const [passwordResetTokens, setPasswordResetTokens] = useState<PasswordResetToken[]>([]);
   const [showForgotPasswordModal, setShowForgotPasswordModal] = useState(false);
   const [showChangePasswordModal, setShowChangePasswordModal] = useState(false);
@@ -529,6 +557,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         } catch (e) {}
       }
 
+      const savedGeofence = localStorage.getItem('ems_geofence_v1');
+      if (savedGeofence) {
+        try {
+          setGeofenceSettings({ ...INITIAL_GEOFENCE_SETTINGS, ...JSON.parse(savedGeofence) });
+        } catch (e) {}
+      }
+
       const savedAuth = localStorage.getItem('ems_auth_user_v1');
       if (savedAuth) {
         const parsedAuth = JSON.parse(savedAuth);
@@ -607,6 +642,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           }
           if (setRes.value.settings.auditRetentionDays !== undefined) {
             setAuditRetentionDays(Number(setRes.value.settings.auditRetentionDays) || 90);
+          }
+          if (setRes.value.settings.geofenceSettings) {
+            setGeofenceSettings(prev => ({ ...prev, ...setRes.value.settings.geofenceSettings }));
           }
         }
       } catch (err) {
@@ -3542,7 +3580,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   const activeWorkingStaffCount = employees.filter(e => e.clockState === 'CLOCKED_IN').length;
 
-  const clockInWithKiosk = (username: string, pin: string): { success: boolean; message: string; employee?: Employee } => {
+  const clockInWithKiosk = (
+    username: string, 
+    pin: string, 
+    options?: { coords?: { latitude: number; longitude: number } | null; ip?: string; device?: string }
+  ): { success: boolean; message: string; employee?: Employee; locationStatus?: LocationVerificationStatus; distanceMeters?: number; matchedSiteName?: string } => {
     const cleanUser = username.trim().toLowerCase();
     const cleanPin = pin.trim();
 
@@ -3575,6 +3617,27 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       return { success: false, message: `${emp.firstName} is already clocked in.`, employee: emp };
     }
 
+    // Evaluate Geolocation & Restrictions
+    const geoEval = evaluatePunchLocation(options?.coords, geofenceSettings, emp);
+    const device = options?.device || getDeviceDescription();
+    const ip = options?.ip || '192.168.1.100';
+    const effectiveMode = geofenceSettings.mode || geofenceSettings.enforcementMode || 'WARN_AND_FLAG';
+
+    if (geoEval.status === 'OUT_OF_BOUNDS' && effectiveMode === 'STRICT_BLOCK') {
+      const distDisplay = formatDistanceDisplay(geoEval.distanceMeters || 0);
+      const blockMsg = `Clock-in blocked: You are outside authorized worksite boundary (${distDisplay} away). Nearest site: ${geoEval.matchedSiteName || 'Plant'}.`;
+      addToast('Geofence Verification Blocked', blockMsg, 'error');
+      addAudit('CLOCK_IN_BLOCKED_OUT_OF_BOUNDS', 'Employee', emp.id, `${emp.firstName} ${emp.lastName} attempted clock-in from out of bounds (${distDisplay} away from ${geoEval.matchedSiteName}). Punch blocked under STRICT_BLOCK policy.`, `${emp.firstName} ${emp.lastName}`, 'Staff');
+      return { 
+        success: false, 
+        message: blockMsg, 
+        employee: emp, 
+        locationStatus: 'OUT_OF_BOUNDS', 
+        distanceMeters: geoEval.distanceMeters, 
+        matchedSiteName: geoEval.matchedSiteName 
+      };
+    }
+
     const now = new Date();
     const nowMs = now.getTime();
     const timeStr = now.toLocaleTimeString('en-AU', { timeZone: 'Australia/Sydney', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true });
@@ -3595,7 +3658,15 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       durationSeconds: 0,
       overtimeHours: 0,
       status: 'CLOCKED_IN',
-      notes: `Clocked in via Shift Terminal at ${emp.workLocation || 'Sydney NSW'}`
+      notes: geoEval.status === 'OUT_OF_BOUNDS'
+        ? `Flagged Out-of-Bounds (${formatDistanceDisplay(geoEval.distanceMeters || 0)} from ${geoEval.matchedSiteName})`
+        : `Clocked in via Shift Terminal at ${geoEval.matchedSiteName || emp.workLocation || 'Sydney NSW'}`,
+      locationStatus: geoEval.status,
+      matchedSiteName: geoEval.matchedSiteName,
+      distanceMeters: geoEval.distanceMeters,
+      punchCoordinates: options?.coords ? { latitude: options.coords.latitude, longitude: options.coords.longitude } : undefined,
+      ipAddress: ip,
+      deviceInfo: device,
     };
 
     setTimecards(prev => [newTimecard, ...prev]);
@@ -3636,21 +3707,49 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     const newNotif: NotificationItem = {
       id: 'notif-' + nowMs,
       recipient: 'ADMIN',
-      title: `${emp.firstName} ${emp.lastName} Clocked In`,
-      message: `${emp.firstName} ${emp.lastName} clocked IN at ${timeStr} (${emp.department || 'Production'}).`,
-      type: 'TIMECARD_CLOCK_IN',
+      title: geoEval.status === 'OUT_OF_BOUNDS' 
+        ? `Out-of-Bounds Clock In: ${emp.firstName} ${emp.lastName}` 
+        : `${emp.firstName} ${emp.lastName} Clocked In`,
+      message: geoEval.status === 'OUT_OF_BOUNDS'
+        ? `${emp.firstName} ${emp.lastName} clocked IN at ${timeStr} (${emp.department || 'Production'}) but was ${formatDistanceDisplay(geoEval.distanceMeters || 0)} outside ${geoEval.matchedSiteName}. Flagged for review.`
+        : `${emp.firstName} ${emp.lastName} clocked IN at ${timeStr} (${emp.department || 'Production'}) at ${geoEval.matchedSiteName || 'Sydney Plant'}.`,
+      type: geoEval.status === 'OUT_OF_BOUNDS' ? 'TIMECARD_ADJUST' : 'TIMECARD_CLOCK_IN',
       timestamp: 'Just now',
       read: false
     };
     setNotifications(prev => [newNotif, ...prev]);
 
-    addToast('Clock-In Successful', `Welcome ${emp.firstName}! Clocked in at ${timeStr} AEST.`, 'success');
-    addAudit('SHIFT_CLOCK_IN', 'Timecard', shiftId, `${emp.firstName} ${emp.lastName} clocked IN at ${timeStr}`, `${emp.firstName} ${emp.lastName}`, 'Staff');
+    if (geoEval.status === 'OUT_OF_BOUNDS') {
+      addToast('Out-of-Bounds Warning', `Clock-in recorded but flagged: You are ${formatDistanceDisplay(geoEval.distanceMeters || 0)} from ${geoEval.matchedSiteName}. Supervisor alerted.`, 'warning');
+    } else {
+      addToast('Clock-In Successful', `Welcome ${emp.firstName}! Clocked in at ${timeStr} AEST (${geoEval.matchedSiteName || 'On-site'}).`, 'success');
+    }
+    
+    addAudit(
+      geoEval.status === 'OUT_OF_BOUNDS' ? 'SHIFT_CLOCK_IN_FLAGGED_LOCATION' : 'SHIFT_CLOCK_IN',
+      'Timecard', 
+      shiftId, 
+      `${emp.firstName} ${emp.lastName} clocked IN at ${timeStr} (${geoEval.status}${geoEval.distanceMeters ? ` - ${formatDistanceDisplay(geoEval.distanceMeters)} from ${geoEval.matchedSiteName}` : ''})`, 
+      `${emp.firstName} ${emp.lastName}`, 
+      'Staff'
+    );
 
-    return { success: true, message: `Successfully clocked in at ${timeStr}`, employee: updatedEmp };
+    return { 
+      success: true, 
+      message: `Successfully clocked in at ${timeStr}${geoEval.status === 'OUT_OF_BOUNDS' ? ' (Flagged Out-of-Bounds)' : ''}`, 
+      employee: updatedEmp,
+      locationStatus: geoEval.status,
+      distanceMeters: geoEval.distanceMeters,
+      matchedSiteName: geoEval.matchedSiteName
+    };
   };
 
-  const clockOutWithKiosk = (username: string, pin: string, breakMinutes: number = 0): { success: boolean; message: string; employee?: Employee; totalHours?: number } => {
+  const clockOutWithKiosk = (
+    username: string, 
+    pin: string, 
+    breakMinutes: number = 0,
+    options?: { coords?: { latitude: number; longitude: number } | null; ip?: string; device?: string }
+  ): { success: boolean; message: string; employee?: Employee; totalHours?: number; locationStatus?: LocationVerificationStatus; distanceMeters?: number; matchedSiteName?: string } => {
     const cleanUser = username.trim().toLowerCase();
     const cleanPin = pin.trim();
 
@@ -3675,6 +3774,27 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     if (emp.clockState !== 'CLOCKED_IN') {
       addToast('Not Clocked In', `${emp.firstName} is not currently clocked in.`, 'warning');
       return { success: false, message: `${emp.firstName} is not clocked in.`, employee: emp };
+    }
+
+    // Evaluate Geolocation & Restrictions
+    const geoEval = evaluatePunchLocation(options?.coords, geofenceSettings, emp);
+    const device = options?.device || getDeviceDescription();
+    const ip = options?.ip || '192.168.1.100';
+    const effectiveMode = geofenceSettings.mode || geofenceSettings.enforcementMode || 'WARN_AND_FLAG';
+
+    if (geoEval.status === 'OUT_OF_BOUNDS' && effectiveMode === 'STRICT_BLOCK') {
+      const distDisplay = formatDistanceDisplay(geoEval.distanceMeters || 0);
+      const blockMsg = `Clock-out blocked: You are outside authorized worksite boundary (${distDisplay} away). Nearest site: ${geoEval.matchedSiteName || 'Plant'}.`;
+      addToast('Geofence Verification Blocked', blockMsg, 'error');
+      addAudit('CLOCK_OUT_BLOCKED_OUT_OF_BOUNDS', 'Employee', emp.id, `${emp.firstName} ${emp.lastName} attempted clock-out from out of bounds (${distDisplay} away from ${geoEval.matchedSiteName}). Punch blocked under STRICT_BLOCK policy.`, `${emp.firstName} ${emp.lastName}`, 'Staff');
+      return { 
+        success: false, 
+        message: blockMsg, 
+        employee: emp, 
+        locationStatus: 'OUT_OF_BOUNDS', 
+        distanceMeters: geoEval.distanceMeters, 
+        matchedSiteName: geoEval.matchedSiteName 
+      };
     }
 
     const now = new Date();
@@ -3731,7 +3851,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           isBreakManuallyAdjusted: isManual,
           totalHours,
           overtimeHours: 0,
-          status: 'COMPLETED'
+          status: 'COMPLETED',
+          locationStatus: geoEval.status,
+          matchedSiteName: geoEval.matchedSiteName || updated[existingIdx].matchedSiteName,
+          distanceMeters: geoEval.distanceMeters !== undefined ? geoEval.distanceMeters : updated[existingIdx].distanceMeters,
+          punchCoordinates: options?.coords ? { latitude: options.coords.latitude, longitude: options.coords.longitude } : updated[existingIdx].punchCoordinates,
+          ipAddress: ip,
+          deviceInfo: device,
         };
         updated[existingIdx] = updatedRec;
         recordToSave = updatedRec;
@@ -3753,7 +3879,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           isBreakManuallyAdjusted: isManual,
           totalHours,
           overtimeHours: 0,
-          status: 'COMPLETED'
+          status: 'COMPLETED',
+          locationStatus: geoEval.status,
+          matchedSiteName: geoEval.matchedSiteName,
+          distanceMeters: geoEval.distanceMeters,
+          punchCoordinates: options?.coords ? { latitude: options.coords.latitude, longitude: options.coords.longitude } : undefined,
+          ipAddress: ip,
+          deviceInfo: device,
         };
         recordToSave = newRecord;
         return [newRecord, ...prev];
@@ -3798,18 +3930,42 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     const newNotif: NotificationItem = {
       id: 'notif-' + nowMs,
       recipient: 'ADMIN',
-      title: `${emp.firstName} ${emp.lastName} Clocked Out`,
-      message: `${emp.firstName} ${emp.lastName} clocked OUT at ${timeStr} (Duration: ${hmsFormatted}).`,
-      type: 'TIMECARD_CLOCK_OUT',
+      title: geoEval.status === 'OUT_OF_BOUNDS' 
+        ? `Out-of-Bounds Clock Out: ${emp.firstName} ${emp.lastName}` 
+        : `${emp.firstName} ${emp.lastName} Clocked Out`,
+      message: geoEval.status === 'OUT_OF_BOUNDS'
+        ? `${emp.firstName} ${emp.lastName} clocked OUT at ${timeStr} (Duration: ${hmsFormatted}) from ${formatDistanceDisplay(geoEval.distanceMeters || 0)} outside ${geoEval.matchedSiteName}. Flagged for review.`
+        : `${emp.firstName} ${emp.lastName} clocked OUT at ${timeStr} (Duration: ${hmsFormatted}).`,
+      type: geoEval.status === 'OUT_OF_BOUNDS' ? 'TIMECARD_ADJUST' : 'TIMECARD_CLOCK_OUT',
       timestamp: 'Just now',
       read: false
     };
     setNotifications(prev => [newNotif, ...prev]);
 
-    addToast('Clock-Out Successful', `Goodbye ${emp.firstName}! Shift recorded: ${hmsFormatted} (${totalHours.toFixed(2)} hrs).`, 'success');
-    addAudit('SHIFT_CLOCK_OUT', 'Timecard', emp.currentShiftId || 'tc', `${emp.firstName} ${emp.lastName} clocked OUT at ${timeStr} (${hmsFormatted})`, `${emp.firstName} ${emp.lastName}`, 'Staff');
+    if (geoEval.status === 'OUT_OF_BOUNDS') {
+      addToast('Out-of-Bounds Warning', `Clock-out recorded but flagged: ${formatDistanceDisplay(geoEval.distanceMeters || 0)} from ${geoEval.matchedSiteName}.`, 'warning');
+    } else {
+      addToast('Clock-Out Successful', `Goodbye ${emp.firstName}! Shift recorded: ${hmsFormatted} (${totalHours.toFixed(2)} hrs).`, 'success');
+    }
+    
+    addAudit(
+      geoEval.status === 'OUT_OF_BOUNDS' ? 'SHIFT_CLOCK_OUT_FLAGGED_LOCATION' : 'SHIFT_CLOCK_OUT',
+      'Timecard', 
+      emp.currentShiftId || 'tc', 
+      `${emp.firstName} ${emp.lastName} clocked OUT at ${timeStr} (${hmsFormatted})${geoEval.status === 'OUT_OF_BOUNDS' ? ` [Flagged: ${formatDistanceDisplay(geoEval.distanceMeters || 0)} from ${geoEval.matchedSiteName}]` : ''}`, 
+      `${emp.firstName} ${emp.lastName}`, 
+      'Staff'
+    );
 
-    return { success: true, message: `Shift ended: ${hmsFormatted} (${totalHours.toFixed(2)} hrs)`, employee: updatedEmp, totalHours };
+    return { 
+      success: true, 
+      message: `Shift ended: ${hmsFormatted} (${totalHours.toFixed(2)} hrs)${geoEval.status === 'OUT_OF_BOUNDS' ? ' (Flagged Out-of-Bounds)' : ''}`, 
+      employee: updatedEmp, 
+      totalHours,
+      locationStatus: geoEval.status,
+      distanceMeters: geoEval.distanceMeters,
+      matchedSiteName: geoEval.matchedSiteName
+    };
   };
 
   const adminClockOutStaff = (employeeId: string, options?: { breakMinutes?: number; note?: string }): { success: boolean; message: string; totalHours?: number } => {
@@ -4572,6 +4728,109 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     return { success: true, message: `Notification dispatched to ${emp.firstName} ${emp.lastName}` };
   };
 
+  // Worksite Geofence & Restrictions Management Methods
+  const updateGeofenceSettings = async (settings: Partial<GeofenceSettings>) => {
+    const merged = { ...geofenceSettings, ...settings };
+    setGeofenceSettings(merged);
+    try {
+      localStorage.setItem('ems_geofence_v1', JSON.stringify(merged));
+      const res = await fetch('/api/settings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ geofenceSettings: merged }),
+      });
+      if (res.ok) {
+        addToast('Geofence Rules Updated', 'Worksite perimeter and network restrictions saved in real time.', 'success');
+        addAudit(
+          'GEOFENCE_SETTINGS_UPDATED',
+          'Settings',
+          'geofence',
+          `Updated worksite geofence policy (Mode: ${merged.mode || merged.enforcementMode || 'WARN_AND_FLAG'}, Sites: ${merged.locations.length})`,
+          currentUser?.name || 'Admin',
+          currentUser?.role || 'SuperAdmin'
+        );
+      } else {
+        addToast('Database Warning', 'Settings saved locally; server sync pending.', 'warning');
+      }
+    } catch (e) {
+      addToast('Sync Warning', 'Saved locally, server unreachable.', 'warning');
+    }
+  };
+
+  const addGeofenceLocation = (location: Omit<GeofenceLocation, 'id'>) => {
+    const newLoc: GeofenceLocation = { ...location, id: 'geo-' + Date.now() };
+    const merged = { ...geofenceSettings, locations: [...geofenceSettings.locations, newLoc] };
+    setGeofenceSettings(merged);
+    try {
+      localStorage.setItem('ems_geofence_v1', JSON.stringify(merged));
+      fetch('/api/settings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ geofenceSettings: merged }),
+      }).catch(() => {});
+    } catch(e) {}
+    addToast('Worksite Added', `Added ${newLoc.name} (${newLoc.radiusMeters}m perimeter).`, 'success');
+    addAudit('GEOFENCE_LOCATION_ADDED', 'GeofenceLocation', newLoc.id, `Added worksite ${newLoc.name}`, currentUser?.name || 'Admin', currentUser?.role || 'SuperAdmin');
+  };
+
+  const updateGeofenceLocation = (id: string, updates: Partial<GeofenceLocation>) => {
+    const merged = {
+      ...geofenceSettings,
+      locations: geofenceSettings.locations.map(loc => loc.id === id ? { ...loc, ...updates } : loc)
+    };
+    setGeofenceSettings(merged);
+    try {
+      localStorage.setItem('ems_geofence_v1', JSON.stringify(merged));
+      fetch('/api/settings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ geofenceSettings: merged }),
+      }).catch(() => {});
+    } catch(e) {}
+    addToast('Worksite Updated', 'Worksite location parameters updated.', 'success');
+    addAudit('GEOFENCE_LOCATION_UPDATED', 'GeofenceLocation', id, `Updated worksite ${id}`, currentUser?.name || 'Admin', currentUser?.role || 'SuperAdmin');
+  };
+
+  const deleteGeofenceLocation = (id: string) => {
+    const locToDelete = geofenceSettings.locations.find(l => l.id === id);
+    const merged = {
+      ...geofenceSettings,
+      locations: geofenceSettings.locations.filter(loc => loc.id !== id)
+    };
+    setGeofenceSettings(merged);
+    try {
+      localStorage.setItem('ems_geofence_v1', JSON.stringify(merged));
+      fetch('/api/settings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ geofenceSettings: merged }),
+      }).catch(() => {});
+    } catch(e) {}
+    if (locToDelete) {
+      addToast('Worksite Deleted', `Removed worksite ${locToDelete.name}.`, 'info');
+      addAudit('GEOFENCE_LOCATION_DELETED', 'GeofenceLocation', id, `Deleted worksite ${locToDelete.name}`, currentUser?.name || 'Admin', currentUser?.role || 'SuperAdmin');
+    }
+  };
+
+  const toggleGeofenceLocation = (id: string) => {
+    const loc = geofenceSettings.locations.find(l => l.id === id);
+    const newActive = loc ? !loc.isActive : true;
+    const merged = {
+      ...geofenceSettings,
+      locations: geofenceSettings.locations.map(l => l.id === id ? { ...l, isActive: newActive } : l)
+    };
+    setGeofenceSettings(merged);
+    try {
+      localStorage.setItem('ems_geofence_v1', JSON.stringify(merged));
+      fetch('/api/settings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ geofenceSettings: merged }),
+      }).catch(() => {});
+    } catch(e) {}
+    addToast('Worksite Toggled', `${loc?.name || 'Worksite'} is now ${newActive ? 'Active' : 'Disabled'}.`, 'info');
+  };
+
   return (
     <AppContext.Provider value={{
       currentUser,
@@ -4663,6 +4922,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       auditRetentionDays,
       updateAuditRetentionDays,
       pruneAuditLogs,
+      geofenceSettings,
+      updateGeofenceSettings,
+      addGeofenceLocation,
+      updateGeofenceLocation,
+      deleteGeofenceLocation,
+      toggleGeofenceLocation,
     }}>
       {children}
     </AppContext.Provider>
