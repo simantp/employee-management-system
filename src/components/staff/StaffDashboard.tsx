@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { useApp } from '@/lib/store';
 import CompanyLatestAnnouncementBanner from './CompanyLatestAnnouncementBanner';
+import StaffOnboardingBanner from './StaffOnboardingBanner';
 import ResignationModal from './ResignationModal';
 
 // Dedicated Detailed Views
@@ -20,16 +21,16 @@ export default function StaffDashboard({
 }: {
   activeTab?: string;
 }) {
-  const { announcements } = useApp();
+  const { announcements, currentStaff } = useApp();
   const [showResignModal, setShowResignModal] = useState(false);
 
   // Dedicated Detailed Workspace Views for Sidebar Navigation
   if (activeTab === 'profile' || activeTab === 'personal') {
-    return <StaffFullProfileView />;
+    return <StaffFullProfileView initialTab="profile" />;
   }
 
   if (activeTab === 'documents') {
-    return <StaffDocumentsView />;
+    return <StaffFullProfileView initialTab="documents" />;
   }
 
   if (activeTab === 'leave') {
@@ -81,10 +82,13 @@ export default function StaffDashboard({
     );
   }
 
-  // DEFAULT TAB ('dashboard'): ONLY Shows Company's Latest Announcement Banner
+  // DEFAULT TAB ('dashboard'): Shows Onboarding Banner (if pending) + Latest Announcement
   return (
     <div className="p-6 lg:p-8 space-y-6 max-w-7xl mx-auto animate-in fade-in duration-200 text-xs font-sans">
       
+      {/* Onboarding Profile Completion Banner (renders only when Pending) */}
+      <StaffOnboardingBanner />
+
       {/* Spotlight: Company's Latest Announcement */}
       <CompanyLatestAnnouncementBanner />
 

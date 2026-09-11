@@ -4,7 +4,8 @@ import {
   INITIAL_EMPLOYEES, 
   INITIAL_LEAVE_REQUESTS, 
   INITIAL_AUDIT_LOGS, 
-  INITIAL_TIMECARDS 
+  INITIAL_TIMECARDS,
+  INITIAL_NOTIFICATIONS
 } from './initialData';
 import {
   INITIAL_DOCUMENT_TYPES,
@@ -12,7 +13,7 @@ import {
   INITIAL_USERS,
   INITIAL_EXPIRY_SETTINGS
 } from './store';
-import { Employee, TimecardRecord, LeaveRequest, EmployeeDocument, DocumentTypeConfig, Announcement, AuditLog, AuthUser, ExpiryReminderSettings } from '@/types';
+import { Employee, TimecardRecord, LeaveRequest, EmployeeDocument, DocumentTypeConfig, Announcement, AuditLog, AuthUser, ExpiryReminderSettings, NotificationItem } from '@/types';
 
 const DATA_DIR = path.join(process.cwd(), 'data');
 
@@ -104,10 +105,18 @@ export async function saveStoredUsers(users: AuthUser[]): Promise<void> {
   await writeJsonFile('users.json', users);
 }
 
+export async function getStoredNotifications(): Promise<NotificationItem[]> {
+  return readJsonFile<NotificationItem[]>('notifications.json', INITIAL_NOTIFICATIONS);
+}
+
+export async function saveStoredNotifications(notifications: NotificationItem[]): Promise<void> {
+  await writeJsonFile('notifications.json', notifications);
+}
+
 export async function getStoredSettings(): Promise<any> {
   return readJsonFile<any>('settings.json', {
     expirySettings: INITIAL_EXPIRY_SETTINGS,
-    auditRetentionDays: 90,
+    auditRetentionDays: 7,
     autoPruneAuditLogs: true,
   });
 }

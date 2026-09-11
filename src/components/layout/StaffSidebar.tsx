@@ -14,10 +14,9 @@ export default function StaffSidebar({
 
   const navItems = [
     { id: 'dashboard', label: 'Dashboard' },
-    { id: 'profile', label: 'My Profile' },
-    { id: 'documents', label: 'Documents' },
-    { id: 'leave', label: 'Leave Management' },
     { id: 'timesheet', label: 'Timesheet Records' },
+    { id: 'profile', label: 'My Profile' },
+    { id: 'leave', label: 'Leave Management' },
   ];
 
   const handleNav = (id: string) => {

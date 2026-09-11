@@ -21,6 +21,8 @@ export interface AuthUser {
   id: string;
   name: string;
   email: string;
+  username?: string;
+  password?: string;
   role: UserRole;
   isEmailVerified: boolean;
   staffId?: string;
@@ -42,6 +44,17 @@ export interface OTPVerification {
     department?: Department;
   };
 }
+
+export interface PasswordResetToken {
+  token: string;
+  email: string;
+  userId: string;
+  userName: string;
+  createdAt: number;
+  expiresAt: number; // 5 minutes = createdAt + 5 * 60 * 1000
+  used: boolean;
+}
+
 
 export interface EmployeeDocument {
   id: string;
@@ -77,6 +90,7 @@ export interface LeaveBalance {
 export interface Employee {
   id: string;
   employeeNumber: string;
+  username?: string; // Unique Shift & Portal username e.g. "suman.thapa"
   firstName: string;
   lastName: string;
   email: string;
@@ -95,8 +109,16 @@ export interface Employee {
   jobTitle: string;
   workLocation: string;
   reportsTo: string;
-  status: 'Active' | 'On Leave' | 'Terminated' | 'Archived';
+  status: 'Active' | 'On Leave' | 'Terminated' | 'Archived' | 'Pending';
   avatarUrl?: string;
+
+  // Onboarding & Invitation Lifecycle
+  onboardingStatus?: 'INVITED' | 'PASSWORD_SET' | 'PROFILE_COMPLETED' | 'COMPLETED';
+  inviteToken?: string;
+  inviteSentAt?: string;
+  inviteExpiresAt?: string;
+  passwordSetAt?: string;
+  profileCompletedAt?: string;
 
   citizenStatus?: CitizenStatus;
   visaType?: string;
@@ -159,13 +181,18 @@ export interface TimecardRecord {
   clockOut?: string; // "04:00 PM" or ISO
   clockInTimestamp?: number; // exact ms epoch
   clockOutTimestamp?: number; // exact ms epoch
-  durationSeconds?: number; // exact seconds worked
+  durationSeconds?: number; // exact seconds worked (net)
   breakMinutes: number;
+  isBreakManuallyAdjusted?: boolean;
   totalHours: number;
   overtimeHours: number;
   status: TimecardStatus;
   leaveType?: LeaveType;
   notes?: string;
+  adminNote?: string;
+  staffNote?: string;
+  staffNoteSubmittedAt?: string;
+  staffNoteStatus?: 'PENDING_REVIEW' | 'RESOLVED';
   adjustedBy?: string;
   adjustedAt?: string;
 }
@@ -214,7 +241,7 @@ export interface NotificationItem {
   recipientId?: string;
   title: string;
   message: string;
-  type: 'LEAVE_REQUEST' | 'LEAVE_STATUS' | 'VISA_EXPIRY' | 'LICENSE_EXPIRY' | 'CERTIFICATE_REMINDER' | 'PROFILE_UPDATE' | 'BANK_UPDATE' | 'TIMECARD_CLOCK_IN' | 'TIMECARD_CLOCK_OUT' | 'TIMECARD_ADJUST' | 'GENERAL';
+  type: 'LEAVE_REQUEST' | 'LEAVE_STATUS' | 'VISA_EXPIRY' | 'LICENSE_EXPIRY' | 'CERTIFICATE_REMINDER' | 'PROFILE_UPDATE' | 'BANK_UPDATE' | 'TIMECARD_CLOCK_IN' | 'TIMECARD_CLOCK_OUT' | 'TIMECARD_ADJUST' | 'TIMECARD_RESOLVED' | 'GENERAL' | string;
   timestamp: string;
   read: boolean;
   actionUrl?: string;

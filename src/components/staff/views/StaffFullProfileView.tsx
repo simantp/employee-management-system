@@ -2,20 +2,43 @@
 
 import React, { useState } from 'react';
 import { useApp } from '@/lib/store';
+import { getOnboardingProgress } from '@/lib/onboarding';
+import StaffOnboardingBanner from '../StaffOnboardingBanner';
 import EditPersonalInfoModal from '../EditPersonalInfoModal';
 import EditWorkRightsModal from '../EditWorkRightsModal';
 import EditEmergencyContactModal from '../EditEmergencyContactModal';
 import BankDetailsModal from '../BankDetailsModal';
 import AvatarUploadModal from '../AvatarUploadModal';
+import StaffDocumentsView from './StaffDocumentsView';
 
-export default function StaffFullProfileView() {
+export default function StaffFullProfileView({
+  initialTab = 'profile'
+}: {
+  initialTab?: 'profile' | 'documents';
+}) {
   const { currentStaff } = useApp();
   
+  const [activeSubTab, setActiveSubTab] = useState<'profile' | 'documents'>(initialTab);
   const [showPersonalModal, setShowPersonalModal] = useState(false);
   const [showVisaModal, setShowVisaModal] = useState(false);
   const [showEmergencyModal, setShowEmergencyModal] = useState(false);
   const [showBankModal, setShowBankModal] = useState(false);
   const [showAvatarModal, setShowAvatarModal] = useState(false);
+
+  // Sync activeSubTab if initialTab prop changes
+  React.useEffect(() => {
+    if (initialTab) {
+      setActiveSubTab(initialTab);
+    }
+  }, [initialTab]);
+
+  const isPending = currentStaff.status === 'Pending';
+  const progress = getOnboardingProgress(currentStaff);
+
+  const isPersonalDone = progress.sections.find(s => s.id === 'PERSONAL')?.isDone ?? false;
+  const isWorkRightsDone = progress.sections.find(s => s.id === 'WORK_RIGHTS')?.isDone ?? false;
+  const isEmergencyDone = progress.sections.find(s => s.id === 'EMERGENCY')?.isDone ?? false;
+  const isBankingDone = progress.sections.find(s => s.id === 'BANKING')?.isDone ?? false;
 
   return (
     <div className="p-6 lg:p-8 space-y-6 max-w-7xl mx-auto animate-in fade-in duration-150 text-xs">
@@ -54,9 +77,16 @@ export default function StaffFullProfileView() {
                 <h2 className="text-xl sm:text-2xl font-black text-white">
                   {currentStaff.firstName} {currentStaff.lastName}
                 </h2>
-                <span className="text-[10px] font-extrabold px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
-                  {currentStaff.status || 'Active'}
-                </span>
+                {isPending ? (
+                  <span className="text-[10px] font-extrabold px-2.5 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/40 flex items-center gap-1.5 animate-pulse">
+                    <span className="w-1.5 h-1.5 rounded-full bg-amber-400" />
+                    Pending Profile Setup
+                  </span>
+                ) : (
+                  <span className="text-[10px] font-extrabold px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                    {currentStaff.status || 'Active'}
+                  </span>
+                )}
               </div>
               <p className="text-xs text-cyan-300 font-semibold mt-0.5">
                 {currentStaff.jobTitle || 'Staff Member'} • {currentStaff.department || 'General Staff'}
@@ -71,7 +101,7 @@ export default function StaffFullProfileView() {
             </div>
           </div>
 
-          <div className="flex items-center gap-2.5">
+          <div className="flex flex-wrap items-center gap-2.5">
             <button
               onClick={() => setShowAvatarModal(true)}
               className="flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs border border-slate-700 transition cursor-pointer"
@@ -79,25 +109,80 @@ export default function StaffFullProfileView() {
               <span>Change Photo</span>
             </button>
 
-            <button
-              onClick={() => setShowPersonalModal(true)}
-              className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-navy-950 font-bold text-xs shadow-md shadow-cyan-500/25 transition hover:scale-[1.02] active:scale-[0.98] cursor-pointer"
-            >
-              <span>Edit Profile Info</span>
-            </button>
+            {activeSubTab === 'profile' && (
+              <button
+                onClick={() => setShowPersonalModal(true)}
+                className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-navy-950 font-bold text-xs shadow-md shadow-cyan-500/25 transition hover:scale-[1.02] active:scale-[0.98] cursor-pointer"
+              >
+                <span>Edit Profile Info</span>
+              </button>
+            )}
           </div>
         </div>
       </div>
 
-      {/* Profile Details Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      {/* Sub-Navigation Tabs: Personal Details vs Manage Documents */}
+      <div className="flex flex-wrap items-center gap-2 border-b border-slate-200/80 pb-3">
+        <button
+          type="button"
+          onClick={() => setActiveSubTab('profile')}
+          className={`flex items-center gap-2 px-4 py-2.5 rounded-2xl font-bold text-xs transition cursor-pointer ${
+            activeSubTab === 'profile'
+              ? 'bg-slate-900 text-white shadow-md'
+              : 'bg-white hover:bg-slate-100 text-slate-700 border border-slate-200/80'
+          }`}
+        >
+          <span>Personal, Visa &amp; Banking Details</span>
+          {progress.isComplete && (
+            <span className="w-2 h-2 rounded-full bg-emerald-400" />
+          )}
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setActiveSubTab('documents')}
+          className={`flex items-center gap-2 px-4 py-2.5 rounded-2xl font-bold text-xs transition cursor-pointer ${
+            activeSubTab === 'documents'
+              ? 'bg-slate-900 text-white shadow-md'
+              : 'bg-white hover:bg-slate-100 text-slate-700 border border-slate-200/80'
+          }`}
+        >
+          <span>Documents &amp; Compliance Vault</span>
+          <span className={`px-2 py-0.5 rounded-full text-[10px] font-black ${
+            activeSubTab === 'documents' ? 'bg-orange-500 text-slate-950' : 'bg-orange-100 text-orange-800'
+          }`}>
+            {currentStaff.documents.length} Files
+          </span>
+        </button>
+      </div>
+
+      {activeSubTab === 'documents' ? (
+        <StaffDocumentsView embedded={true} />
+      ) : (
+        <>
+          {/* Onboarding Checklist Banner when Pending */}
+          <StaffOnboardingBanner />
+
+          {/* Profile Details Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         
         {/* SECTION 1: Personal & Residential Info */}
         <div className="bg-white rounded-3xl p-6 border border-slate-200/80 shadow-xs space-y-4">
           <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-            <h3 className="font-black text-sm text-slate-900 flex items-center gap-2">
-              <span>Personal &amp; Residential Information</span>
-            </h3>
+            <div className="flex items-center gap-2">
+              <h3 className="font-black text-sm text-slate-900">
+                Personal &amp; Residential Information
+              </h3>
+              {isPersonalDone ? (
+                <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-700 border border-emerald-200">
+                  Complete
+                </span>
+              ) : (
+                <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-md bg-amber-50 text-amber-700 border border-amber-200 animate-pulse">
+                  Action Required
+                </span>
+              )}
+            </div>
             <button
               onClick={() => setShowPersonalModal(true)}
               className="flex items-center gap-1.5 text-[11px] font-extrabold text-blue-700 bg-blue-50 hover:bg-blue-100 border border-blue-200/80 px-3 py-1 rounded-xl transition cursor-pointer"
@@ -149,9 +234,20 @@ export default function StaffFullProfileView() {
         {/* SECTION 2: Legal Work Rights & Visa Compliance */}
         <div className="bg-white rounded-3xl p-6 border border-slate-200/80 shadow-xs space-y-4">
           <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-            <h3 className="font-black text-sm text-slate-900 flex items-center gap-2">
-              <span>Legal Work Rights &amp; Visa Compliance</span>
-            </h3>
+            <div className="flex items-center gap-2">
+              <h3 className="font-black text-sm text-slate-900">
+                Legal Work Rights &amp; Visa Compliance
+              </h3>
+              {isWorkRightsDone ? (
+                <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-700 border border-emerald-200">
+                  Complete
+                </span>
+              ) : (
+                <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-md bg-amber-50 text-amber-700 border border-amber-200 animate-pulse">
+                  Action Required
+                </span>
+              )}
+            </div>
             <button
               onClick={() => setShowVisaModal(true)}
               className="flex items-center gap-1.5 text-[11px] font-extrabold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200/80 px-3 py-1 rounded-xl transition cursor-pointer"
@@ -224,9 +320,20 @@ export default function StaffFullProfileView() {
         {/* SECTION 3: Emergency Next of Kin */}
         <div className="bg-white rounded-3xl p-6 border border-slate-200/80 shadow-xs space-y-4">
           <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-            <h3 className="font-black text-sm text-slate-900 flex items-center gap-2">
-              <span>Emergency Next of Kin</span>
-            </h3>
+            <div className="flex items-center gap-2">
+              <h3 className="font-black text-sm text-slate-900">
+                Emergency Next of Kin
+              </h3>
+              {isEmergencyDone ? (
+                <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-700 border border-emerald-200">
+                  Complete
+                </span>
+              ) : (
+                <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-md bg-amber-50 text-amber-700 border border-amber-200 animate-pulse">
+                  Action Required
+                </span>
+              )}
+            </div>
             <button
               onClick={() => setShowEmergencyModal(true)}
               className="flex items-center gap-1.5 text-[11px] font-extrabold text-rose-700 bg-rose-50 hover:bg-rose-100 border border-rose-200/80 px-3 py-1 rounded-xl transition cursor-pointer"
@@ -264,9 +371,20 @@ export default function StaffFullProfileView() {
         {/* SECTION 4: Banking & Superannuation (AES-256 Encrypted) */}
         <div className="bg-white rounded-3xl p-6 border border-slate-200/80 shadow-xs space-y-4">
           <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-            <h3 className="font-black text-sm text-slate-900 flex items-center gap-2">
-              <span>Banking, TFN &amp; Superannuation (Encrypted)</span>
-            </h3>
+            <div className="flex items-center gap-2">
+              <h3 className="font-black text-sm text-slate-900">
+                Banking, TFN &amp; Superannuation (Encrypted)
+              </h3>
+              {isBankingDone ? (
+                <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-700 border border-emerald-200">
+                  Complete
+                </span>
+              ) : (
+                <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-md bg-amber-50 text-amber-700 border border-amber-200 animate-pulse">
+                  Action Required
+                </span>
+              )}
+            </div>
             <button
               onClick={() => setShowBankModal(true)}
               className="flex items-center gap-1.5 text-[11px] font-extrabold text-purple-700 bg-purple-50 hover:bg-purple-100 border border-purple-200/80 px-3 py-1 rounded-xl transition cursor-pointer"
@@ -304,6 +422,8 @@ export default function StaffFullProfileView() {
         </div>
 
       </div>
+    </>
+  )}
 
       {/* Dedicated Modals */}
       {showPersonalModal && (

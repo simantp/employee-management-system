@@ -4,25 +4,42 @@ import React from 'react';
 import { useApp } from '@/lib/store';
 
 export default function NotificationCenterModal({ onClose }: { onClose: () => void }) {
-  const { currentUser, notifications, activePortal, markNotificationRead, markAllNotificationsRead } = useApp();
+  const { currentUser, currentStaff, currentStaffId, notifications, activePortal, markNotificationRead, markAllNotificationsRead } = useApp();
 
   const relevantNotifs = activePortal === 'ADMIN'
-    ? notifications.filter(n => n.recipient === 'ADMIN')
+    ? notifications.filter(n => n.recipient === 'ADMIN' || n.recipient === 'ALL')
     : notifications.filter(n => {
         if (n.recipient !== 'STAFF' && n.recipient !== 'ALL') return false;
-        // If recipientId is specified, match current user
+        // If recipientId is specified, match current user/staff
         if (n.recipientId) {
-          return n.recipientId === currentUser?.id || n.recipientId === currentUser?.staffId;
+          return (
+            n.recipientId === currentUser?.id ||
+            n.recipientId === currentUser?.staffId ||
+            n.recipientId === currentStaffId ||
+            n.recipientId === currentStaff?.id ||
+            (currentUser?.email && n.recipientId.toLowerCase() === currentUser.email.toLowerCase()) ||
+            (currentStaff?.email && n.recipientId.toLowerCase() === currentStaff.email.toLowerCase())
+          );
         }
+        if (n.recipient === 'ALL') return true;
         // Initial demo notifications are only for demo employee Suman Thapa
-        return currentUser?.email === 'suman.thapa@company.com';
+        return currentUser?.email === 'suman.thapa@company.com' || currentUser?.staffId === 'emp-42' || currentStaffId === 'emp-42';
       });
 
   const getBadgeLabel = (type: string) => {
     switch (type) {
-      case 'LEAVE_REQUEST': return 'Leave';
+      case 'LEAVE_REQUEST': return 'Leave Req';
+      case 'LEAVE_STATUS': return 'Leave Status';
       case 'VISA_EXPIRY': return 'Visa';
-      case 'BANK_UPDATE': return 'Bank';
+      case 'LICENSE_EXPIRY': return 'Licence';
+      case 'CERTIFICATE_REMINDER': return 'Certificate';
+      case 'BANK_UPDATE': return 'Banking';
+      case 'PROFILE_UPDATE': return 'Profile';
+      case 'TIMECARD_CLOCK_IN': return 'Clock In';
+      case 'TIMECARD_CLOCK_OUT': return 'Clock Out';
+      case 'TIMECARD_ADJUST': return 'Timesheet';
+      case 'TIMECARD_RESOLVED': return 'Resolved';
+      case 'GENERAL': return 'General';
       default: return 'Notice';
     }
   };

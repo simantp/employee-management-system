@@ -9,6 +9,7 @@ export default function StaffDirectoryView() {
   const [deptFilter, setDeptFilter] = useState('ALL');
 
   const filtered = employees.filter(e => {
+    if (e.status === 'Archived' || e.status === 'Terminated') return false;
     const matchSearch = `${e.firstName} ${e.lastName} ${e.jobTitle} ${e.department}`.toLowerCase().includes(search.toLowerCase());
     const matchDept = deptFilter === 'ALL' || e.department.includes(deptFilter);
     return matchSearch && matchDept;

@@ -32,13 +32,12 @@ export default function PostAnnouncementModal({ onClose }: { onClose: () => void
         <div className="p-6 bg-slate-900 text-white flex items-center justify-between">
           <div>
             <div className="flex items-center gap-2">
-              <span className="p-1.5 rounded-lg bg-orange-500/20 text-orange-400 text-sm">📢</span>
               <h3 className="text-base font-bold text-white">Post Company Announcement</h3>
             </div>
             <p className="text-[11px] text-slate-300 font-medium mt-1">Broadcasts instantly to the Staff Dashboard and stores permanently in records</p>
           </div>
           <button onClick={onClose} className="text-xs font-bold text-slate-400 hover:text-white px-2 py-1 transition cursor-pointer">
-            ✕
+            Close
           </button>
         </div>
 

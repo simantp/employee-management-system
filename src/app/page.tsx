@@ -8,10 +8,11 @@ import Topbar from '@/components/layout/Topbar';
 import AdminDashboard from '@/components/admin/AdminDashboard';
 import StaffDashboard from '@/components/staff/StaffDashboard';
 import ApplyLeaveModal from '@/components/staff/ApplyLeaveModal';
+import ChangePasswordModal from '@/components/staff/ChangePasswordModal';
 import AuthPortal from '@/components/auth/AuthPortal';
 
 export default function AppHome() {
-  const { currentUser } = useApp();
+  const { currentUser, currentStaff, showChangePasswordModal, setShowChangePasswordModal } = useApp();
   const [adminTab, setAdminTab] = useState('dashboard');
   const [staffTab, setStaffTab] = useState('dashboard');
 
@@ -47,11 +48,21 @@ export default function AppHome() {
         <div className="flex-1 flex flex-col min-w-0 h-screen overflow-hidden">
           <Topbar 
             onOpenLeaveModal={() => setShowGlobalLeaveModal(true)}
+            onNavigateTab={(tab) => setAdminTab(tab)}
           />
           <main className="flex-1 overflow-y-auto min-h-0">
             <AdminDashboard activeTab={adminTab} />
           </main>
         </div>
+
+        {showChangePasswordModal && (
+          <ChangePasswordModal
+            onClose={() => setShowChangePasswordModal(false)}
+            staffId={currentUser.staffId || currentStaff?.id}
+            email={currentUser.email}
+            userName={currentUser.name}
+          />
+        )}
       </div>
     );
   }
@@ -63,6 +74,7 @@ export default function AppHome() {
       <div className="flex-1 flex flex-col min-w-0 h-screen overflow-hidden">
         <Topbar 
           onOpenLeaveModal={() => setShowGlobalLeaveModal(true)}
+          onNavigateTab={(tab) => setStaffTab(tab)}
         />
         <main className="flex-1 overflow-y-auto min-h-0">
           <StaffDashboard activeTab={staffTab} />
@@ -71,6 +83,15 @@ export default function AppHome() {
 
       {showGlobalLeaveModal && (
         <ApplyLeaveModal onClose={() => setShowGlobalLeaveModal(false)} />
+      )}
+
+      {showChangePasswordModal && (
+        <ChangePasswordModal
+          onClose={() => setShowChangePasswordModal(false)}
+          staffId={currentUser.staffId || currentStaff?.id}
+          email={currentUser.email || currentStaff?.email}
+          userName={currentUser.name || (currentStaff ? `${currentStaff.firstName} ${currentStaff.lastName}` : 'Staff Member')}
+        />
       )}
     </div>
   );

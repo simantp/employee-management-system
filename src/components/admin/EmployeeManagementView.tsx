@@ -3,24 +3,44 @@
 import React, { useState } from 'react';
 import { useApp } from '@/lib/store';
 import { Employee, Department } from '@/types';
+import { getOnboardingProgress } from '@/lib/onboarding';
 import EmployeeDetailModal from './EmployeeDetailModal';
+import AddEmployeeModal from './AddEmployeeModal';
 
 export default function EmployeeManagementView({
   filterCategory = 'ALL'
 }: {
   filterCategory?: 'ALL' | 'PERSONAL' | 'EMPLOYMENT' | 'PAYROLL' | 'EMERGENCY';
 }) {
-  const { employees, deleteEmployee, archiveEmployee } = useApp();
+  const { employees, archiveEmployee, unarchiveEmployee, sendProfileCompletionReminder } = useApp();
   const [search, setSearch] = useState('');
   const [selectedDept, setSelectedDept] = useState<string>('ALL');
   const [selectedStatus, setSelectedStatus] = useState<string>('ALL');
   const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [remindingEmpId, setRemindingEmpId] = useState<string | null>(null);
 
-  // Modals for confirmation
-  const [employeeToDelete, setEmployeeToDelete] = useState<Employee | null>(null);
+  // Modal for Archive / Unarchive confirmation
   const [employeeToArchive, setEmployeeToArchive] = useState<Employee | null>(null);
 
-  // Filtered staff list
+  // Effective status calculation ensuring 100% completed profiles are always treated as Active
+  const getEffectiveStatus = (emp: Employee) => {
+    const progress = getOnboardingProgress(emp);
+    if (emp.status === 'Pending' && progress.isComplete) {
+      return 'Active';
+    }
+    return emp.status;
+  };
+
+  // Status counts based on effective status
+  const nonArchivedCount = employees.filter(e => getEffectiveStatus(e) !== 'Archived').length;
+  const activeCount = employees.filter(e => getEffectiveStatus(e) === 'Active').length;
+  const pendingCount = employees.filter(e => getEffectiveStatus(e) === 'Pending').length;
+  const onLeaveCount = employees.filter(e => getEffectiveStatus(e) === 'On Leave').length;
+  const terminatedCount = employees.filter(e => getEffectiveStatus(e) === 'Terminated').length;
+  const archivedCount = employees.filter(e => getEffectiveStatus(e) === 'Archived').length;
+
+  // Filtered staff list: Archived staff are strictly excluded from default 'ALL' and only shown when 'Archived' is explicitly filtered
   const filtered = employees.filter(emp => {
     const q = search.toLowerCase();
     const matchesSearch = 
@@ -37,9 +57,10 @@ export default function EmployeeManagementView({
       ? !emp.department 
       : emp.department === selectedDept;
 
+    const effStatus = getEffectiveStatus(emp);
     const matchesStatus = selectedStatus === 'ALL' 
-      ? true 
-      : emp.status === selectedStatus;
+      ? effStatus !== 'Archived' 
+      : effStatus === selectedStatus;
 
     return matchesSearch && matchesDept && matchesStatus;
   });
@@ -53,9 +74,16 @@ export default function EmployeeManagementView({
         {/* Controls Bar */}
         <div className="p-5 border-b border-slate-100 flex flex-col xl:flex-row xl:items-center justify-between gap-4 bg-slate-50/50">
           <div>
-            <h2 className="text-base font-black text-slate-900 tracking-tight">
-              Staff Management Directory ({filtered.length})
-            </h2>
+            <div className="flex items-center gap-2">
+              <h2 className="text-base font-black text-slate-900 tracking-tight">
+                Staff Management Directory ({filtered.length})
+              </h2>
+              {selectedStatus === 'Archived' && (
+                <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black bg-purple-100 text-purple-800 border border-purple-200 flex items-center gap-1">
+                  Archived Filter Active
+                </span>
+              )}
+            </div>
             <p className="text-[11px] text-slate-500 mt-0.5">
               Click any staff member to view and edit role, bank vault, visa rights, driver licence, and personal details.
             </p>
@@ -91,17 +119,48 @@ export default function EmployeeManagementView({
               <select
                 value={selectedStatus}
                 onChange={e => setSelectedStatus(e.target.value)}
-                className="text-xs font-bold bg-white border border-slate-200 rounded-xl px-3 py-2 text-slate-700 cursor-pointer focus:outline-none shadow-xs"
+                className={`text-xs font-bold border rounded-xl px-3 py-2 cursor-pointer focus:outline-none shadow-xs transition-colors ${
+                  selectedStatus === 'Archived' 
+                    ? 'bg-purple-50 text-purple-900 border-purple-300 ring-2 ring-purple-400/20' 
+                    : 'bg-white text-slate-700 border-slate-200'
+                }`}
               >
-                <option value="ALL">All Statuses</option>
-                <option value="Active">Active</option>
-                <option value="On Leave">On Leave</option>
-                <option value="Terminated">Terminated</option>
-                <option value="Archived">Archived</option>
+                <option value="ALL">All Staff ({nonArchivedCount})</option>
+                <option value="Active">Active ({activeCount})</option>
+                <option value="Pending">Pending ({pendingCount})</option>
+                <option value="On Leave">On Leave ({onLeaveCount})</option>
+                <option value="Terminated">Terminated ({terminatedCount})</option>
+                <option value="Archived">Archived ({archivedCount})</option>
               </select>
+
+              <button
+                type="button"
+                onClick={() => setShowAddModal(true)}
+                className="px-4 py-2 rounded-xl bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-400 hover:to-amber-400 text-slate-950 font-black text-xs shadow-md shadow-orange-500/20 transition-all hover:scale-[1.02] flex items-center gap-1.5 cursor-pointer ml-1"
+              >
+                <span>Add Employee</span>
+              </button>
             </div>
           </div>
         </div>
+
+        {/* Informative Banner when Archived filter is selected */}
+        {selectedStatus === 'Archived' && (
+          <div className="p-3.5 bg-purple-50/80 border-b border-purple-100 flex items-center justify-between gap-3 text-purple-900 text-xs">
+            <div className="flex items-center gap-2.5">
+              <span>
+                <strong>Archived Staff Vault:</strong> Showing {filtered.length} archived record(s). These staff members are hidden from active schedules and regular operations. Click <strong>Unarchive</strong> on any record to reactivate them to Active status with all previous records intact.
+              </span>
+            </div>
+            <button
+              type="button"
+              onClick={() => setSelectedStatus('ALL')}
+              className="text-[11px] font-bold text-purple-700 hover:text-purple-900 underline cursor-pointer flex-shrink-0"
+            >
+              Back to All Staff
+            </button>
+          </div>
+        )}
 
         {/* Staff Table */}
         <div className="overflow-x-auto">
@@ -170,24 +229,83 @@ export default function EmployeeManagementView({
                       </div>
                     </td>
 
-                    {/* Status */}
+                    {/* Status & Onboarding Progress */}
                     <td className="py-3.5 px-5">
-                      <span className={`px-2.5 py-1 rounded-full text-[10px] font-black border ${
-                        emp.status === 'Active' 
-                          ? 'bg-emerald-50 text-emerald-700 border-emerald-200' 
-                          : emp.status === 'On Leave' 
-                          ? 'bg-amber-50 text-amber-700 border-amber-200' 
-                          : emp.status === 'Archived'
-                          ? 'bg-purple-50 text-purple-700 border-purple-200 font-black'
-                          : 'bg-slate-100 text-slate-600 border-slate-200'
-                      }`}>
-                        {emp.status}
-                      </span>
+                      {(() => {
+                        const progress = getOnboardingProgress(emp);
+                        const effStatus = getEffectiveStatus(emp);
+                        const isPending = effStatus === 'Pending';
+
+                        if (isPending) {
+                          return (
+                            <div className="space-y-1">
+                              <span 
+                                className="px-2.5 py-1 rounded-full text-[10px] font-black border inline-flex items-center gap-1.5 bg-amber-50 text-amber-800 border-amber-300"
+                                title={`Onboarding: ${progress.completedCount} of 4 sections completed (${progress.percent}%). Missing: ${progress.missingSectionTitles.join(', ')}`}
+                              >
+                                <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
+                                Pending ({progress.completedCount}/4 Done)
+                              </span>
+                              {/* 4-dot Progress Bar */}
+                              <div className="flex items-center gap-1 px-1" title={`${progress.percent}% profile completed`}>
+                                {progress.sections.map((sec) => (
+                                  <span 
+                                    key={sec.id}
+                                    title={`${sec.title}: ${sec.isDone ? 'Done' : 'Missing'}`}
+                                    className={`h-1.5 rounded-full transition-all ${
+                                      sec.isDone ? 'w-3 bg-emerald-500' : 'w-1.5 bg-slate-200'
+                                    }`}
+                                  />
+                                ))}
+                                <span className="text-[9px] font-mono font-bold text-amber-700 ml-1">
+                                  {progress.percent}%
+                                </span>
+                              </div>
+                            </div>
+                          );
+                        }
+
+                        return (
+                          <span className={`px-2.5 py-1 rounded-full text-[10px] font-black border inline-flex items-center gap-1.5 ${
+                            effStatus === 'Active' 
+                              ? 'bg-emerald-50 text-emerald-700 border-emerald-200' 
+                              : effStatus === 'On Leave' 
+                              ? 'bg-blue-50 text-blue-700 border-blue-200' 
+                              : effStatus === 'Archived'
+                              ? 'bg-purple-50 text-purple-700 border-purple-200 font-black'
+                              : 'bg-slate-100 text-slate-600 border-slate-200'
+                          }`}>
+                            {effStatus === 'Active' && <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />}
+                            {effStatus === 'Archived' && <span className="w-1.5 h-1.5 rounded-full bg-purple-500" />}
+                            {effStatus}
+                          </span>
+                        );
+                      })()}
                     </td>
 
-                    {/* Actions: Manage, Archive/Restore, Delete */}
+                    {/* Actions: Remind, Manage, Archive/Unarchive */}
                     <td className="py-3.5 px-5 text-right" onClick={e => e.stopPropagation()}>
                       <div className="flex items-center justify-end gap-1.5">
+                        {getEffectiveStatus(emp) === 'Pending' && (
+                          <button
+                            type="button"
+                            disabled={remindingEmpId === emp.id}
+                            onClick={async (e) => {
+                              e.stopPropagation();
+                              setRemindingEmpId(emp.id);
+                              try {
+                                await sendProfileCompletionReminder(emp.id);
+                              } finally {
+                                setRemindingEmpId(null);
+                              }
+                            }}
+                            className="px-2.5 py-1.5 rounded-xl bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-300 font-bold text-[11px] transition inline-flex items-center gap-1 shadow-xs cursor-pointer disabled:opacity-50"
+                            title={`Send Profile Completion Reminder Email to ${emp.email}`}
+                          >
+                            <span>{remindingEmpId === emp.id ? 'Sending...' : 'Remind'}</span>
+                          </button>
+                        )}
+
                         <button
                           type="button"
                           onClick={() => setSelectedEmployee(emp)}
@@ -197,33 +315,25 @@ export default function EmployeeManagementView({
                           Manage
                         </button>
 
-                        <button
-                          type="button"
-                          onClick={() => setEmployeeToArchive(emp)}
-                          className={`px-3 py-1.5 rounded-xl font-bold text-[11px] transition inline-flex items-center gap-1.5 cursor-pointer border ${
-                            emp.status === 'Archived'
-                              ? 'bg-purple-50 hover:bg-purple-100 text-purple-700 border-purple-200'
-                              : 'bg-amber-50 hover:bg-amber-100 text-amber-800 border-amber-200'
-                          }`}
-                          title={emp.status === 'Archived' ? 'Restore / Unarchive staff member' : 'Archive staff member'}
-                        >
-                          <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" />
-                          </svg>
-                          <span>{emp.status === 'Archived' ? 'Restore' : 'Archive'}</span>
-                        </button>
-
-                        <button
-                          type="button"
-                          onClick={() => setEmployeeToDelete(emp)}
-                          className="px-3 py-1.5 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 font-bold text-[11px] transition inline-flex items-center gap-1.5 cursor-pointer"
-                          title="Permanently delete employee"
-                        >
-                          <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                          </svg>
-                          <span>Delete</span>
-                        </button>
+                        {getEffectiveStatus(emp) === 'Archived' ? (
+                          <button
+                            type="button"
+                            onClick={() => setEmployeeToArchive(emp)}
+                            className="px-3 py-1.5 rounded-xl bg-purple-50 hover:bg-purple-100 text-purple-700 border border-purple-200 font-bold text-[11px] transition inline-flex items-center gap-1.5 cursor-pointer shadow-xs"
+                            title="Unarchive and restore staff member to Active status"
+                          >
+                            <span>Unarchive</span>
+                          </button>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => setEmployeeToArchive(emp)}
+                            className="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-amber-100 text-slate-700 hover:text-amber-900 border border-slate-200 hover:border-amber-300 font-bold text-[11px] transition inline-flex items-center gap-1.5 cursor-pointer shadow-xs"
+                            title="Archive staff member (safely preserved in database)"
+                          >
+                            <span>Archive</span>
+                          </button>
+                        )}
                       </div>
                     </td>
                   </tr>
@@ -233,8 +343,16 @@ export default function EmployeeManagementView({
               {filtered.length === 0 && (
                 <tr>
                   <td colSpan={5} className="py-12 text-center text-slate-400">
-                    <p className="font-bold text-sm text-slate-600">No staff members found matching criteria</p>
-                    <p className="text-xs text-slate-400 mt-0.5">Try clearing filters or searching another term.</p>
+                    <p className="font-bold text-sm text-slate-600">
+                      {selectedStatus === 'Archived' 
+                        ? 'No archived staff members found' 
+                        : 'No staff members found matching criteria'}
+                    </p>
+                    <p className="text-xs text-slate-400 mt-0.5">
+                      {selectedStatus === 'Archived' 
+                        ? 'Archived employees will appear here when archived from the directory.' 
+                        : 'Try clearing filters or searching another term.'}
+                    </p>
                   </td>
                 </tr>
               )}
@@ -244,6 +362,11 @@ export default function EmployeeManagementView({
 
       </div>
 
+      {/* Add Employee Modal */}
+      {showAddModal && (
+        <AddEmployeeModal onClose={() => setShowAddModal(false)} />
+      )}
+
       {/* Edit Profile Modal */}
       {selectedEmployee && (
         <EmployeeDetailModal
@@ -252,7 +375,7 @@ export default function EmployeeManagementView({
         />
       )}
 
-      {/* Archive / Restore Confirmation Modal */}
+      {/* Archive / Unarchive Confirmation Modal */}
       {employeeToArchive && (
         <div 
           className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 backdrop-blur-xs p-4 overflow-y-auto"
@@ -262,20 +385,13 @@ export default function EmployeeManagementView({
             className="bg-white rounded-3xl shadow-2xl border border-slate-200 max-w-md w-full p-6 text-xs animate-in fade-in zoom-in-95 space-y-4"
             onClick={e => e.stopPropagation()}
           >
-            <div className="flex items-center gap-3">
-              <div className={`w-10 h-10 rounded-2xl flex items-center justify-center text-lg font-bold ${
-                employeeToArchive.status === 'Archived' ? 'bg-purple-100 text-purple-700' : 'bg-amber-100 text-amber-700'
-              }`}>
-                📦
-              </div>
-              <div>
-                <h3 className="text-base font-bold text-slate-900">
-                  {employeeToArchive.status === 'Archived' ? 'Restore Staff Member' : 'Archive Staff Member'}
-                </h3>
-                <p className="text-[11px] text-slate-500">
-                  {employeeToArchive.status === 'Archived' ? 'Reactivate staff profile' : 'Preserve records in database'}
-                </p>
-              </div>
+            <div>
+              <h3 className="text-base font-bold text-slate-900">
+                {employeeToArchive.status === 'Archived' ? 'Unarchive & Reactivate Staff' : 'Archive Staff Member'}
+              </h3>
+              <p className="text-[11px] text-slate-500">
+                {employeeToArchive.status === 'Archived' ? 'Restore to Active status with all previous records' : 'Preserve records safely in database'}
+              </p>
             </div>
 
             <div className="p-3.5 bg-slate-50 border border-slate-200 rounded-2xl flex items-center gap-3">
@@ -295,8 +411,8 @@ export default function EmployeeManagementView({
 
             <p className="text-slate-600 leading-relaxed">
               {employeeToArchive.status === 'Archived'
-                ? `Restoring ${employeeToArchive.firstName} ${employeeToArchive.lastName} will set their status back to Active.`
-                : `Archiving will hide ${employeeToArchive.firstName} ${employeeToArchive.lastName} from active floor shifts. All historical timecards, leave requests, documents, and audit logs remain permanently stored in the MySQL database.`}
+                ? `Unarchiving ${employeeToArchive.firstName} ${employeeToArchive.lastName} will restore their status to Active. The staff member will immediately regain full Sign-In access and Shift Clock punch access with their existing/old login credentials, and all previous records (timecards, leave requests, documents, banking) will remain 100% intact.`
+                : `Archiving will suspend Sign-In access and Shift Clock punch access for ${employeeToArchive.firstName} ${employeeToArchive.lastName}, and hide them from active floor operations and the main staff directory. All historical timecards, leave requests, documents, and credentials will remain permanently preserved in the database and will be restored if unarchived.`}
             </p>
 
             <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100">
@@ -315,73 +431,11 @@ export default function EmployeeManagementView({
                 }}
                 className={`px-5 py-2 rounded-xl text-white font-bold transition shadow-xs cursor-pointer ${
                   employeeToArchive.status === 'Archived'
-                    ? 'bg-purple-600 hover:bg-purple-700'
-                    : 'bg-amber-600 hover:bg-amber-700'
+                    ? 'bg-purple-600 hover:bg-purple-700 shadow-purple-500/20'
+                    : 'bg-amber-600 hover:bg-amber-700 shadow-amber-500/20'
                 }`}
               >
-                {employeeToArchive.status === 'Archived' ? 'Confirm Restore' : 'Confirm Archive'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Delete Confirmation Modal */}
-      {employeeToDelete && (
-        <div 
-          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 backdrop-blur-xs p-4 overflow-y-auto"
-          onClick={() => setEmployeeToDelete(null)}
-        >
-          <div 
-            className="bg-white rounded-3xl shadow-2xl border border-slate-200 max-w-md w-full p-6 text-xs animate-in fade-in zoom-in-95 space-y-4"
-            onClick={e => e.stopPropagation()}
-          >
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-2xl bg-rose-100 text-rose-600 flex items-center justify-center text-lg font-bold">
-                🗑️
-              </div>
-              <div>
-                <h3 className="text-base font-bold text-slate-900">Delete Employee Profile</h3>
-                <p className="text-[11px] text-slate-500">Permanent database removal</p>
-              </div>
-            </div>
-
-            <div className="p-3.5 bg-rose-50/70 border border-rose-100 rounded-2xl flex items-center gap-3">
-              <img
-                src={employeeToDelete.avatarUrl || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150'}
-                alt={employeeToDelete.firstName}
-                className="w-11 h-11 rounded-xl object-cover ring-2 ring-rose-200"
-              />
-              <div className="min-w-0">
-                <p className="font-extrabold text-slate-900 text-sm truncate">
-                  {employeeToDelete.firstName} {employeeToDelete.lastName}
-                </p>
-                <p className="text-[11px] font-mono text-slate-500">ID: {employeeToDelete.employeeNumber}</p>
-                <p className="text-[11px] text-slate-600">{employeeToDelete.jobTitle} • {employeeToDelete.department || 'Operations'}</p>
-              </div>
-            </div>
-
-            <p className="text-slate-600 leading-relaxed">
-              Are you sure you want to permanently delete this employee? This will remove their profile and records from the database. This action cannot be undone.
-            </p>
-
-            <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100">
-              <button
-                type="button"
-                onClick={() => setEmployeeToDelete(null)}
-                className="px-4 py-2 rounded-xl border border-slate-200 bg-white font-bold text-slate-700 hover:bg-slate-50 transition cursor-pointer"
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  deleteEmployee(employeeToDelete.id);
-                  setEmployeeToDelete(null);
-                }}
-                className="px-5 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-bold transition shadow-xs cursor-pointer"
-              >
-                Permanently Delete
+                {employeeToArchive.status === 'Archived' ? 'Confirm Unarchive' : 'Confirm Archive'}
               </button>
             </div>
           </div>

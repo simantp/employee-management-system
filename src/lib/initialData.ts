@@ -1,10 +1,19 @@
 import { Employee, LeaveRequest, ComplianceAlert, NotificationItem, AuditLog, TimecardRecord } from '@/types';
 import { encryptAES256 } from './crypto';
 
+const getTodayFormatted = (): string => {
+  const d = new Date();
+  const day = String(d.getDate()).padStart(2, '0');
+  const month = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'][d.getMonth()];
+  const year = d.getFullYear();
+  return `${day} ${month} ${year}`;
+};
+
 export const INITIAL_EMPLOYEES: Employee[] = [
   {
     id: 'emp-42',
     employeeNumber: 'EMP-0042',
+    username: 'suman.thapa',
     firstName: 'Suman',
     lastName: 'Thapa',
     email: 'suman.thapa@company.com',
@@ -86,11 +95,15 @@ export const INITIAL_EMPLOYEES: Employee[] = [
       { id: 'doc-5', name: 'Signed Resume & CV', type: 'HR Onboarding', uploadDate: '10/05/2025', status: 'Verified', fileSize: '1.8 MB' },
     ],
     kioskPin: '4829',
-    clockState: 'CLOCKED_OUT',
+    clockState: 'CLOCKED_IN',
+    clockInTimestamp: Date.now() - (3 * 3600 + 42 * 60 + 15) * 1000,
+    lastClockIn: new Date(Date.now() - (3 * 3600 + 42 * 60 + 15) * 1000).toISOString(),
+    currentShiftId: 'tc-live-01',
   },
   {
     id: 'emp-41',
     employeeNumber: 'EMP-0041',
+    username: 'anita.kc',
     firstName: 'Anita',
     lastName: 'KC',
     email: 'anita.kc@company.com',
@@ -139,6 +152,7 @@ export const INITIAL_EMPLOYEES: Employee[] = [
   {
     id: 'emp-40',
     employeeNumber: 'EMP-0040',
+    username: 'ramesh.adhikari',
     firstName: 'Ramesh',
     lastName: 'Adhikari',
     email: 'ramesh.adhikari@company.com',
@@ -178,11 +192,14 @@ export const INITIAL_EMPLOYEES: Employee[] = [
     accountNumberEncrypted: encryptAES256('993411554'),
     leaveBalance: { annual: 20, sick: 12, carers: 5, longService: 30 },
     payslips: [],
-    documents: []
+    documents: [],
+    kioskPin: '5678',
+    clockState: 'CLOCKED_OUT',
   },
   {
     id: 'emp-39',
     employeeNumber: 'EMP-0039',
+    username: 'nisha.pokharel',
     firstName: 'Nisha',
     lastName: 'Pokharel',
     email: 'nisha.pokharel@company.com',
@@ -223,11 +240,14 @@ export const INITIAL_EMPLOYEES: Employee[] = [
     accountNumberEncrypted: encryptAES256('338190990'),
     leaveBalance: { annual: 15, sick: 7, carers: 4, longService: 10 },
     payslips: [],
-    documents: []
+    documents: [],
+    kioskPin: '9988',
+    clockState: 'CLOCKED_OUT',
   },
   {
     id: 'emp-38',
     employeeNumber: 'EMP-0038',
+    username: 'birendra.bhandari',
     firstName: 'Birendra',
     lastName: 'Bhandari',
     email: 'birendra.bhandari@company.com',
@@ -269,11 +289,14 @@ export const INITIAL_EMPLOYEES: Employee[] = [
     accountNumberEncrypted: encryptAES256('774819321'),
     leaveBalance: { annual: 10, sick: 10, carers: 5, longService: 20 },
     payslips: [],
-    documents: []
+    documents: [],
+    kioskPin: '2233',
+    clockState: 'CLOCKED_OUT',
   },
   {
     id: 'emp-01',
     employeeNumber: 'EMP-0001',
+    username: 'rajesh.kumar',
     firstName: 'Rajesh',
     lastName: 'Kumar',
     email: 'rajesh.kumar@company.com',
@@ -315,11 +338,14 @@ export const INITIAL_EMPLOYEES: Employee[] = [
     accountNumberEncrypted: encryptAES256('449102442'),
     leaveBalance: { annual: 6, sick: 4, carers: 2, longService: 5 },
     payslips: [],
-    documents: []
+    documents: [],
+    kioskPin: '7744',
+    clockState: 'CLOCKED_OUT',
   },
   {
     id: 'emp-02',
     employeeNumber: 'EMP-0002',
+    username: 'priya.sharma',
     firstName: 'Priya',
     lastName: 'Sharma',
     email: 'priya.sharma@company.com',
@@ -361,11 +387,14 @@ export const INITIAL_EMPLOYEES: Employee[] = [
     accountNumberEncrypted: encryptAES256('109482194'),
     leaveBalance: { annual: 12, sick: 6, carers: 4, longService: 0 },
     payslips: [],
-    documents: []
+    documents: [],
+    kioskPin: '3322',
+    clockState: 'CLOCKED_OUT',
   },
   {
     id: 'emp-03',
     employeeNumber: 'EMP-0003',
+    username: 'binod.gurung',
     firstName: 'Binod',
     lastName: 'Gurung',
     email: 'binod.gurung@company.com',
@@ -407,7 +436,9 @@ export const INITIAL_EMPLOYEES: Employee[] = [
     accountNumberEncrypted: encryptAES256('559102712'),
     leaveBalance: { annual: 18, sick: 10, carers: 6, longService: 35 },
     payslips: [],
-    documents: []
+    documents: [],
+    kioskPin: '6655',
+    clockState: 'CLOCKED_OUT',
   }
 ];
 
@@ -570,6 +601,7 @@ export const INITIAL_NOTIFICATIONS: NotificationItem[] = [
   {
     id: 'notif-3',
     recipient: 'STAFF',
+    recipientId: 'emp-42',
     title: 'Leave Approved',
     message: 'Your annual leave request (22/09 - 26/09) was approved by Admin.',
     type: 'LEAVE_STATUS',
@@ -579,6 +611,7 @@ export const INITIAL_NOTIFICATIONS: NotificationItem[] = [
   {
     id: 'notif-4',
     recipient: 'STAFF',
+    recipientId: 'emp-42',
     title: 'Payslip Available',
     message: 'Your payslip for period ending 15 May 2025 ($1,245.80) is ready.',
     type: 'GENERAL',
@@ -589,44 +622,108 @@ export const INITIAL_NOTIFICATIONS: NotificationItem[] = [
 
 export const INITIAL_AUDIT_LOGS: AuditLog[] = [
   {
-    id: 'aud-1',
-    timestamp: '19/08/2026 09:14:22 AEST',
-    actorId: 'admin-1',
-    actorName: 'Admin User',
-    actorRole: 'Super Admin',
-    action: 'VIEW_ENCRYPTED_BANK_DETAILS',
-    targetType: 'Employee',
-    targetId: 'emp-42 (Suman Thapa)',
-    details: 'Decrypted BSB and Account Number for payroll audit validation.',
-    ipAddress: '203.14.182.91 (Sydney, AU)',
+    "id": "aud-1789111800000",
+    "action": "SYSTEM_SETTINGS_UPDATED",
+    "targetType": "Settings",
+    "targetId": "audit",
+    "details": "Updated audit log retention period to 7 days with continuous auto-purge",
+    "actorId": "usr-1",
+    "actorName": "Super Admin",
+    "actorRole": "Admin",
+    "timestamp": "11/09/2026, 12:30:15 pm AEST",
+    "ipAddress": "127.0.0.1 (Localhost)"
   },
   {
-    id: 'aud-2',
-    timestamp: '18/08/2026 16:30:15 AEST',
-    actorId: 'emp-41',
-    actorName: 'Anita KC',
-    actorRole: 'Staff',
-    action: 'SUBMIT_LEAVE_REQUEST',
-    targetType: 'LeaveRequest',
-    targetId: 'lr-103',
-    details: 'Submitted 5 days Annual Leave starting 28/08/2026.',
-    ipAddress: '110.174.52.12 (Parramatta, AU)',
+    "id": "aud-1789100062000",
+    "action": "VIEW_ENCRYPTED_BANK_DETAILS",
+    "targetType": "Employee",
+    "targetId": "emp-42 (Suman Thapa)",
+    "details": "Decrypted BSB and Account Number for payroll audit validation.",
+    "actorId": "usr-1",
+    "actorName": "Super Admin",
+    "actorRole": "Admin",
+    "timestamp": "11/09/2026, 09:14:22 am AEST",
+    "ipAddress": "203.14.182.91 (Sydney, AU)"
   },
   {
-    id: 'aud-3',
-    timestamp: '16/08/2026 09:00:10 AEST',
-    actorId: 'admin-1',
-    actorName: 'Admin User',
-    actorRole: 'Super Admin',
-    action: 'APPROVE_LEAVE_REQUEST',
-    targetType: 'LeaveRequest',
-    targetId: 'lr-102 (Suman Thapa)',
-    details: 'Approved 5 days Annual Leave.',
-    ipAddress: '203.14.182.91 (Sydney, AU)',
+    "id": "aud-1789040710000",
+    "action": "MANUAL_TIMECARD_ADJUST",
+    "targetType": "Timecard",
+    "targetId": "tc-01",
+    "details": "Adjusted meal break and clocked net hours for Rajesh Kumar.",
+    "actorId": "usr-1",
+    "actorName": "Super Admin",
+    "actorRole": "Admin",
+    "timestamp": "10/09/2026, 04:45:10 pm AEST",
+    "ipAddress": "203.14.182.91 (Sydney, AU)"
+  },
+  {
+    "id": "aud-1789031733000",
+    "action": "ADMIN_CREDENTIALS_UPDATED",
+    "targetType": "User",
+    "targetId": "usr-1",
+    "details": "Admin credentials and login password updated for Super Admin.",
+    "actorId": "usr-1",
+    "actorName": "Super Admin",
+    "actorRole": "Admin",
+    "timestamp": "10/09/2026, 02:15:33 pm AEST",
+    "ipAddress": "127.0.0.1 (Localhost)"
+  },
+  {
+    "id": "aud-1788934805000",
+    "action": "APPROVE_LEAVE_REQUEST",
+    "targetType": "LeaveRequest",
+    "targetId": "lr-103 (Anita KC)",
+    "details": "Approved 3 days Annual Leave starting 18/09/2026.",
+    "actorId": "usr-1",
+    "actorName": "Super Admin",
+    "actorRole": "Admin",
+    "timestamp": "09/09/2026, 11:20:05 am AEST",
+    "ipAddress": "203.14.182.91 (Sydney, AU)"
+  },
+  {
+    "id": "aud-1788838200000",
+    "action": "SYSTEM_BACKUP_EXPORT",
+    "targetType": "Backup",
+    "targetId": "all",
+    "details": "Exported comprehensive system backup archive (.json).",
+    "actorId": "usr-1",
+    "actorName": "Super Admin",
+    "actorRole": "Admin",
+    "timestamp": "08/09/2026, 08:30:00 am AEST",
+    "ipAddress": "203.14.182.91 (Sydney, AU)"
+  },
+  {
+    "id": "aud-1788775845000",
+    "action": "VISA_STATUS_VERIFIED",
+    "targetType": "Compliance",
+    "targetId": "emp-01 (Rajesh Kumar)",
+    "details": "Verified VEVO work entitlements and Subclass 482 visa compliance.",
+    "actorId": "usr-1",
+    "actorName": "Super Admin",
+    "actorRole": "Admin",
+    "timestamp": "07/09/2026, 03:10:45 pm AEST",
+    "ipAddress": "203.14.182.91 (Sydney, AU)"
   }
 ];
 
 export const INITIAL_TIMECARDS: TimecardRecord[] = [
+  {
+    id: 'tc-live-01',
+    employeeId: 'emp-42',
+    employeeName: 'Suman Thapa',
+    employeeAvatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
+    department: 'Production (Riverwood)',
+    date: getTodayFormatted(),
+    clockIn: '07:30 AM',
+    clockInTimestamp: Date.now() - (3 * 3600 + 42 * 60 + 15) * 1000,
+    breakMinutes: 0,
+    durationSeconds: 0,
+    totalHours: 0,
+    overtimeHours: 0,
+    status: 'CLOCKED_IN',
+    notes: 'Morning shift on Large Format Roland printer.'
+  },
   {
     id: 'tc-01',
     employeeId: 'emp-42',
@@ -637,8 +734,9 @@ export const INITIAL_TIMECARDS: TimecardRecord[] = [
     clockIn: '07:30 AM',
     clockOut: '04:00 PM',
     breakMinutes: 30,
+    durationSeconds: 28800,
     totalHours: 8.0,
-    overtimeHours: 0.4,
+    overtimeHours: 0,
     status: 'COMPLETED',
     notes: 'Morning shift on Large Format Roland printer.'
   },
@@ -652,8 +750,9 @@ export const INITIAL_TIMECARDS: TimecardRecord[] = [
     clockIn: '07:28 AM',
     clockOut: '04:05 PM',
     breakMinutes: 30,
-    totalHours: 8.1,
-    overtimeHours: 0.5,
+    durationSeconds: 29220,
+    totalHours: 8.12,
+    overtimeHours: 0,
     status: 'COMPLETED',
     notes: 'Die-cutting and packaging line.'
   },
@@ -667,8 +766,9 @@ export const INITIAL_TIMECARDS: TimecardRecord[] = [
     clockIn: '07:31 AM',
     clockOut: '04:00 PM',
     breakMinutes: 30,
-    totalHours: 8.0,
-    overtimeHours: 0.4,
+    durationSeconds: 28740,
+    totalHours: 7.98,
+    overtimeHours: 0,
     status: 'COMPLETED',
     notes: 'Rockdale express order batching.'
   },
@@ -682,8 +782,9 @@ export const INITIAL_TIMECARDS: TimecardRecord[] = [
     clockIn: '08:30 AM',
     clockOut: '05:00 PM',
     breakMinutes: 30,
+    durationSeconds: 28800,
     totalHours: 8.0,
-    overtimeHours: 0.4,
+    overtimeHours: 0,
     status: 'COMPLETED',
     notes: 'Client proofing & 3D mockups.'
   },
@@ -697,8 +798,9 @@ export const INITIAL_TIMECARDS: TimecardRecord[] = [
     clockIn: '08:00 AM',
     clockOut: '04:30 PM',
     breakMinutes: 30,
+    durationSeconds: 28800,
     totalHours: 8.0,
-    overtimeHours: 0.4,
+    overtimeHours: 0,
     status: 'COMPLETED',
     notes: 'Operations logistics dispatch.'
   },
@@ -712,8 +814,9 @@ export const INITIAL_TIMECARDS: TimecardRecord[] = [
     clockIn: '08:45 AM',
     clockOut: '05:15 PM',
     breakMinutes: 30,
+    durationSeconds: 28800,
     totalHours: 8.0,
-    overtimeHours: 0.4,
+    overtimeHours: 0,
     status: 'COMPLETED',
     notes: 'Campaign onboarding.'
   }

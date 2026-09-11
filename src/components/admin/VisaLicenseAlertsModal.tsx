@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import React, { useState } from 'react';
 import { Employee } from '@/types';
@@ -176,31 +176,26 @@ export default function VisaLicenseAlertsModal({
         
         {/* Modal Header */}
         <div className="p-6 bg-slate-900 text-white flex items-center justify-between border-b border-slate-800">
-          <div className="flex items-center gap-3.5">
-            <div className="w-10 h-10 rounded-2xl bg-amber-500/20 border border-amber-500/30 flex items-center justify-center text-amber-400 font-bold text-base">
-              ⚠️
+          <div>
+            <div className="flex items-center gap-2">
+              <h2 className="text-lg font-bold text-white tracking-tight">
+                Visa and License Expiry Alerts
+              </h2>
+              <span className="px-2.5 py-0.5 rounded-full bg-rose-500/20 text-rose-300 font-extrabold text-[10px] border border-rose-500/30">
+                {uniqueItems.length} Warning &amp; Critical Alerts
+              </span>
             </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <h2 className="text-lg font-bold text-white tracking-tight">
-                  Visa and License Expiry Alerts
-                </h2>
-                <span className="px-2.5 py-0.5 rounded-full bg-rose-500/20 text-rose-300 font-extrabold text-[10px] border border-rose-500/30">
-                  {uniqueItems.length} Warning &amp; Critical Alerts
-                </span>
-              </div>
-              <p className="text-xs text-slate-400 mt-0.5 font-medium">
-                Active alerts for TSS 482 visas, student visas, and driver licences requiring renewal
-              </p>
-            </div>
+            <p className="text-xs text-slate-400 mt-0.5 font-medium">
+              Active alerts for TSS 482 visas, student visas, and driver licences requiring renewal
+            </p>
           </div>
 
           <button
             type="button"
             onClick={onClose}
-            className="p-2 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition cursor-pointer font-bold text-xs"
+            className="px-3 py-1.5 rounded-xl border border-slate-700 text-slate-400 hover:text-white hover:bg-slate-800 transition cursor-pointer font-bold text-xs"
           >
-            ✕
+            Close
           </button>
         </div>
 
@@ -278,9 +273,9 @@ export default function VisaLicenseAlertsModal({
         <div className="p-5 space-y-3 overflow-y-auto flex-1 divide-y divide-slate-100">
           {filteredItems.length === 0 ? (
             <div className="p-12 text-center space-y-3">
-              <div className="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center mx-auto text-lg font-bold">
-                ✓
-              </div>
+              <span className="px-3 py-1 rounded-full bg-emerald-100 text-emerald-800 text-xs font-black uppercase tracking-wider inline-block">
+                All Clear
+              </span>
               <h4 className="font-bold text-slate-800 text-sm">No Warning or Critical Expiry Alerts</h4>
               <p className="text-slate-500 max-w-sm mx-auto text-xs">
                 All employee visas and driver licences are valid beyond the configured warning threshold.

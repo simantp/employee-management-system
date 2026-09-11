@@ -5,7 +5,7 @@ import { useApp } from '@/lib/store';
 import { EmployeeDocument } from '@/types';
 import UploadDocumentModal from '../UploadDocumentModal';
 
-export default function StaffDocumentsView() {
+export default function StaffDocumentsView({ embedded = false }: { embedded?: boolean }) {
   const { currentStaff } = useApp();
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [editingDoc, setEditingDoc] = useState<EmployeeDocument | null>(null);
@@ -25,7 +25,7 @@ export default function StaffDocumentsView() {
     : currentStaff.documents.filter(d => d.type.toLowerCase().includes(filterType.toLowerCase()));
 
   return (
-    <div className="p-6 lg:p-8 space-y-6 max-w-7xl mx-auto animate-in fade-in duration-150 text-xs font-sans">
+    <div className={embedded ? "space-y-6 animate-in fade-in duration-150 text-xs font-sans" : "p-6 lg:p-8 space-y-6 max-w-7xl mx-auto animate-in fade-in duration-150 text-xs font-sans"}>
       
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">

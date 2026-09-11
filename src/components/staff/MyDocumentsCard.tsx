@@ -37,7 +37,7 @@ export default function MyDocumentsCard() {
         onClick={() => setShowUploadModal(true)}
         className="w-full py-2 px-4 rounded-xl border border-dashed border-orange-300 hover:border-orange-500 bg-orange-50/50 hover:bg-orange-50 text-orange-700 font-bold text-xs transition flex items-center justify-center gap-2 mt-2 cursor-pointer"
       >
-        <span>+ Upload Renewal / Certificate</span>
+        <span>Upload Renewal / Certificate</span>
       </button>
 
       {showUploadModal && (

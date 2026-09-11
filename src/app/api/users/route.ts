@@ -10,7 +10,9 @@ export async function GET() {
       const users: AuthUser[] = rows.map(r => ({
         id: r.id,
         name: r.name,
+        username: r.username || undefined,
         email: r.email,
+        password: r.password || undefined,
         role: r.role,
         isEmailVerified: Boolean(r.is_email_verified),
         staffId: r.staff_id || undefined,
@@ -54,6 +56,83 @@ export async function POST(req: Request) {
     return NextResponse.json({ success: true, id: user.id });
   } catch (err: any) {
     console.error('Error saving user:', err);
+    return NextResponse.json({ success: false, message: err.message }, { status: 500 });
+  }
+}
+
+export async function PUT(req: Request) {
+  try {
+    const body = await req.json();
+    const { id, email, updates } = body;
+
+    const stored = await getStoredUsers();
+    const userIndex = stored.findIndex(u => (id && u.id === id) || (email && u.email.toLowerCase() === email.toLowerCase()));
+
+    if (userIndex === -1) {
+      return NextResponse.json({ success: false, message: 'User not found' }, { status: 404 });
+    }
+
+    const updatedUser: AuthUser = {
+      ...stored[userIndex],
+      ...updates,
+    };
+
+    stored[userIndex] = updatedUser;
+    await saveStoredUsers(stored);
+
+    if (isDbConfigured) {
+      try {
+        const sql = `
+          UPDATE users 
+          SET name = ?, username = ?, role = ?, is_email_verified = ?, staff_id = ?, avatar_url = ?, password = ?
+          WHERE id = ? OR email = ?
+        `;
+        await query(sql, [
+          updatedUser.name,
+          updatedUser.username || null,
+          updatedUser.role,
+          updatedUser.isEmailVerified ? 1 : 0,
+          updatedUser.staffId || null,
+          updatedUser.avatarUrl || null,
+          updatedUser.password || null,
+          updatedUser.id,
+          updatedUser.email,
+        ]);
+      } catch (err: any) {
+        console.warn('MySQL user update skipped:', err.message);
+      }
+    }
+
+    return NextResponse.json({ success: true, user: updatedUser });
+  } catch (err: any) {
+    console.error('Error updating user:', err);
+    return NextResponse.json({ success: false, message: err.message }, { status: 500 });
+  }
+}
+
+export async function DELETE(req: Request) {
+  try {
+    const { searchParams } = new URL(req.url);
+    const id = searchParams.get('id');
+    if (!id) {
+      return NextResponse.json({ success: false, message: 'Missing user id' }, { status: 400 });
+    }
+
+    const stored = await getStoredUsers();
+    const updated = stored.filter(u => u.id !== id);
+    await saveStoredUsers(updated);
+
+    if (isDbConfigured) {
+      try {
+        await query('DELETE FROM users WHERE id = ?', [id]);
+      } catch (err: any) {
+        console.warn('MySQL user delete skipped:', err.message);
+      }
+    }
+
+    return NextResponse.json({ success: true, id });
+  } catch (err: any) {
+    console.error('Error deleting user:', err);
     return NextResponse.json({ success: false, message: err.message }, { status: 500 });
   }
 }

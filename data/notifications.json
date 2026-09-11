@@ -1,0 +1,117 @@
+[
+  {
+    "id": "notif-adj-1789121908622",
+    "recipient": "STAFF",
+    "recipientId": "emp-9",
+    "title": "Shift Query Resolved & Timecard Adjusted: 11 Sept 2026",
+    "message": "Your shift on 11 Sept 2026 was adjusted by Admin User. Reason/Note: \"Reviewed and verified by Administration.\"",
+    "type": "TIMECARD_RESOLVED",
+    "timestamp": "04:03 pm",
+    "read": true
+  },
+  {
+    "id": "notif-shift-1789121135198",
+    "recipient": "ADMIN",
+    "title": "Shift Query: simant testing",
+    "message": "simant testing reported an error / note on shift (11 Sept 2026): \"testing\"",
+    "type": "TIMECARD_ADJUST",
+    "timestamp": "03:50 pm",
+    "read": true
+  },
+  {
+    "id": "notif-adj-1789121106290",
+    "recipient": "STAFF",
+    "recipientId": "emp-9",
+    "title": "Shift Query Resolved & Timecard Adjusted: 11 Sept 2026",
+    "message": "Your shift on 11 Sept 2026 was adjusted by Admin User. Reason/Note: \"Reviewed and verified by Administration.\"",
+    "type": "TIMECARD_RESOLVED",
+    "timestamp": "03:50 pm",
+    "read": true
+  },
+  {
+    "id": "notif-adj-1789120712264",
+    "recipient": "STAFF",
+    "recipientId": "emp-9",
+    "title": "Shift Query Resolved & Timecard Adjusted: 11 Sept 2026",
+    "message": "Your shift on 11 Sept 2026 was adjusted by Admin User. Reason/Note: \"test Clocked in via Shift Terminal at Sydney, NSW\"",
+    "type": "TIMECARD_RESOLVED",
+    "timestamp": "03:43 pm",
+    "read": true
+  },
+  {
+    "id": "notif-shift-1789120560734",
+    "recipient": "ADMIN",
+    "title": "Shift Query: simant testing",
+    "message": "simant testing reported an error / note on shift (11 Sept 2026): \"again again\"",
+    "type": "TIMECARD_ADJUST",
+    "timestamp": "03:41 pm",
+    "read": true
+  },
+  {
+    "id": "notif-shift-1789117564120",
+    "recipient": "ADMIN",
+    "title": "Shift Query: simant testing",
+    "message": "simant testing reported an error / note on shift (11 Sept 2026): \"checking again\"",
+    "type": "TIMECARD_ADJUST",
+    "timestamp": "02:51 pm",
+    "read": true
+  },
+  {
+    "id": "notif-adj-1789117521458",
+    "recipient": "STAFF",
+    "recipientId": "emp-9",
+    "title": "Shift Query Resolved & Timecard Adjusted: 11 Sept 2026",
+    "message": "Your shift on 11 Sept 2026 was adjusted by Admin User. Reason/Note: \"Reviewed and verified by Administration.\"",
+    "type": "TIMECARD_RESOLVED",
+    "timestamp": "02:50 pm",
+    "read": true
+  },
+  {
+    "id": "notif-res-1789117510679",
+    "recipient": "STAFF",
+    "recipientId": "emp-9",
+    "title": "Shift Query Resolved: 11 Sept 2026",
+    "message": "Your shift inquiry for 11 Sept 2026 was marked resolved by Admin User. Response: \"Reviewed and verified by Administration.\"",
+    "type": "TIMECARD_RESOLVED",
+    "timestamp": "02:50 pm",
+    "read": true
+  },
+  {
+    "id": "notif-1",
+    "recipient": "ADMIN",
+    "title": "New Sick Leave Submitted",
+    "message": "Rajesh Kumar submitted 1 day sick leave for today before 7:00 AM.",
+    "type": "LEAVE_REQUEST",
+    "timestamp": "10 minutes ago",
+    "read": true
+  },
+  {
+    "id": "notif-2",
+    "recipient": "ADMIN",
+    "title": "Annual Leave Request",
+    "message": "Anita KC submitted an annual leave request (5 days).",
+    "type": "LEAVE_REQUEST",
+    "timestamp": "2 hours ago",
+    "read": true
+  },
+  {
+    "id": "notif-3",
+    "recipient": "STAFF",
+    "recipientId": "emp-42",
+    "title": "Leave Approved",
+    "message": "Your annual leave request (22/09 - 26/09) was approved by Admin.",
+    "type": "LEAVE_STATUS",
+    "timestamp": "1 day ago",
+    "read": true
+  },
+  {
+    "id": "notif-4",
+    "recipient": "STAFF",
+    "recipientId": "emp-42",
+    "title": "Payslip Available",
+    "message": "Your payslip for period ending 15 May 2025 ($1,245.80) is ready.",
+    "type": "GENERAL",
+    "timestamp": "3 days ago",
+    "read": true
+  }
+]

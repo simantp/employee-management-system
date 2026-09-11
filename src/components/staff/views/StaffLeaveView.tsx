@@ -29,6 +29,7 @@ export default function StaffLeaveView() {
   const { currentStaff, leaveRequests } = useApp();
   const [showApplyModal, setShowApplyModal] = useState(false);
   const [showSickModal, setShowSickModal] = useState(false);
+  
   const [sydneyTimeInfo, setSydneyTimeInfo] = useState<{ isBefore7AM: boolean; timeString: string }>({
     isBefore7AM: false,
     timeString: '',
@@ -96,7 +97,6 @@ export default function StaffLeaveView() {
       {!sydneyTimeInfo.isBefore7AM && (
         <div className="p-3.5 rounded-2xl bg-amber-50/80 border border-amber-200 text-amber-900 flex items-center justify-between gap-3 shadow-2xs">
           <div className="flex items-center gap-2.5">
-            <span className="text-base">⏰</span>
             <div>
               <h4 className="font-bold text-xs text-amber-950">Morning Sick Leave Cutoff (7:00 AM AEST) Has Passed</h4>
               <p className="text-[11px] text-amber-800 mt-0.5">
@@ -166,3 +166,4 @@ export default function StaffLeaveView() {
     </div>
   );
 }
+

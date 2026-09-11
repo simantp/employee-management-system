@@ -6,22 +6,27 @@ import SydneyClock from './SydneyClock';
 
 export interface ActivityNotificationItem {
   id: string;
-  source: 'AUDIT' | 'NOTIFICATION' | 'LEAVE' | 'COMPLIANCE';
+  source: 'AUDIT' | 'NOTIFICATION' | 'LEAVE' | 'COMPLIANCE' | 'TIMECARD';
   badge: string;
   badgeColor: string;
-  icon: string;
+  icon?: string;
   title: string;
   description: string;
   timestamp: string;
+  rawTimestamp?: number;
   actorName?: string;
   actorAvatar?: string;
   isUnread?: boolean;
+  targetTab?: string;
+  timecardId?: string;
 }
 
 export default function Topbar({
   onOpenLeaveModal,
+  onNavigateTab,
 }: {
   onOpenLeaveModal?: () => void;
+  onNavigateTab?: (tab: string) => void;
 }) {
   const { 
     currentUser,
@@ -31,11 +36,16 @@ export default function Topbar({
     alerts,
     leaveRequests,
     employees,
+    timecards,
     auditLogs,
     unreadAdminCount, 
     unreadStaffCount,
+    currentStaff,
+    currentStaffId,
     markNotificationRead,
-    markAllNotificationsRead
+    markAllNotificationsRead,
+    showChangePasswordModal,
+    setShowChangePasswordModal
   } = useApp();
 
   const [showAlertsHub, setShowAlertsHub] = useState(false);
@@ -55,61 +65,92 @@ export default function Topbar({
   const notifRef = useRef<HTMLDivElement>(null);
   const userRef = useRef<HTMLDivElement>(null);
 
-  const isAdmin = currentUser?.role === 'SUPER_ADMIN' || currentUser?.role === 'ADMIN' || currentUser?.role === 'HR_MANAGER';
+  const isAdmin = currentUser?.role === 'SUPER_ADMIN' || currentUser?.role === 'ADMIN' || currentUser?.role === 'HR_MANAGER' || activePortal === 'ADMIN';
 
   // Compile only important staff requests and action items needing attention (removes routine audit log noise)
   const staffActionNotifications = useMemo<ActivityNotificationItem[]>(() => {
     const list: ActivityNotificationItem[] = [];
 
-    if (activePortal === 'ADMIN') {
-      // 1. Pending Staff Leave Requests
+    if (isAdmin) {
+      // 1. Pending Staff Shift Inquiries & Error Notes (Highest priority for timesheet adjustments)
+      const pendingShiftNotes = timecards.filter(t => t.staffNote && t.staffNote.trim() && t.staffNoteStatus !== 'RESOLVED');
+      pendingShiftNotes.forEach(tc => {
+        const emp = employees.find(e => e.id === tc.employeeId);
+        const empName = tc.employeeName || (emp ? `${emp.firstName} ${emp.lastName}` : 'Staff Member');
+        const itemId = `shift-note-${tc.id}-${tc.staffNoteSubmittedAt || tc.staffNote.slice(0, 10)}`;
+        const rawTime = tc.staffNoteSubmittedAt ? new Date(tc.staffNoteSubmittedAt).getTime() : Date.now();
+
+        list.push({
+          id: itemId,
+          source: 'TIMECARD',
+          badge: 'SHIFT QUERY',
+          badgeColor: 'bg-amber-50 text-amber-800 border-amber-300 font-bold',
+          title: `${empName} • Shift Note (${tc.date})`,
+          description: `"${tc.staffNote}" — Staff reported issue on shift (${tc.clockIn} - ${tc.clockOut || 'Active'}), awaiting admin review`,
+          timestamp: tc.staffNoteSubmittedAt 
+            ? new Date(tc.staffNoteSubmittedAt).toLocaleDateString('en-AU', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }) 
+            : 'Pending Review',
+          rawTimestamp: rawTime,
+          actorName: empName,
+          actorAvatar: tc.employeeAvatar || emp?.avatarUrl,
+          isUnread: !viewedActionIds.includes(itemId),
+          targetTab: 'timecards',
+          timecardId: tc.id,
+        });
+      });
+
+      // 2. Pending Staff Leave Requests
       const pendingLeaves = leaveRequests.filter(l => l.status === 'PENDING');
       pendingLeaves.forEach(lr => {
         const emp = employees.find(e => e.id === lr.employeeId);
         const hasMedCert = !!(lr.certificateUrl || lr.certificateUploaded);
         const leaveTypeName = lr.leaveType ? lr.leaveType.replace(/_/g, ' ') : 'Leave';
         const itemId = `leave-${lr.id}`;
+        const rawTime = lr.submittedAt ? new Date(lr.submittedAt).getTime() : Date.now() - 3600000;
 
         list.push({
           id: itemId,
           source: 'LEAVE',
           badge: hasMedCert ? 'SICK LEAVE + CERT' : `${leaveTypeName.toUpperCase()}`,
           badgeColor: hasMedCert ? 'bg-rose-50 text-rose-700 border-rose-200' : 'bg-amber-50 text-amber-800 border-amber-200',
-          icon: hasMedCert ? '🏥' : '📋',
           title: `${lr.employeeName || (emp ? `${emp.firstName} ${emp.lastName}` : 'Staff Member')} • Leave Request`,
-          description: `${leaveTypeName}: ${lr.startDate} to ${lr.endDate} (${lr.totalDays || 1} days)${lr.reason ? ` — "${lr.reason}"` : ''}${hasMedCert ? ' • 📎 Medical Cert Attached' : ''}`,
+          description: `${leaveTypeName}: ${lr.startDate} to ${lr.endDate} (${lr.totalDays || 1} days)${lr.reason ? ` — "${lr.reason}"` : ''}${hasMedCert ? ' • Medical Cert Attached' : ''}`,
           timestamp: lr.submittedAt || 'Pending Review',
+          rawTimestamp: rawTime,
           actorName: lr.employeeName,
           actorAvatar: emp?.avatarUrl,
           isUnread: !viewedActionIds.includes(itemId),
+          targetTab: 'approvals',
         });
       });
 
-      // 2. Pending Staff Uploaded Documents needing verification
+      // 3. Pending Staff Uploaded Documents needing verification
       employees.forEach(emp => {
         if (Array.isArray(emp.documents)) {
           emp.documents.forEach(doc => {
             if (doc.status === 'Pending') {
               const itemId = `doc-${emp.id}-${doc.id}`;
+              const rawTime = (doc as any).uploadedAt ? new Date((doc as any).uploadedAt).getTime() : Date.now() - 7200000;
               list.push({
                 id: itemId,
                 source: 'COMPLIANCE',
                 badge: 'DOC VERIFICATION',
                 badgeColor: 'bg-purple-50 text-purple-700 border-purple-200',
-                icon: '📄',
                 title: `${emp.firstName} ${emp.lastName} • ${doc.name}`,
                 description: `Category: ${doc.type || 'Document'}${doc.expiryDate ? ` • Expiry: ${doc.expiryDate}` : ''} — Uploaded by staff, awaiting admin approval`,
                 timestamp: (doc as any).uploadedAt || 'Pending Review',
+                rawTimestamp: rawTime,
                 actorName: `${emp.firstName} ${emp.lastName}`,
                 actorAvatar: emp.avatarUrl,
                 isUnread: !viewedActionIds.includes(itemId),
+                targetTab: 'employees',
               });
             }
           });
         }
       });
 
-      // 3. Critical & Warning Expiry Alerts
+      // 4. Critical & Warning Expiry Alerts
       alerts.forEach(alert => {
         const isUrgent = alert.severity === 'URGENT';
         const itemId = `alert-${alert.id}`;
@@ -118,35 +159,61 @@ export default function Topbar({
           source: 'COMPLIANCE',
           badge: isUrgent ? 'URGENT EXPIRY' : 'EXPIRY WARNING',
           badgeColor: isUrgent ? 'bg-rose-50 text-rose-700 border-rose-200 font-bold' : 'bg-amber-50 text-amber-800 border-amber-200',
-          icon: isUrgent ? '🚨' : '⚠️',
           title: alert.title || `${alert.employeeName} • Expiry Alert`,
           description: alert.description || 'Compliance renewal action needed',
           timestamp: alert.dueDate ? `Due ${alert.dueDate}` : 'Action Required',
+          rawTimestamp: alert.dueDate ? new Date(alert.dueDate).getTime() : Date.now() - 86400000,
           actorName: alert.employeeName,
           isUnread: !viewedActionIds.includes(itemId),
+          targetTab: 'alerts',
         });
       });
 
-      // 4. Actionable Admin Notifications & Announcements
+      // 5. Actionable Admin Notifications & Announcements
       const adminNotifs = notifications.filter(n => (n.recipient === 'ADMIN' || n.recipient === 'ALL'));
       adminNotifs.forEach(n => {
-        let icon = '🔔';
+        const nType = (n.type as string) || '';
+        // Avoid duplicate shift note entry if already captured in pendingShiftNotes
+        if (nType === 'TIMECARD_ADJUST' && pendingShiftNotes.length > 0) {
+          return;
+        }
+
         let badge = 'ADMIN NOTICE';
         let badgeColor = 'bg-blue-50 text-blue-700 border-blue-200';
+        let targetTab = 'dashboard';
 
-        const nType = (n.type as string) || '';
-        if (nType.includes('LEAVE')) {
+        if (nType === 'TIMECARD_CLOCK_IN') {
+          badge = 'CLOCK IN';
+          badgeColor = 'bg-emerald-50 text-emerald-700 border-emerald-200';
+          targetTab = 'timecards';
+        } else if (nType === 'TIMECARD_CLOCK_OUT') {
+          badge = 'CLOCK OUT';
+          badgeColor = 'bg-rose-50 text-rose-700 border-rose-200';
+          targetTab = 'timecards';
+        } else if (nType === 'TIMECARD_ADJUST') {
+          badge = 'SHIFT QUERY';
+          badgeColor = 'bg-amber-50 text-amber-700 border-amber-200';
+          targetTab = 'timecards';
+        } else if (nType === 'BANK_UPDATE') {
+          badge = 'BANKING';
+          badgeColor = 'bg-emerald-50 text-emerald-700 border-emerald-200';
+          targetTab = 'employees';
+        } else if (nType === 'PROFILE_UPDATE') {
+          badge = 'PROFILE UPDATE';
+          badgeColor = 'bg-cyan-50 text-cyan-700 border-cyan-200';
+          targetTab = 'employees';
+        } else if (nType.includes('LEAVE')) {
           badge = 'LEAVE NOTICE';
           badgeColor = 'bg-amber-50 text-amber-700 border-amber-200';
-          icon = '📋';
+          targetTab = 'approvals';
         } else if (nType.includes('EXPIRY') || nType.includes('VISA') || nType.includes('LICENSE')) {
           badge = 'COMPLIANCE';
           badgeColor = 'bg-rose-50 text-rose-700 border-rose-200';
-          icon = '⚠️';
+          targetTab = 'alerts';
         } else if (nType.includes('ANNOUNCEMENT')) {
           badge = 'ANNOUNCEMENT';
           badgeColor = 'bg-orange-50 text-orange-700 border-orange-200';
-          icon = '📢';
+          targetTab = 'announcements';
         }
 
         const itemId = `notif-${n.id}`;
@@ -155,42 +222,124 @@ export default function Topbar({
           source: 'NOTIFICATION',
           badge,
           badgeColor,
-          icon,
           title: n.title,
           description: n.message,
           timestamp: n.timestamp || 'Recent',
+          rawTimestamp: n.id ? (parseInt(n.id.replace(/\D/g, '')) || Date.now()) : Date.now(),
           isUnread: !n.read && !viewedActionIds.includes(itemId),
+          targetTab,
         });
       });
 
     } else {
-      // Staff Portal notifications
+      // Staff Portal notifications: show resolved shift queries, notifications addressed to this user, or broadcast to ALL
+      const myStaffId = currentStaff?.id || currentStaffId || currentUser?.staffId || 'emp-42';
+
+      // 1. Direct real-time resolved shift inquiries from timecard records
+      const myResolvedNotes = timecards.filter(t => t.employeeId === myStaffId && t.staffNote && t.staffNote.trim() && t.staffNoteStatus === 'RESOLVED');
+      myResolvedNotes.forEach(tc => {
+        const itemId = `staff-shift-resolved-${tc.id}-${tc.adjustedAt || tc.staffNoteSubmittedAt || 'res'}`;
+        const adminNotePart = tc.adminNote || tc.notes ? ` — Admin Response: "${tc.adminNote || tc.notes}"` : '';
+        const rawTime = tc.staffNoteSubmittedAt ? new Date(tc.staffNoteSubmittedAt).getTime() : Date.now();
+        list.push({
+          id: itemId,
+          source: 'TIMECARD',
+          badge: 'SHIFT RESOLVED',
+          badgeColor: 'bg-emerald-50 text-emerald-800 border-emerald-300 font-bold',
+          title: `Shift Query Resolved (${tc.date})`,
+          description: `Your query: "${tc.staffNote}" was marked resolved by ${tc.adjustedBy || 'Administration'}${adminNotePart}`,
+          timestamp: tc.adjustedAt ? `Resolved ${tc.adjustedAt}` : (tc.staffNoteSubmittedAt ? new Date(tc.staffNoteSubmittedAt).toLocaleDateString('en-AU', { day: '2-digit', month: 'short' }) : 'Resolved'),
+          rawTimestamp: rawTime,
+          actorName: tc.adjustedBy || 'Admin',
+          actorAvatar: currentStaff?.avatarUrl,
+          isUnread: !viewedActionIds.includes(itemId),
+          targetTab: 'timesheet',
+        });
+      });
+
+      // 2. Real-time Notification Center items
       const relevantNotifs = notifications.filter(n => {
         if (n.recipient !== 'STAFF' && n.recipient !== 'ALL') return false;
         if (n.recipientId) {
-          return n.recipientId === currentUser?.id || n.recipientId === currentUser?.staffId;
+          return (
+            n.recipientId === currentUser?.id ||
+            n.recipientId === currentUser?.staffId ||
+            n.recipientId === currentStaffId ||
+            n.recipientId === currentStaff?.id ||
+            (currentUser?.email && n.recipientId.toLowerCase() === currentUser.email.toLowerCase()) ||
+            (currentStaff?.email && n.recipientId.toLowerCase() === currentStaff.email.toLowerCase())
+          );
         }
-        return true;
+        if (n.recipient === 'ALL') return true;
+        // Legacy demo notifications without recipientId are only for demo user Suman Thapa
+        return currentUser?.email === 'suman.thapa@company.com' || currentUser?.staffId === 'emp-42' || currentStaffId === 'emp-42';
       });
 
       relevantNotifs.forEach(n => {
+        let badge = 'STAFF NOTICE';
+        let badgeColor = 'bg-blue-50 text-blue-700 border-blue-200';
+        let targetTab = 'dashboard';
+
+        const nType = (n.type as string) || '';
+        if (nType === 'TIMECARD_RESOLVED') {
+          badge = 'SHIFT RESOLVED';
+          badgeColor = 'bg-emerald-50 text-emerald-800 border-emerald-300 font-bold';
+          targetTab = 'timesheet';
+        } else if (nType === 'TIMECARD_ADJUST') {
+          badge = 'SHIFT ADJUSTED';
+          badgeColor = 'bg-purple-50 text-purple-700 border-purple-200 font-bold';
+          targetTab = 'timesheet';
+        } else if (nType === 'TIMECARD_CLOCK_OUT') {
+          badge = 'CLOCK OUT';
+          badgeColor = 'bg-rose-50 text-rose-700 border-rose-200';
+          targetTab = 'timesheet';
+        } else if (nType === 'LEAVE_STATUS') {
+          badge = 'LEAVE STATUS';
+          badgeColor = 'bg-emerald-50 text-emerald-700 border-emerald-200';
+          targetTab = 'leave';
+        } else if (nType === 'PROFILE_UPDATE') {
+          badge = 'PROFILE';
+          badgeColor = 'bg-blue-50 text-blue-700 border-blue-200';
+          targetTab = 'profile';
+        } else if (nType === 'BANK_UPDATE') {
+          badge = 'BANKING';
+          badgeColor = 'bg-emerald-50 text-emerald-700 border-emerald-200';
+          targetTab = 'profile';
+        } else if (nType === 'CERTIFICATE_REMINDER') {
+          badge = 'REMINDER';
+          badgeColor = 'bg-rose-50 text-rose-700 border-rose-200';
+          targetTab = 'profile';
+        } else if (nType.includes('EXPIRY') || nType.includes('VISA') || nType.includes('LICENSE')) {
+          badge = 'COMPLIANCE';
+          badgeColor = 'bg-amber-50 text-amber-700 border-amber-200';
+          targetTab = 'profile';
+        }
+
         const itemId = `notif-${n.id}`;
         list.push({
           id: itemId,
           source: 'NOTIFICATION',
-          badge: 'STAFF NOTICE',
-          badgeColor: 'bg-blue-50 text-blue-700 border-blue-200',
-          icon: '🔔',
+          badge,
+          badgeColor,
           title: n.title,
           description: n.message,
           timestamp: n.timestamp || 'Recent',
+          rawTimestamp: n.id ? (parseInt(n.id.replace(/\D/g, '')) || Date.now()) : Date.now(),
           isUnread: !n.read && !viewedActionIds.includes(itemId),
+          targetTab,
         });
       });
     }
 
+    // Sort items: Unread items first, then by rawTimestamp descending (newest first)
+    list.sort((a, b) => {
+      if (a.isUnread && !b.isUnread) return -1;
+      if (!a.isUnread && b.isUnread) return 1;
+      return (b.rawTimestamp || 0) - (a.rawTimestamp || 0);
+    });
+
     return list;
-  }, [leaveRequests, employees, alerts, notifications, activePortal, currentUser, viewedActionIds]);
+  }, [leaveRequests, employees, alerts, timecards, notifications, isAdmin, currentUser, currentStaff, currentStaffId, viewedActionIds]);
 
   const attentionCount = useMemo(() => {
     return staffActionNotifications.filter(item => item.isUnread).length;
@@ -198,7 +347,7 @@ export default function Topbar({
 
   // Mark all current staff action items as viewed & reset badge count to 0
   const markAllActionsAsViewed = () => {
-    markAllNotificationsRead(activePortal === 'ADMIN' ? 'ADMIN' : 'STAFF');
+    markAllNotificationsRead(isAdmin ? 'ADMIN' : 'STAFF');
     const allIds = staffActionNotifications.map(item => item.id);
     setViewedActionIds(prev => {
       const merged = Array.from(new Set([...prev, ...allIds]));
@@ -224,13 +373,9 @@ export default function Topbar({
     });
   };
 
-  // Toggle dropdown and immediately mark unread requests as viewed
+  // Toggle dropdown
   const handleToggleAlertsHub = () => {
-    const nextState = !showAlertsHub;
-    setShowAlertsHub(nextState);
-    if (nextState) {
-      markAllActionsAsViewed();
-    }
+    setShowAlertsHub(prev => !prev);
   };
 
   // Close dropdowns on click outside
@@ -282,7 +427,7 @@ export default function Topbar({
                 ? 'bg-rose-50 hover:bg-rose-100 border-rose-200 text-rose-800 ring-2 ring-rose-500/30 shadow-xs'
                 : 'bg-slate-100 hover:bg-slate-200/80 border-slate-200 text-slate-700'
             }`}
-            title={activePortal === 'ADMIN' ? 'Staff Requests & Action Items' : 'Notifications'}
+            title={isAdmin ? 'Staff Requests & Action Items' : 'Notifications'}
             aria-label="Staff Requests & Notifications"
           >
             {/* Animated Ringing Bell Icon */}
@@ -322,13 +467,13 @@ export default function Topbar({
                   <span className="w-2 h-2 rounded-full bg-emerald-400" />
                   <div>
                     <h4 className="text-xs font-black tracking-tight text-white flex items-center gap-1.5">
-                      <span>{activePortal === 'ADMIN' ? 'Staff Requests & Attention' : 'Notifications'}</span>
+                      <span>{isAdmin ? 'Staff Requests & Attention' : 'Notifications'}</span>
                       <span className="px-1.5 py-0.5 rounded-full bg-slate-800 text-slate-300 text-[9px] font-bold border border-slate-700">
                         {staffActionNotifications.length}
                       </span>
                     </h4>
                     <p className="text-[10px] text-slate-400 font-medium">
-                      {activePortal === 'ADMIN' 
+                      {isAdmin 
                         ? 'Requests and compliance items needing administrator action'
                         : 'Your portal notifications & updates'}
                     </p>
@@ -347,11 +492,13 @@ export default function Topbar({
               <div className="max-h-[380px] overflow-y-auto p-3 space-y-2 scrollbar-thin scrollbar-thumb-slate-200">
                 {staffActionNotifications.length === 0 ? (
                   <div className="text-center py-8 text-slate-400 space-y-1">
-                    <span className="text-2xl block mb-1">🎉</span>
+                    <span className="px-3 py-1 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-black uppercase tracking-wider inline-block mb-1">
+                      All Caught Up
+                    </span>
                     <p className="text-xs font-bold text-slate-700">All Staff Requests Up to Date</p>
                     <p className="text-[11px] text-slate-400 max-w-[240px] mx-auto">
-                      {activePortal === 'ADMIN' 
-                        ? 'No pending leave approvals, document reviews, or compliance alerts.' 
+                      {isAdmin 
+                        ? 'No pending leave approvals, shift queries, document reviews, or compliance alerts.' 
                         : 'You are all caught up. No new notifications.'}
                     </p>
                   </div>
@@ -359,16 +506,19 @@ export default function Topbar({
                   staffActionNotifications.map(item => (
                     <div
                       key={item.id}
-                      onClick={() => markSingleActionAsViewed(item.id)}
+                      onClick={() => {
+                        markSingleActionAsViewed(item.id);
+                        if (item.targetTab && onNavigateTab) {
+                          onNavigateTab(item.targetTab);
+                          setShowAlertsHub(false);
+                        }
+                      }}
                       className={`p-3 rounded-xl border transition-all flex items-start gap-2.5 cursor-pointer ${
                         item.isUnread
                           ? 'bg-amber-50/70 border-amber-200/90 shadow-2xs hover:bg-amber-50'
                           : 'bg-slate-50/80 border-slate-200/70 hover:bg-slate-100/70'
                       }`}
                     >
-                      <div className="w-8 h-8 rounded-lg bg-white border border-slate-200 shadow-2xs flex items-center justify-center text-sm shrink-0">
-                        {item.icon}
-                      </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center justify-between gap-1">
                           <span className={`text-[9px] font-black px-1.5 py-0.5 rounded-md border ${item.badgeColor}`}>
@@ -398,7 +548,7 @@ export default function Topbar({
               {/* Dropdown Footer */}
               <div className="p-2 border-t border-slate-100 bg-slate-50/80 text-center flex items-center justify-between px-3">
                 <span className="text-[9px] text-slate-400 font-medium">
-                  {activePortal === 'ADMIN' ? 'Staff section action queue' : 'Portal notifications'}
+                  {isAdmin ? 'Staff section action queue' : 'Portal notifications'}
                 </span>
                 <span className="text-[9px] text-slate-500 font-mono font-bold">
                   {staffActionNotifications.length} items
@@ -442,6 +592,16 @@ export default function Topbar({
                     {currentUser.role}
                   </span>
                 </div>
+
+                <button
+                  onClick={() => {
+                    setShowUserDropdown(false);
+                    setShowChangePasswordModal(true);
+                  }}
+                  className="w-full flex items-center gap-2 text-left px-2.5 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 hover:text-slate-900 rounded-lg transition cursor-pointer mb-1"
+                >
+                  Change Password
+                </button>
 
                 <button
                   onClick={() => {

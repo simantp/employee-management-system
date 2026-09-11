@@ -618,7 +618,7 @@ export default function EmployeeDocumentsTab({ employeeId }: { employeeId: strin
                       {formFileType === 'pdf' ? (
                         <div className="flex items-center justify-center gap-3 p-3 bg-rose-50 border border-rose-200 rounded-xl">
                           <div className="p-2 rounded-lg bg-rose-100 text-rose-600 font-bold">
-                            📄 PDF
+                            PDF
                           </div>
                           <div className="text-left">
                             <span className="font-bold text-slate-900 block text-xs truncate max-w-xs">{formDocName || 'Attached PDF Document'}</span>
@@ -716,7 +716,7 @@ export default function EmployeeDocumentsTab({ employeeId }: { employeeId: strin
               <div className="flex items-center justify-between px-5 py-2.5 bg-slate-800 border-b border-slate-700 text-xs">
                 <div className="flex items-center gap-2 text-slate-300 font-medium">
                   <span className="font-semibold text-slate-200">
-                    {isPdf ? '📄 PDF Document Preview' : '🖼️ Image Attachment Preview'}
+                    {isPdf ? 'PDF Document Preview' : 'Image Attachment Preview'}
                   </span>
                 </div>
 

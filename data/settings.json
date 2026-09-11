@@ -8,6 +8,47 @@
     "warningFrequencyDays": 5,
     "criticalFrequencyDays": 3
   },
-  "auditRetentionDays": 60,
-  "autoPruneAuditLogs": true
+  "auditRetentionDays": 365,
+  "autoPruneAuditLogs": true,
+  "companyForm": {
+    "companyName": "HsCreations Pty Ltd",
+    "legalEntity": "HsCreations Design & Print Group",
+    "abn": "48 123 456 789",
+    "plantAddress": "14 Belmore Road, Riverwood, NSW 2210",
+    "contactEmail": "admin@hscreations.com.au",
+    "contactPhone": "+61 2 9876 5432",
+    "timeZone": "Australia/Sydney (AEST/AEDT)",
+    "fairWorkAward": "Graphic Arts, Printing and Publishing Award 2020 [MA000026]"
+  },
+  "shiftRules": {
+    "standardWeeklyHours": 40,
+    "dailyOvertimeThreshold": 0,
+    "defaultMealBreakMinutes": 30,
+    "gracePeriodMinutes": 15,
+    "autoDeductBreak": true,
+    "requireKioskPassword": false,
+    "allowEmergencySupervisorClockOut": true
+  },
+  "leavePolicy": {
+    "annualLeaveDaysPerYear": 20,
+    "sickLeaveDaysPerYear": 10,
+    "carersLeaveDaysPerYear": 2,
+    "mandatoryNoticeWeeks": 4,
+    "autoApproveSickWithMedicalCert": false,
+    "blockLeaveOnPublicHolidays": true
+  },
+  "securitySettings": {
+    "enforceEmailOtp2FA": true,
+    "sessionTimeoutMinutes": 45,
+    "aesVaultActive": true,
+    "maskSensitiveBankTFN": true,
+    "allowStaffPasswordResetSelfService": true
+  },
+  "notifPreferences": {
+    "notifyAdminOnClockIn": true,
+    "notifyAdminOnClockOut": true,
+    "notifyAdminOnLeaveSubmit": true,
+    "emailVisaExpiryDigestWeekly": true,
+    "notifyStaffOnShiftApproval": true
+  }
 }

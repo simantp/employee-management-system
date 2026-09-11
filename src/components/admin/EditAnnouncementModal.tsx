@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import React, { useState } from 'react';
 import { useApp } from '@/lib/store';
@@ -43,13 +43,12 @@ export default function EditAnnouncementModal({
         <div className="p-6 bg-slate-900 text-white flex items-center justify-between">
           <div>
             <div className="flex items-center gap-2">
-              <span className="p-1.5 rounded-lg bg-blue-500/20 text-blue-400 text-sm">✏️</span>
               <h3 className="text-base font-bold text-white">Edit Announcement Record</h3>
             </div>
             <p className="text-[11px] text-slate-300 font-medium mt-1">Update title, message content, category or pinned spotlight status</p>
           </div>
           <button onClick={onClose} className="text-xs font-bold text-slate-400 hover:text-white px-2 py-1 transition cursor-pointer">
-            ✕
+            Close
           </button>
         </div>
 

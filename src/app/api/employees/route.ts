@@ -2,11 +2,13 @@ import { NextResponse } from 'next/server';
 import { query, isDbConfigured } from '@/lib/db';
 import { Employee, EmployeeDocument } from '@/types';
 import { getStoredEmployees, saveStoredEmployees } from '@/lib/serverData';
+import { getOnboardingProgress } from '@/lib/onboarding';
 
 function mapDbRowToEmployee(row: any, documents: EmployeeDocument[] = []): Employee {
   return {
     id: row.id,
     employeeNumber: row.employee_number,
+    username: row.username || undefined,
     firstName: row.first_name,
     lastName: row.last_name,
     email: row.email,
@@ -24,6 +26,12 @@ function mapDbRowToEmployee(row: any, documents: EmployeeDocument[] = []): Emplo
     workLocation: row.work_location || 'Sydney, NSW',
     reportsTo: row.reports_to || 'Operations Lead',
     status: row.status || 'Active',
+    onboardingStatus: (row.onboarding_status as any) || (row.status === 'Pending' ? 'INVITED' : 'COMPLETED'),
+    inviteToken: row.invite_token || undefined,
+    inviteSentAt: row.invite_sent_at || undefined,
+    inviteExpiresAt: row.invite_expires_at || undefined,
+    passwordSetAt: row.password_set_at || undefined,
+    profileCompletedAt: row.profile_completed_at || undefined,
     workingHours: Number(row.working_hours) || 38,
     workingHoursConfirmed: Boolean(row.working_hours_confirmed),
     citizenStatus: (row.citizen_status as any) || 'CITIZEN',
@@ -94,7 +102,19 @@ export async function GET() {
         });
       });
 
-      const employees: Employee[] = empRows.map(row => mapDbRowToEmployee(row, docsByEmp[row.id] || []));
+      const rawEmployees: Employee[] = empRows.map(row => mapDbRowToEmployee(row, docsByEmp[row.id] || []));
+      const employees: Employee[] = rawEmployees.map(emp => {
+        const progress = getOnboardingProgress(emp);
+        if (emp.status === 'Pending' && progress.isComplete) {
+          return {
+            ...emp,
+            status: 'Active' as const,
+            onboardingStatus: 'COMPLETED' as const,
+            profileCompletedAt: emp.profileCompletedAt || new Date().toISOString(),
+          };
+        }
+        return emp;
+      });
       await saveStoredEmployees(employees);
       return NextResponse.json({ success: true, employees });
     } catch (err: any) {
@@ -102,7 +122,19 @@ export async function GET() {
     }
   }
 
-  const employees = await getStoredEmployees();
+  const rawEmployees = await getStoredEmployees();
+  const employees = rawEmployees.map(emp => {
+    const progress = getOnboardingProgress(emp);
+    if (emp.status === 'Pending' && progress.isComplete) {
+      return {
+        ...emp,
+        status: 'Active' as const,
+        onboardingStatus: 'COMPLETED' as const,
+        profileCompletedAt: emp.profileCompletedAt || new Date().toISOString(),
+      };
+    }
+    return emp;
+  });
   return NextResponse.json({ success: true, employees });
 }
 
@@ -115,6 +147,7 @@ export async function POST(req: Request) {
     const newEmp: Employee = {
       id,
       employeeNumber: empNumber,
+      username: body.username || `${body.firstName || 'staff'}.${body.lastName || 'member'}`.toLowerCase().replace(/[^a-z0-9._-]/g, ''),
       firstName: body.firstName || 'Staff',
       lastName: body.lastName || 'Member',
       email: body.email || '',
@@ -132,6 +165,12 @@ export async function POST(req: Request) {
       workLocation: body.workLocation || 'Sydney, NSW',
       reportsTo: body.reportsTo || 'Operations Lead',
       status: body.status || 'Active',
+      onboardingStatus: body.onboardingStatus || (body.status === 'Pending' ? 'INVITED' : 'COMPLETED'),
+      inviteToken: body.inviteToken,
+      inviteSentAt: body.inviteSentAt || (body.status === 'Pending' ? new Date().toISOString() : undefined),
+      inviteExpiresAt: body.inviteExpiresAt || (body.status === 'Pending' ? new Date(Date.now() + 60 * 60 * 1000).toISOString() : undefined),
+      passwordSetAt: body.passwordSetAt,
+      profileCompletedAt: body.profileCompletedAt,
       workingHours: body.workingHours || 38.0,
       workingHoursConfirmed: body.workingHoursConfirmed ?? true,
       citizenStatus: body.citizenStatus || 'CITIZEN',
@@ -230,6 +269,9 @@ export async function PUT(req: Request) {
         const setClauses: string[] = [];
         const params: any[] = [];
         const fieldMap: Record<string, string> = {
+          username: 'username', onboardingStatus: 'onboarding_status', inviteToken: 'invite_token',
+          inviteSentAt: 'invite_sent_at', inviteExpiresAt: 'invite_expires_at', passwordSetAt: 'password_set_at',
+          profileCompletedAt: 'profile_completed_at',
           firstName: 'first_name', lastName: 'last_name', email: 'email', mobilePhone: 'mobile_phone',
           address: 'address', suburb: 'suburb', state: 'state', postcode: 'postcode', startDate: 'start_date',
           department: 'department', jobTitle: 'job_title', workLocation: 'work_location', reportsTo: 'reports_to',

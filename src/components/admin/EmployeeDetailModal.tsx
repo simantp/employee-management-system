@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import { Employee, Department } from '@/types';
 import { decryptAES256, encryptAES256, maskSensitive } from '@/lib/crypto';
 import { useApp } from '@/lib/store';
+import { getOnboardingProgress } from '@/lib/onboarding';
 import EmployeeDocumentsTab from './EmployeeDocumentsTab';
 
 export default function EmployeeDetailModal({
@@ -15,11 +16,13 @@ export default function EmployeeDetailModal({
   onClose: () => void;
   initialSection?: 'EMPLOYMENT' | 'PERSONAL' | 'VISA_LICENCE_EMERGENCY' | 'BANKING' | 'DOCUMENTS';
 }) {
-  const { employees, updateEmployee } = useApp();
+  const { employees, updateEmployee, addToast, resendStaffInvite, sendProfileCompletionReminder } = useApp();
   const currentEmp = employees.find(e => e.id === employee.id) || employee;
   const [activeSection, setActiveSection] = useState<'EMPLOYMENT' | 'PERSONAL' | 'VISA_LICENCE_EMERGENCY' | 'BANKING' | 'DOCUMENTS'>(initialSection);
   const [isEditing, setIsEditing] = useState(false);
   const [showEncrypted, setShowEncrypted] = useState(false);
+  const [isSendingEmail, setIsSendingEmail] = useState(false);
+  const [isSendingReminder, setIsSendingReminder] = useState(false);
 
   // 1. Personal Details
   const [firstName, setFirstName] = useState(employee.firstName || '');
@@ -32,6 +35,7 @@ export default function EmployeeDetailModal({
   const [postcode, setPostcode] = useState(employee.postcode || '');
 
   // 2. Employment & Role
+  const [username, setUsername] = useState(employee.username || (employee.email ? employee.email.split('@')[0] : ''));
   const [startDate, setStartDate] = useState(employee.startDate || '');
   const [department, setDepartment] = useState<Department | ''>(employee.department || '');
   const [jobTitle, setJobTitle] = useState(employee.jobTitle || 'Staff Member');
@@ -40,6 +44,26 @@ export default function EmployeeDetailModal({
   const [status, setStatus] = useState(employee.status || 'Active');
   const [workingHours, setWorkingHours] = useState<number>(employee.workingHours || 38);
   const [kioskPin, setKioskPin] = useState(employee.kioskPin || '4829');
+
+  const handleResendInviteEmail = async () => {
+    setIsSendingEmail(true);
+    try {
+      await resendStaffInvite(currentEmp.id);
+    } catch (err) {
+      addToast('Invitation Dispatched', `Invitation link dispatched to ${currentEmp.email}.`, 'info');
+    } finally {
+      setIsSendingEmail(false);
+    }
+  };
+
+  const handleSendReminderEmail = async () => {
+    setIsSendingReminder(true);
+    try {
+      await sendProfileCompletionReminder(currentEmp.id);
+    } finally {
+      setIsSendingReminder(false);
+    }
+  };
 
   // 3. Banking & Super
   const decryptedTFN = employee.tfnEncrypted ? decryptAES256(employee.tfnEncrypted) : (employee.tfnMasked || '');
@@ -80,6 +104,7 @@ export default function EmployeeDetailModal({
     const tfnMask = maskSensitive(tfnInput, 3);
 
     updateEmployee(employee.id, {
+      username: username.trim().toLowerCase() || employee.username,
       firstName,
       lastName,
       email,
@@ -139,11 +164,14 @@ export default function EmployeeDetailModal({
             <div>
               <div className="flex items-center gap-2">
                 <h2 className="text-lg font-bold">{firstName} {lastName}</h2>
-                <span className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full border ${
+                <span className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full border inline-flex items-center gap-1 ${
                   status === 'Active' 
                     ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30' 
-                    : 'bg-amber-500/20 text-amber-300 border-amber-500/30'
+                    : status === 'Pending'
+                    ? 'bg-amber-500/20 text-amber-300 border-amber-500/30'
+                    : 'bg-slate-700 text-slate-300 border-slate-600'
                 }`}>
+                  {status === 'Pending' && <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />}
                   {status}
                 </span>
                 <span className="text-[10px] font-bold text-slate-300 bg-slate-800 px-2 py-0.5 rounded border border-slate-700">
@@ -249,6 +277,101 @@ export default function EmployeeDetailModal({
         <form onSubmit={handleSaveAll}>
           <div className="p-6 space-y-6 max-h-[62vh] overflow-y-auto text-xs">
             
+            {/* Self-Onboarding Status Info Banner */}
+            {currentEmp.status === 'Pending' && (() => {
+              const progress = getOnboardingProgress(currentEmp);
+
+              return (
+                <div className="p-5 bg-gradient-to-br from-amber-50 to-orange-50/40 border-2 border-amber-300 rounded-3xl space-y-4 shadow-xs animate-in fade-in">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-amber-200/60 pb-3.5">
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <h4 className="font-black text-amber-950 text-sm">Staff Self-Onboarding In Progress</h4>
+                        <span className="px-2.5 py-0.5 rounded-full bg-amber-200 text-amber-900 font-black text-[10px] border border-amber-300 animate-pulse">
+                          {progress.completedCount} of 4 Completed ({progress.percent}%)
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-amber-900/80 mt-0.5">
+                        Staff member must log in to complete all required profile sections. Once submitted, status will automatically switch to <strong>Active</strong>.
+                      </p>
+                    </div>
+
+                    <div className="flex flex-wrap items-center gap-2 flex-shrink-0">
+                      <button
+                        type="button"
+                        disabled={isSendingReminder}
+                        onClick={handleSendReminderEmail}
+                        className="px-3.5 py-2 rounded-xl bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 disabled:opacity-50 text-white font-bold text-xs shadow-sm transition cursor-pointer flex items-center gap-1.5"
+                        title={`Send Profile Completion Reminder Email to ${currentEmp.email}`}
+                      >
+                        <span>{isSendingReminder ? 'Sending...' : 'Send Profile Reminder'}</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        disabled={isSendingEmail}
+                        onClick={handleResendInviteEmail}
+                        className="px-3 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 disabled:opacity-50 text-white font-bold text-xs shadow-xs transition cursor-pointer flex items-center gap-1.5"
+                        title="Resend 1-Hour Account Setup Email"
+                      >
+                        <span>{isSendingEmail ? 'Sending...' : 'Resend Invite'}</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const origin = typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000';
+                          const token = currentEmp.inviteToken || `inv-${currentEmp.id}`;
+                          const url = `${origin}/?invite=${token}&email=${encodeURIComponent(currentEmp.email)}`;
+                          navigator.clipboard.writeText(url);
+                          addToast('Copied Link', 'Invitation link copied to clipboard.', 'info');
+                        }}
+                        className="px-3 py-2 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs shadow-xs transition cursor-pointer flex items-center gap-1.5"
+                      >
+                        <span>Copy Link</span>
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* 4 Required Profile Sections Progress Matrix */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5">
+                    {progress.sections.map((sec, idx) => (
+                      <div 
+                        key={sec.id}
+                        className={`p-3 rounded-2xl border transition flex flex-col justify-between ${
+                          sec.isDone 
+                            ? 'bg-emerald-50/80 border-emerald-300 text-emerald-950' 
+                            : 'bg-white/90 border-amber-300 text-amber-950'
+                        }`}
+                      >
+                        <div>
+                          <div className="flex items-center justify-between mb-1">
+                            <span className="text-[10px] font-mono font-bold text-slate-400">0{idx + 1}</span>
+                            {sec.isDone ? (
+                              <span className="text-[10px] font-extrabold px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-800">
+                                Done
+                              </span>
+                            ) : (
+                              <span className="text-[10px] font-extrabold px-1.5 py-0.5 rounded bg-amber-100 text-amber-900 animate-pulse">
+                                Required
+                              </span>
+                            )}
+                          </div>
+                          <span className="font-bold text-xs block">{sec.title}</span>
+                          <span className="text-[10px] text-slate-500 block mt-0.5">{sec.description}</span>
+                        </div>
+                        {!sec.isDone && sec.missingFields.length > 0 && (
+                          <div className="mt-2 pt-1.5 border-t border-amber-200/60 text-[10px] text-amber-800">
+                            Missing: {sec.missingFields.slice(0, 2).join(', ')}{sec.missingFields.length > 2 ? '...' : ''}
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              );
+            })()}
+
             {/* 1. EMPLOYMENT & ROLE */}
             {activeSection === 'EMPLOYMENT' && (
               <div className="space-y-4">
@@ -309,6 +432,25 @@ export default function EmployeeDetailModal({
 
                   <div>
                     <label className="font-bold text-slate-700 block mb-1 flex items-center justify-between">
+                      <span>Shift Username</span>
+                      <span className="text-[10px] text-cyan-600 font-bold font-mono">Shift Terminal</span>
+                    </label>
+                    <div className="relative">
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 font-mono font-bold text-xs">@</span>
+                      <input
+                        type="text"
+                        disabled={!isEditing}
+                        value={username}
+                        onChange={e => setUsername(e.target.value.toLowerCase().replace(/\s+/g, ''))}
+                        className="w-full pl-7 pr-3 p-2.5 border border-slate-300 rounded-xl bg-white disabled:bg-slate-50 font-mono font-bold text-slate-900 text-xs"
+                        placeholder="suman.thapa"
+                      />
+                    </div>
+                    <span className="text-[10px] text-slate-400 mt-0.5 block">Unique username required for shift terminal clock-ins.</span>
+                  </div>
+
+                  <div>
+                    <label className="font-bold text-slate-700 block mb-1 flex items-center justify-between">
                       <span>4-Digit Shift Punch PIN</span>
                       <span className="text-[10px] text-orange-600 font-black font-mono">Shift Punch</span>
                     </label>
@@ -334,6 +476,7 @@ export default function EmployeeDetailModal({
                       className="w-full p-2.5 border border-slate-300 rounded-xl bg-white disabled:bg-slate-50 font-bold text-slate-900 cursor-pointer"
                     >
                       <option value="Active">Active (Permanent)</option>
+                      <option value="Pending">Pending (Onboarding)</option>
                       <option value="On Leave">On Leave</option>
                       <option value="Terminated">Terminated</option>
                       <option value="Archived">Archived</option>

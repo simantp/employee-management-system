@@ -103,6 +103,96 @@ export default function AdminSettingsHub({
     notifyStaffOnShiftApproval: true,
   });
 
+  // Auto-sync settings to localStorage and backend in real time
+  const [isHydrated, setIsHydrated] = useState(false);
+  const isFirstRender = React.useRef(true);
+
+  useEffect(() => {
+    async function loadSettings() {
+      try {
+        const saved = localStorage.getItem('ems_settings_hub');
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          if (parsed.companyForm) setCompanyForm(parsed.companyForm);
+          if (parsed.shiftRules) setShiftRules(parsed.shiftRules);
+          if (parsed.leavePolicy) setLeavePolicy(parsed.leavePolicy);
+          if (parsed.securitySettings) setSecuritySettings(parsed.securitySettings);
+          if (parsed.notifPreferences) setNotifPreferences(parsed.notifPreferences);
+        }
+        
+        // Sync with backend API / DB
+        const res = await fetch('/api/settings').then(r => r.json());
+        if (res?.success && res?.settings) {
+          if (res.settings.companyForm) setCompanyForm(res.settings.companyForm);
+          if (res.settings.shiftRules) setShiftRules(res.settings.shiftRules);
+          if (res.settings.leavePolicy) setLeavePolicy(res.settings.leavePolicy);
+          if (res.settings.securitySettings) setSecuritySettings(res.settings.securitySettings);
+          if (res.settings.notifPreferences) setNotifPreferences(res.settings.notifPreferences);
+          if (res.settings.auditRetentionDays !== undefined) {
+            setRetentionDaysInput(Number(res.settings.auditRetentionDays) || 90);
+          }
+          if (res.settings.expirySettings) {
+            setExpiryForm(res.settings.expirySettings);
+          }
+        }
+      } catch (e) {}
+      setIsHydrated(true);
+    }
+    loadSettings();
+  }, []);
+
+  useEffect(() => {
+    if (!isHydrated) return;
+    if (isFirstRender.current) {
+      isFirstRender.current = false;
+      return;
+    }
+
+    const timer = setTimeout(async () => {
+      try {
+        const payload = {
+          companyForm,
+          shiftRules,
+          leavePolicy,
+          securitySettings,
+          notifPreferences,
+          expirySettings: expiryForm,
+          auditRetentionDays: retentionDaysInput,
+        };
+        localStorage.setItem('ems_settings_hub', JSON.stringify(payload));
+        localStorage.setItem('ems_audit_retention_days_v1', JSON.stringify(retentionDaysInput));
+        localStorage.setItem('ems_expiry_settings_v1', JSON.stringify(expiryForm));
+
+        const res = await fetch('/api/settings', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+
+        if (res.ok) {
+          const data = await res.json();
+          if (data.success) {
+            addToast('Saved to Database', 'Settings updated and saved in real time.', 'success');
+          } else {
+            addToast('Database Error', data.message || 'Could not save settings to database.', 'error');
+          }
+        } else {
+          addToast('Database Error', 'Server error while saving settings.', 'error');
+        }
+      } catch (e) {
+        addToast('Database Error', 'Failed to connect to database.', 'error');
+      }
+    }, 450);
+
+    return () => clearTimeout(timer);
+  }, [companyForm, shiftRules, leavePolicy, securitySettings, notifPreferences, expiryForm, retentionDaysInput, isHydrated]);
+
+  const handleUpdateRetention = (days: number) => {
+    const validDays = Math.max(1, Math.min(3650, days || 90));
+    setRetentionDaysInput(validDays);
+    updateAuditRetentionDays(validDays);
+  };
+
   const handleSaveSettings = async (section: string) => {
     if (activeTab === 'EXPIRY') {
       updateExpirySettings(expiryForm);
@@ -246,19 +336,17 @@ export default function AdminSettingsHub({
           </p>
         </div>
 
-        <div className="flex items-center gap-2">
-          <button
-            onClick={handleExportSystemBackup}
-            className="px-3.5 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-xs transition cursor-pointer"
-          >
-            Export Backup
-          </button>
+        <div className="flex items-center gap-2.5">
+          <div className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-50 text-emerald-700 border border-emerald-200 text-[11px] font-bold">
+            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+            <span>Auto-Saved in Real Time</span>
+          </div>
 
           <button
-            onClick={() => handleSaveSettings(activeTab)}
-            className="px-4 py-2 rounded-xl bg-slate-900 text-white font-bold text-xs hover:bg-slate-800 shadow-xs transition cursor-pointer"
+            onClick={handleExportSystemBackup}
+            className="px-3.5 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs shadow-xs transition cursor-pointer"
           >
-            Save Changes
+            Export Backup
           </button>
         </div>
       </div>
@@ -603,17 +691,9 @@ export default function AdminSettingsHub({
           {/* TAB 6: VISA & LICENSE EXPIRY COMPLIANCE */}
           {activeTab === 'EXPIRY' && (
             <div className="space-y-6">
-              <div className="border-b border-slate-100 pb-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                <div>
-                  <h3 className="font-bold text-sm text-slate-900">Visa &amp; Driver License Expiry Compliance Rules</h3>
-                  <p className="text-slate-500 text-[11px]">Configure warning and critical days thresholds, auto-reminder intervals, and staff portal notifications</p>
-                </div>
-                <button
-                  onClick={() => updateExpirySettings(expiryForm)}
-                  className="px-3.5 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs shadow-xs transition cursor-pointer self-start sm:self-auto"
-                >
-                  Save Compliance Rules
-                </button>
+              <div className="border-b border-slate-100 pb-3">
+                <h3 className="font-bold text-sm text-slate-900">Visa &amp; Driver License Expiry Compliance Rules</h3>
+                <p className="text-slate-500 text-[11px]">Configure warning and critical days thresholds, auto-reminder intervals, and staff portal notifications</p>
               </div>
 
               {/* Master Auto-Reminder Toggle Card */}
@@ -969,7 +1049,7 @@ export default function AdminSettingsHub({
                     <button
                       key={preset.days}
                       type="button"
-                      onClick={() => setRetentionDaysInput(preset.days)}
+                      onClick={() => handleUpdateRetention(preset.days)}
                       className={`p-2.5 rounded-xl border text-center transition cursor-pointer ${
                         retentionDaysInput === preset.days
                           ? 'bg-slate-900 border-slate-900 text-white shadow-xs'
@@ -996,7 +1076,7 @@ export default function AdminSettingsHub({
                         min="1"
                         max="3650"
                         value={retentionDaysInput}
-                        onChange={e => setRetentionDaysInput(Math.max(1, parseInt(e.target.value) || 1))}
+                        onChange={e => handleUpdateRetention(Math.max(1, parseInt(e.target.value) || 1))}
                         className="w-24 px-3 py-1.5 text-xs font-bold border border-slate-200 rounded-xl bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 text-slate-900 text-center"
                       />
                       <span className="text-slate-500 font-bold text-xs">Days</span>
@@ -1012,15 +1092,6 @@ export default function AdminSettingsHub({
                     >
                       {isPruning ? 'Pruning...' : 'Prune Expired Logs Now'}
                     </button>
-
-                    <button
-                      type="button"
-                      disabled={isSavingRetention}
-                      onClick={() => handleSaveSettings('RETENTION')}
-                      className="px-4 py-2 rounded-xl bg-orange-600 hover:bg-orange-700 text-white font-bold text-xs shadow-xs transition cursor-pointer disabled:opacity-50"
-                    >
-                      {isSavingRetention ? 'Saving...' : 'Save Retention Policy'}
-                    </button>
                   </div>
                 </div>
               </div>
@@ -1028,8 +1099,7 @@ export default function AdminSettingsHub({
               {/* Policy & Compliance Information */}
               <div className="p-4 rounded-2xl bg-amber-50/60 border border-amber-200/80 text-amber-950 space-y-2">
                 <div className="flex items-center gap-2">
-                  <span className="text-base">📋</span>
-                  <h4 className="font-bold text-xs text-amber-900">Automated Audit Lifecycle Rules</h4>
+                  <h4 className="font-bold text-xs text-amber-900 uppercase tracking-wider">Automated Audit Lifecycle Rules</h4>
                 </div>
                 <ul className="list-disc list-inside space-y-1 text-[11px] text-amber-800/90 leading-relaxed pl-1">
                   <li>Audit logs and activity records older than the specified duration are automatically purged on every database sync and background maintenance cycle.</li>

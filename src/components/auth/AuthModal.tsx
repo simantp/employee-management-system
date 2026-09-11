@@ -3,6 +3,8 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useApp } from '@/lib/store';
 import confetti from 'canvas-confetti';
+import ForgotPasswordModal from './ForgotPasswordModal';
+import ResetPasswordModal from './ResetPasswordModal';
 
 export default function AuthModal({ onClose }: { onClose: () => void }) {
   const { 
@@ -16,6 +18,11 @@ export default function AuthModal({ onClose }: { onClose: () => void }) {
 
   const [mode, setMode] = useState<'LOGIN' | 'REGISTER' | 'VERIFY_OTP'>(pendingOTP ? 'VERIFY_OTP' : 'LOGIN');
   
+  // Forgot Password & Reset Modal states
+  const [showForgotModal, setShowForgotModal] = useState(false);
+  const [resetToken, setResetToken] = useState<string | null>(null);
+  const [resetEmail, setResetEmail] = useState<string>('');
+
   // Login form
   const [loginEmail, setLoginEmail] = useState('');
   const [loginPassword, setLoginPassword] = useState('password123');
@@ -164,7 +171,7 @@ export default function AuthModal({ onClose }: { onClose: () => void }) {
               <div>
                 <div className="flex justify-between items-center mb-1">
                   <label className="font-bold text-slate-700">Password</label>
-                  <button type="button" onClick={() => alert('Password reset link has been dispatched to your email address.')} className="text-[11px] text-blue-600 font-semibold hover:underline cursor-pointer">Forgot?</button>
+                  <button type="button" onClick={() => setShowForgotModal(true)} className="text-[11px] text-blue-600 font-semibold hover:underline cursor-pointer">Forgot?</button>
                 </div>
                 <input
                   type="password"
@@ -406,6 +413,37 @@ export default function AuthModal({ onClose }: { onClose: () => void }) {
         )}
 
       </div>
+
+      {/* 5-Minute Expiring Forgot Password & Reset Modals */}
+      {showForgotModal && (
+        <ForgotPasswordModal
+          initialEmail={loginEmail}
+          onClose={() => setShowForgotModal(false)}
+          onOpenResetModal={(token, email) => {
+            setShowForgotModal(false);
+            setResetToken(token);
+            setResetEmail(email);
+          }}
+        />
+      )}
+
+      {resetToken && (
+        <ResetPasswordModal
+          token={resetToken}
+          email={resetEmail}
+          onClose={() => setResetToken(null)}
+          onSuccessLogin={(email) => {
+            setResetToken(null);
+            setLoginEmail(email);
+            setMode('LOGIN');
+          }}
+          onRequestNewLink={() => {
+            setResetToken(null);
+            setShowForgotModal(true);
+          }}
+        />
+      )}
+
     </div>
   );
 }

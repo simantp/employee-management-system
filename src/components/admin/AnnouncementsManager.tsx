@@ -75,9 +75,8 @@ export default function AnnouncementsManager() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-6 rounded-3xl border border-slate-200/80 shadow-xs">
         <div>
           <div className="flex items-center gap-2">
-            <span className="p-2 rounded-xl bg-orange-500/10 text-orange-600 text-lg">📢</span>
             <h1 className="text-xl font-black text-slate-900 tracking-tight">
-              Company Announcements & Broadcast Records
+              Company Announcements &amp; Broadcast Records
             </h1>
           </div>
           <p className="text-xs text-slate-500 font-medium mt-1">
@@ -90,7 +89,6 @@ export default function AnnouncementsManager() {
             onClick={() => setShowPostModal(true)}
             className="bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-400 hover:to-amber-400 text-slate-950 px-4 py-2.5 rounded-xl text-xs font-black shadow-md shadow-orange-500/20 transition flex items-center gap-1.5 cursor-pointer"
           >
-            <span>+</span>
             <span>Broadcast Announcement</span>
           </button>
         </div>
@@ -107,15 +105,14 @@ export default function AnnouncementsManager() {
               placeholder="Search announcements by title, content keywords, author or category..."
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
-              className="w-full pl-9 pr-4 py-2.5 rounded-xl border border-slate-300 text-xs font-medium text-slate-900 bg-slate-50/50 focus:bg-white focus:ring-2 focus:ring-slate-500/20 focus:border-slate-500 transition"
+              className="w-full px-4 py-2.5 rounded-xl border border-slate-300 text-xs font-medium text-slate-900 bg-slate-50/50 focus:bg-white focus:ring-2 focus:ring-slate-500/20 focus:border-slate-500 transition"
             />
-            <span className="absolute left-3 top-3 text-slate-400 text-xs">🔍</span>
             {searchQuery && (
               <button
                 onClick={() => setSearchQuery('')}
-                className="absolute right-3 top-2.5 text-xs text-slate-400 hover:text-slate-600 cursor-pointer"
+                className="absolute right-3 top-2.5 text-[10px] font-bold text-slate-400 hover:text-slate-700 uppercase tracking-wider cursor-pointer"
               >
-                ✕
+                Clear
               </button>
             )}
           </div>
@@ -140,7 +137,7 @@ export default function AnnouncementsManager() {
                   : 'text-slate-500 hover:text-slate-900'
               }`}
             >
-              <span>📌 Pinned</span>
+              <span>Pinned</span>
               <span>({announcements.filter(a => a.isPinned).length})</span>
             </button>
             <button
@@ -202,7 +199,6 @@ export default function AnnouncementsManager() {
 
         {filteredAnnouncements.length === 0 ? (
           <div className="p-12 text-center space-y-3">
-            <span className="text-4xl block">🔍</span>
             <h3 className="text-sm font-bold text-slate-800">No Announcements Found</h3>
             <p className="text-xs text-slate-500 max-w-sm mx-auto">
               No announcement records match your current search or category filter. Try clearing filters or create a new broadcast.
@@ -235,7 +231,7 @@ export default function AnnouncementsManager() {
                         {/* Pinned Badge */}
                         {ann.isPinned ? (
                           <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-black bg-orange-500 text-slate-950 uppercase tracking-wider shadow-2xs">
-                            <span>📌 Pinned Spotlight</span>
+                            <span>Pinned Spotlight</span>
                           </span>
                         ) : (
                           <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-600">
@@ -251,11 +247,11 @@ export default function AnnouncementsManager() {
                         )}
 
                         <span className="text-[11px] text-slate-400 font-medium">
-                          📅 {ann.date}
+                          {ann.date}
                         </span>
 
                         <span className="text-[11px] text-slate-500 font-medium">
-                          👤 Issued by: <strong className="text-slate-700">{ann.author}</strong> ({ann.authorRole || 'ADMIN'})
+                          Issued by: <strong className="text-slate-700">{ann.author}</strong> ({ann.authorRole || 'ADMIN'})
                         </span>
                       </div>
 
@@ -291,15 +287,14 @@ export default function AnnouncementsManager() {
                       {/* Toggle Pin Button */}
                       <button
                         onClick={() => togglePinAnnouncement(ann.id)}
-                        className={`p-2 rounded-xl text-xs font-bold border transition flex items-center gap-1.5 cursor-pointer ${
+                        className={`p-2 px-3 rounded-xl text-xs font-bold border transition flex items-center gap-1.5 cursor-pointer ${
                           ann.isPinned
                             ? 'bg-orange-500/10 border-orange-500/30 text-orange-700 hover:bg-orange-500/20'
                             : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
                         }`}
                         title={ann.isPinned ? 'Unpin announcement' : 'Pin to top spotlight'}
                       >
-                        <span>📌</span>
-                        <span className="hidden sm:inline">{ann.isPinned ? 'Unpin' : 'Pin'}</span>
+                        <span>{ann.isPinned ? 'Unpin' : 'Pin'}</span>
                       </button>
 
                       {/* Edit Button */}
@@ -308,7 +303,6 @@ export default function AnnouncementsManager() {
                         className="p-2 px-3 rounded-xl text-xs font-bold border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 hover:text-blue-600 transition flex items-center gap-1.5 cursor-pointer"
                         title="Edit announcement record"
                       >
-                        <span>✏️</span>
                         <span>Edit</span>
                       </button>
 
@@ -318,8 +312,7 @@ export default function AnnouncementsManager() {
                         className="p-2 px-3 rounded-xl text-xs font-bold border border-rose-200 bg-rose-50/50 text-rose-600 hover:bg-rose-100/70 transition flex items-center gap-1.5 cursor-pointer"
                         title="Delete announcement record"
                       >
-                        <span>🗑️</span>
-                        <span className="hidden sm:inline">Delete</span>
+                        <span>Delete</span>
                       </button>
 
                     </div>
@@ -355,14 +348,9 @@ export default function AnnouncementsManager() {
             className="bg-white rounded-3xl shadow-2xl border border-slate-200 max-w-md w-full p-6 text-xs animate-in fade-in zoom-in-95 duration-150 space-y-4"
             onClick={e => e.stopPropagation()}
           >
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-2xl bg-rose-100 text-rose-600 flex items-center justify-center text-lg flex-shrink-0">
-                🗑️
-              </div>
-              <div>
-                <h3 className="text-sm font-bold text-slate-900">Delete Announcement Record</h3>
-                <p className="text-[11px] text-slate-500">This action will remove the record permanently from the database.</p>
-              </div>
+            <div>
+              <h3 className="text-sm font-bold text-slate-900">Delete Announcement Record</h3>
+              <p className="text-[11px] text-slate-500">This action will remove the record permanently from the database.</p>
             </div>
 
             <div className="p-3.5 bg-slate-50 rounded-2xl border border-slate-200 space-y-1">

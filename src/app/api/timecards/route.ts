@@ -17,11 +17,17 @@ function mapRowToTimecard(row: any): TimecardRecord {
     clockOutTimestamp: row.clock_out_timestamp ? Number(row.clock_out_timestamp) : undefined,
     durationSeconds: Number(row.duration_seconds) || 0,
     breakMinutes: Number(row.break_minutes) || 0,
+    isBreakManuallyAdjusted: Boolean(row.is_break_manually_adjusted),
     totalHours: Number(row.total_hours) || 0,
     overtimeHours: Number(row.overtime_hours) || 0,
     status: row.status || 'CLOCKED_IN',
     notes: row.notes || undefined,
+    adminNote: row.admin_note || row.notes || undefined,
+    staffNote: row.staff_note || undefined,
+    staffNoteSubmittedAt: row.staff_note_submitted_at || undefined,
+    staffNoteStatus: row.staff_note_status || undefined,
     adjustedBy: row.adjusted_by || undefined,
+    adjustedAt: row.adjusted_at || undefined,
   };
 }
 
@@ -114,7 +120,9 @@ export async function PUT(req: Request) {
           clockIn: 'clock_in', clockOut: 'clock_out', clockInTimestamp: 'clock_in_timestamp',
           clockOutTimestamp: 'clock_out_timestamp', durationSeconds: 'duration_seconds',
           breakMinutes: 'break_minutes', totalHours: 'total_hours', overtimeHours: 'overtime_hours',
-          status: 'status', notes: 'notes', adjustedBy: 'adjusted_by'
+          status: 'status', notes: 'notes', adminNote: 'admin_note', adjustedBy: 'adjusted_by',
+          adjustedAt: 'adjusted_at', staffNote: 'staff_note', staffNoteSubmittedAt: 'staff_note_submitted_at',
+          staffNoteStatus: 'staff_note_status'
         };
         for (const [k, v] of Object.entries(updates)) {
           if (map[k]) {
