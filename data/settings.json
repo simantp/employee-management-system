@@ -55,9 +55,9 @@
     "enabled": true,
     "lockedIps": [
       {
-        "id": "iplock-1789174822838",
+        "id": "iplock-1789177045120",
         "ip": "27.34.73.145",
-        "label": "Current Workstation",
+        "label": "Workstation (27.34.73.145)",
         "addedAt": "12 Sept 2026",
         "addedBy": "Admin User",
         "isActive": true,
