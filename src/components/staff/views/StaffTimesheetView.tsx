@@ -679,26 +679,6 @@ export default function StaffTimesheetView() {
                             }`}>
                               {t.status === 'MANUALLY_ADJUSTED' ? 'Admin Adjusted' : t.status === 'CLOCKED_IN' ? 'Live on Shift' : t.status}
                             </span>
-
-                            {(t.ipStatus || t.workstationLabel || t.ipAddress) && (
-                              <span className={`px-2 py-0.5 rounded-md text-[9px] font-bold border inline-flex items-center gap-1 ${
-                                t.ipStatus === 'LOCKED_IP_AUTHORIZED'
-                                  ? 'bg-emerald-50 text-emerald-800 border-emerald-300'
-                                  : t.ipStatus === 'UNAUTHORIZED_IP'
-                                  ? 'bg-rose-50 text-rose-800 border-rose-300'
-                                  : 'bg-slate-100 text-slate-700 border-slate-200'
-                              }`}>
-                                <span className={`w-1.5 h-1.5 rounded-full ${
-                                  t.ipStatus === 'LOCKED_IP_AUTHORIZED' ? 'bg-emerald-500' :
-                                  t.ipStatus === 'UNAUTHORIZED_IP' ? 'bg-rose-500' :
-                                  'bg-slate-400'
-                                }`} />
-                                <span>{t.workstationLabel || (t.ipAddress ? `IP: ${t.ipAddress}` : 'Workstation')}</span>
-                                {t.ipAddress && t.workstationLabel && (
-                                  <span className="text-[8px] font-mono text-slate-500 ml-0.5">({t.ipAddress})</span>
-                                )}
-                              </span>
-                            )}
                           </div>
 
                           {/* Admin Adjustment Message if Manually Adjusted */}
