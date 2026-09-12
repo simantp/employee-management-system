@@ -1,5 +1,17 @@
 [
   {
+    "id": "aud-1789178060484",
+    "action": "SHIFT_CLOCK_OUT",
+    "targetType": "Timecard",
+    "targetId": "tc-1789177060422",
+    "details": "Suman Thapa clocked OUT at 11:54:20 am (00:00:00) from Workstation (27.34.73.145) (IP: 27.34.73.145)",
+    "actorId": "usr-1",
+    "actorName": "Suman Thapa",
+    "actorRole": "Staff",
+    "timestamp": "12/09/2026, 11:54:20 am AEST",
+    "ipAddress": "127.0.0.1 (Localhost)"
+  },
+  {
     "id": "aud-1789177811112",
     "action": "USER_LOGOUT",
     "targetType": "User",

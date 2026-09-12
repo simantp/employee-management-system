@@ -233,11 +233,11 @@
       }
     ],
     "kioskPin": "4829",
-    "clockState": "CLOCKED_IN",
+    "clockState": "CLOCKED_OUT",
     "lastClockIn": "2026-09-12T01:37:40.422Z",
-    "clockInTimestamp": 1789177060422,
-    "currentShiftId": "tc-1789177060422",
-    "lastClockOut": "2026-09-12T01:36:38.527Z"
+    "clockInTimestamp": null,
+    "currentShiftId": null,
+    "lastClockOut": "2026-09-12T01:54:20.415Z"
   },
   {
     "id": "emp-41",
