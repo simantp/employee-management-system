@@ -6,11 +6,7 @@ import { Employee } from '@/types';
 import confetti from 'canvas-confetti';
 import ForgotPasswordModal from './ForgotPasswordModal';
 import ResetPasswordModal from './ResetPasswordModal';
-import { 
-  DEMO_IP_PRESETS, 
-  evaluateIpAccess, 
-  detectWorkstationIp 
-} from '@/lib/ipUtils';
+import { detectWorkstationIp } from '@/lib/ipUtils';
 
 export default function AuthPortal() {
   const { 
@@ -47,10 +43,8 @@ export default function AuthPortal() {
   const [inviteError, setInviteError] = useState<string | null>(null);
   const [inviteMatchedEmp, setInviteMatchedEmp] = useState<Employee | null>(null);
 
-  // Workstation IP & Restriction States
-  const [selectedIpPresetId, setSelectedIpPresetId] = useState<string>('preset-plant');
-  const [currentIp, setCurrentIp] = useState<string>('192.168.1.100');
-  const [isDetectingIp, setIsDetectingIp] = useState<boolean>(false);
+  // Workstation IP state (auto-detected in background)
+  const [currentIp, setCurrentIp] = useState<string>('127.0.0.1');
   const [punchError, setPunchError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -231,22 +225,6 @@ export default function AuthPortal() {
     const matchPin = p === cleanPin || (cleanPin === '4829' && e.id === 'emp-42') || (cleanPin === '1234' && e.id === 'emp-41') || (cleanPin === '5678' && e.id === 'emp-40') || (cleanPin === '9988' && e.id === 'emp-39') || (cleanPin === '2233' && e.id === 'emp-38') || (cleanPin === '7744' && e.id === 'emp-01') || (cleanPin === '3322' && e.id === 'emp-02') || (cleanPin === '6655' && e.id === 'emp-03');
     return matchUser && matchPin;
   });
-
-  const handleSelectIpPreset = async (presetId: string) => {
-    setSelectedIpPresetId(presetId);
-    setPunchError(null);
-    if (presetId === 'real') {
-      setIsDetectingIp(true);
-      const realIp = await detectWorkstationIp();
-      setCurrentIp(realIp);
-      setIsDetectingIp(false);
-    } else {
-      const preset = DEMO_IP_PRESETS.find(p => p.id === presetId);
-      if (preset) {
-        setCurrentIp(preset.ip);
-      }
-    }
-  };
 
   const handleClockIn = () => {
     if (!clockUsername || !clockPin || !matchedStaff) return;
@@ -639,99 +617,13 @@ export default function AuthPortal() {
             </div>
 
             {/* Workstation IP Security & Lock Strip */}
-            {(() => {
-              const ipEval = evaluateIpAccess(currentIp, ipLockSettings);
-              return (
-                <div className="p-4 rounded-2xl bg-slate-950/95 border border-slate-800 space-y-3 shadow-inner">
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2.5 border-b border-slate-800/80">
-                    <div className="flex items-center gap-2">
-                      <span className="text-[10px] font-black uppercase tracking-wider text-slate-400">
-                        Workstation IP:
-                      </span>
-                      {ipEval.status === 'LOCKED_IP_AUTHORIZED' ? (
-                        <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 flex items-center gap-1.5">
-                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                          <span>LOCKED &amp; AUTHORIZED: {ipEval.workstationLabel} ({currentIp})</span>
-                        </span>
-                      ) : ipEval.status === 'UNAUTHORIZED_IP' ? (
-                        <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black bg-rose-500/20 text-rose-300 border border-rose-500/40 flex items-center gap-1.5">
-                          <span className="w-1.5 h-1.5 rounded-full bg-rose-400 animate-pulse" />
-                          <span>UNAUTHORIZED WORKSTATION IP: {currentIp} (PUNCH BLOCKED)</span>
-                        </span>
-                      ) : (
-                        <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black bg-slate-800 text-slate-400 border border-slate-700">
-                          IP LOCK INACTIVE (UNRESTRICTED)
-                        </span>
-                      )}
-                    </div>
-
-                    <div className="flex items-center gap-2">
-                      <span className="text-[10px] text-slate-400 font-semibold">Policy:</span>
-                      <span className={`px-2 py-0.5 rounded-md text-[9px] font-black font-mono border ${
-                        ipLockSettings.enabled
-                          ? 'bg-emerald-950/60 text-emerald-400 border-emerald-500/40'
-                          : 'bg-slate-900 text-slate-400 border-slate-700'
-                      }`}>
-                        {ipLockSettings.enabled ? 'LOCKED IPS ONLY' : 'DISABLED'}
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Quick Workstation IP Switcher */}
-                  <div>
-                    <div className="flex items-center justify-between mb-1.5">
-                      <span className="text-[10px] text-slate-400 font-bold">
-                        Simulate / Select Workstation Terminal:
-                      </span>
-                      <span className="text-[9px] text-slate-500 font-mono">
-                        Active IP: {currentIp}
-                      </span>
-                    </div>
-                    <div className="flex flex-wrap gap-1.5">
-                      {DEMO_IP_PRESETS.map(preset => {
-                        const isSelected = selectedIpPresetId === preset.id;
-                        return (
-                          <button
-                            key={preset.id}
-                            type="button"
-                            onClick={() => handleSelectIpPreset(preset.id)}
-                            className={`px-2.5 py-1 rounded-lg text-[10px] font-bold border transition cursor-pointer ${
-                              isSelected
-                                ? !preset.isAuthorizedExpected
-                                  ? 'bg-rose-500/20 text-rose-300 border-rose-500/60 shadow-xs'
-                                  : 'bg-emerald-500/20 text-emerald-300 border-emerald-500/60 shadow-xs'
-                                : 'bg-slate-900 text-slate-400 border-slate-800 hover:border-slate-700 hover:text-slate-200'
-                            }`}
-                          >
-                            <span>{preset.label}</span>
-                            {!preset.isAuthorizedExpected && <span className="ml-1 text-[9px] font-black text-rose-400">(Blocked)</span>}
-                          </button>
-                        );
-                      })}
-                      <button
-                        type="button"
-                        onClick={() => handleSelectIpPreset('real')}
-                        className={`px-2.5 py-1 rounded-lg text-[10px] font-bold border transition cursor-pointer ${
-                          selectedIpPresetId === 'real'
-                            ? 'bg-blue-500/20 text-blue-300 border-blue-500/60'
-                            : 'bg-slate-900 text-slate-400 border-slate-800 hover:border-slate-700 hover:text-slate-200'
-                        }`}
-                      >
-                        <span>{isDetectingIp ? 'Detecting Workstation IP...' : 'Real Detected IP'}</span>
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              );
-            })()}
-
             {/* Punch Error Banner if workstation IP is unauthorized */}
             {punchError && (
               <div className="p-4 rounded-2xl bg-rose-950/60 border-2 border-rose-500/60 text-rose-200 text-xs space-y-2 animate-in fade-in">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2 font-black text-rose-300">
                     <span className="w-2 h-2 rounded-full bg-rose-500" />
-                    <span>Shift Punch Blocked by Workstation IP Lock</span>
+                    <span>Shift Punch Blocked</span>
                   </div>
                   <button
                     type="button"
@@ -741,12 +633,9 @@ export default function AuthPortal() {
                     Dismiss
                   </button>
                 </div>
-                <p className="font-mono text-[11px] leading-relaxed text-rose-200">
+                <p className="text-xs font-medium leading-relaxed text-rose-200">
                   {punchError}
                 </p>
-                <div className="pt-1 flex items-center gap-2 text-[10px] text-rose-400">
-                  <span>To test punch authorization, select an approved workstation preset above (e.g. Riverwood Plant Kiosk or Head Office).</span>
-                </div>
               </div>
             )}
 
@@ -772,7 +661,7 @@ export default function AuthPortal() {
                     <div className="pt-1 border-t border-slate-800 flex items-center justify-center gap-2">
                       <span className="text-slate-400 text-[10px]">Workstation:</span>
                       <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/20 text-emerald-300">
-                        {clockFeedback.workstationLabel} (IP: {clockFeedback.ipAddress})
+                        {clockFeedback.workstationLabel}
                       </span>
                     </div>
                   )}
