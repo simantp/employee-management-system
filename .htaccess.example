@@ -1,0 +1,20 @@
+# ====================================================================
+# cPanel Apache Reverse Proxy to Node.js Next.js Application (Port 3000)
+# Place this file as .htaccess inside your public_html or subdomain folder
+# ====================================================================
+
+RewriteEngine On
+
+# 1. Force HTTPS (Recommended)
+RewriteCond %{HTTPS} off
+RewriteRule ^(.*)$ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
+
+# 2. Reverse Proxy all traffic to local Node.js server
+RewriteRule ^$ http://127.0.0.1:3000/ [P,L]
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^(.*)$ http://127.0.0.1:3000/$1 [P,L]
+
+# 3. Enable proxy headers
+RequestHeader set X-Forwarded-Proto "https" env=HTTPS
+RequestHeader set X-Forwarded-Port "443" env=HTTPS
