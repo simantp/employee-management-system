@@ -28,6 +28,10 @@ function mapRowToTimecard(row: any): TimecardRecord {
     staffNoteStatus: row.staff_note_status || undefined,
     adjustedBy: row.adjusted_by || undefined,
     adjustedAt: row.adjusted_at || undefined,
+    clockInIp: row.clock_in_ip || row.clockInIp || row.ip_address || row.ipAddress || undefined,
+    clockOutIp: row.clock_out_ip || row.clockOutIp || (row.clock_out ? (row.ip_address || row.ipAddress) : undefined) || undefined,
+    clockInWorkstation: row.clock_in_workstation || row.clockInWorkstation || row.workstation_label || row.workstationLabel || undefined,
+    clockOutWorkstation: row.clock_out_workstation || row.clockOutWorkstation || row.workstation_label || row.workstationLabel || undefined,
     ipAddress: row.ip_address || row.ipAddress || undefined,
     workstationLabel: row.workstation_label || row.workstationLabel || undefined,
     deviceInfo: row.device_info || row.deviceInfo || undefined,
@@ -126,7 +130,10 @@ export async function PUT(req: Request) {
           breakMinutes: 'break_minutes', totalHours: 'total_hours', overtimeHours: 'overtime_hours',
           status: 'status', notes: 'notes', adminNote: 'admin_note', adjustedBy: 'adjusted_by',
           adjustedAt: 'adjusted_at', staffNote: 'staff_note', staffNoteSubmittedAt: 'staff_note_submitted_at',
-          staffNoteStatus: 'staff_note_status', ipAddress: 'ip_address', workstationLabel: 'workstation_label',
+          staffNoteStatus: 'staff_note_status', ipAddress: 'ip_address', 
+          clockInIp: 'clock_in_ip', clockOutIp: 'clock_out_ip',
+          clockInWorkstation: 'clock_in_workstation', clockOutWorkstation: 'clock_out_workstation',
+          workstationLabel: 'workstation_label',
           deviceInfo: 'device_info', ipStatus: 'ip_status'
         };
         for (const [k, v] of Object.entries(updates)) {

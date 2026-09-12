@@ -577,7 +577,7 @@ export default function StaffTimesheetView() {
                   <th className="py-3 px-4">Shift Type / Location</th>
                   <th className="py-3 px-4">Clock In</th>
                   <th className="py-3 px-4">Clock Out</th>
-                  <th className="py-3 px-4">Break</th>
+                  <th className="py-3 px-4">Workstation IP</th>
                   <th className="py-3 px-4">Total Hours (Live)</th>
                   <th className="py-3 px-4">Status &amp; Notes</th>
                   <th className="py-3 px-4 text-right">Actions / Query</th>
@@ -624,11 +624,38 @@ export default function StaffTimesheetView() {
                         )}
                       </td>
 
-                      {/* Break Minutes */}
+                      {/* Workstation IP (Clocked In IP & Clocked Out IP) */}
                       <td className="py-3.5 px-4">
-                        <span className="font-mono text-slate-600 font-bold">
-                          {shiftInfo.effectiveBreakMinutes}m
-                        </span>
+                        <div className="flex flex-col gap-1 text-[11px] font-mono">
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-[9px] font-sans font-bold uppercase tracking-wider text-emerald-700 bg-emerald-50 border border-emerald-200 px-1.5 py-0.5 rounded shrink-0">
+                              In
+                            </span>
+                            <span className="font-bold text-slate-900 truncate">
+                              {t.clockInIp || t.ipAddress || '127.0.0.1'}
+                            </span>
+                          </div>
+
+                          <div className="flex items-center gap-1.5">
+                            <span className={`text-[9px] font-sans font-bold uppercase tracking-wider px-1.5 py-0.5 rounded border shrink-0 ${
+                              isClockedIn
+                                ? 'text-blue-700 bg-blue-50 border-blue-200'
+                                : 'text-slate-700 bg-slate-100 border-slate-200'
+                            }`}>
+                              Out
+                            </span>
+                            {isClockedIn ? (
+                              <span className="text-[10px] font-sans font-bold text-blue-600 inline-flex items-center gap-1">
+                                <span className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse" />
+                                On Shift
+                              </span>
+                            ) : (
+                              <span className="font-bold text-slate-700 truncate">
+                                {t.clockOutIp || t.ipAddress || '127.0.0.1'}
+                              </span>
+                            )}
+                          </div>
+                        </div>
                       </td>
 
                       {/* Live Gross / Net Hours */}

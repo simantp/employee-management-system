@@ -1050,7 +1050,7 @@ export default function AdminTimecardManagement() {
                   <th className="py-3 px-4">Day &amp; Date</th>
                   <th className="py-3 px-4">Clock In</th>
                   <th className="py-3 px-4">Clock Out</th>
-                  <th className="py-3 px-4">Break</th>
+                  <th className="py-3 px-4">Workstation IP</th>
                   <th className="py-3 px-4">Total Hours (Live)</th>
                   <th className="py-3 px-4">Status</th>
                   <th className="py-3 px-4 text-right">Actions</th>
@@ -1104,20 +1104,37 @@ export default function AdminTimecardManagement() {
                         )}
                       </td>
 
-                      {/* Break */}
-                      <td className="py-3.5 px-4 font-medium text-slate-600">
-                        <div className="flex items-center gap-1.5">
-                          <span className="font-mono font-bold text-slate-800">{shiftInfo.effectiveBreakMinutes}m</span>
-                          {shiftInfo.isAssumedBreak && (
-                            <span className="px-1.5 py-0.5 rounded bg-amber-50 text-amber-700 border border-amber-200 text-[9px] font-semibold" title="Auto 30-min break assumed for shift > 4 hours">
-                              auto 30m
+                      {/* Workstation IP (Clocked In IP & Clocked Out IP) */}
+                      <td className="py-3.5 px-4">
+                        <div className="flex flex-col gap-1 text-[11px] font-mono">
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-[9px] font-sans font-bold uppercase tracking-wider text-emerald-700 bg-emerald-50 border border-emerald-200 px-1.5 py-0.5 rounded shrink-0">
+                              In
                             </span>
-                          )}
-                          {shiftInfo.isManual && (
-                            <span className="px-1.5 py-0.5 rounded bg-purple-50 text-purple-700 border border-purple-200 text-[9px] font-semibold" title="Break manually set by Admin">
-                              manual
+                            <span className="font-bold text-slate-900 truncate">
+                              {t.clockInIp || t.ipAddress || '127.0.0.1'}
                             </span>
-                          )}
+                          </div>
+
+                          <div className="flex items-center gap-1.5">
+                            <span className={`text-[9px] font-sans font-bold uppercase tracking-wider px-1.5 py-0.5 rounded border shrink-0 ${
+                              isClockedIn
+                                ? 'text-blue-700 bg-blue-50 border-blue-200'
+                                : 'text-slate-700 bg-slate-100 border-slate-200'
+                            }`}>
+                              Out
+                            </span>
+                            {isClockedIn ? (
+                              <span className="text-[10px] font-sans font-bold text-blue-600 inline-flex items-center gap-1">
+                                <span className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse" />
+                                On Shift
+                              </span>
+                            ) : (
+                              <span className="font-bold text-slate-700 truncate">
+                                {t.clockOutIp || t.ipAddress || '127.0.0.1'}
+                              </span>
+                            )}
+                          </div>
                         </div>
                       </td>
 
@@ -1779,7 +1796,7 @@ export default function AdminTimecardManagement() {
                         <th className="py-2.5 px-3">Day &amp; Date</th>
                         <th className="py-2.5 px-3">Clock In</th>
                         <th className="py-2.5 px-3">Clock Out</th>
-                        <th className="py-2.5 px-3">Break</th>
+                        <th className="py-2.5 px-3">Workstation IP</th>
                         <th className="py-2.5 px-3">Paid Hours</th>
                         <th className="py-2.5 px-3">Status</th>
                         <th className="py-2.5 px-3 text-right print:hidden">Action</th>
@@ -1806,9 +1823,9 @@ export default function AdminTimecardManagement() {
                               </td>
                               <td className="py-2 px-3 font-mono text-emerald-700 font-bold">{t.clockIn}</td>
                               <td className="py-2 px-3 font-mono text-slate-800 font-bold">{t.clockOut || 'Active'}</td>
-                              <td className="py-2 px-3 font-mono">
-                                {shiftInfo.effectiveBreakMinutes}m
-                                {shiftInfo.isAssumedBreak && <span className="text-[9px] text-slate-400 ml-1">(auto)</span>}
+                              <td className="py-2 px-3 font-mono text-[10px]">
+                                <div><span className="text-emerald-700 font-bold">In:</span> {t.clockInIp || t.ipAddress || '127.0.0.1'}</div>
+                                <div><span className="text-slate-600 font-bold">Out:</span> {t.clockOut ? (t.clockOutIp || t.ipAddress || '127.0.0.1') : 'Active'}</div>
                               </td>
                               <td className="py-2 px-3 font-mono font-bold text-slate-900">{shiftInfo.totalHours.toFixed(2)} hrs</td>
                               <td className="py-2 px-3 text-[10px]">

@@ -199,6 +199,10 @@ export interface TimecardRecord {
 
   // Workstation IP & Device Tracking
   ipAddress?: string;
+  clockInIp?: string;
+  clockOutIp?: string;
+  clockInWorkstation?: string;
+  clockOutWorkstation?: string;
   workstationLabel?: string;
   deviceInfo?: string;
   ipStatus?: 'LOCKED_IP_AUTHORIZED' | 'UNAUTHORIZED_IP' | 'UNRESTRICTED';
