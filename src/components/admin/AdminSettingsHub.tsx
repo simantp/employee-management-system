@@ -986,213 +986,127 @@ export default function AdminSettingsHub({
           {/* TAB: WORKSTATION IP LOCK & RESTRICTIONS */}
           {activeTab === 'IP_LOCK' && (
             <div className="space-y-6">
-              <div className="border-b border-slate-100 pb-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                <div>
-                  <h3 className="font-black text-sm text-slate-900">Workstation IP Detection &amp; Locking System</h3>
-                  <p className="text-slate-500 text-[11px]">
-                    Detect and lock client IP addresses. Once locked, shift clock-in and clock-out can strictly only be performed from authorized workstation IPs.
-                  </p>
-                </div>
-
-                <div className="flex flex-wrap items-center gap-2 self-start sm:self-auto">
-                  <button
-                    type="button"
-                    onClick={async () => {
-                      const res = await detectAndLockCurrentIp('Current Workstation');
-                      if (res?.success) {
-                        setDetectedAdminIp(res.ip);
-                      }
-                    }}
-                    className="px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-xs transition flex items-center gap-1.5 cursor-pointer"
-                  >
-                    <span>Detect &amp; Lock Current IP</span>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setEditingIpId(null);
-                      setIpForm({
-                        ip: detectedAdminIp || '',
-                        label: '',
-                        notes: '',
-                        isActive: true,
-                      });
-                      setShowAddIpModal(true);
-                    }}
-                    className="px-3.5 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs shadow-xs transition flex items-center gap-1.5 cursor-pointer"
-                  >
-                    <span>+ Add Locked IP</span>
-                  </button>
-                </div>
+              <div className="border-b border-slate-100 pb-3">
+                <h3 className="font-black text-sm text-slate-900">Workstation IP Detection &amp; Locking System</h3>
+                <p className="text-slate-500 text-[11px]">
+                  Detect and lock client IP addresses. Once locked, shift clock-in and clock-out can strictly only be performed from authorized workstation IPs.
+                </p>
               </div>
 
-              {/* 1. Enforcement Policy Selector */}
+              {/* 1. Live Current Workstation IP Detection Banner */}
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
-                  <h4 className="font-bold text-xs text-slate-900">1. Shift Clock IP Lock Enforcement Policy</h4>
-                  <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold border font-mono ${
-                    ipLockSettings?.enabled
-                      ? 'bg-rose-50 text-rose-700 border-rose-200'
-                      : 'bg-slate-100 text-slate-600 border-slate-200'
-                  }`}>
-                    POLICY: {ipLockSettings?.enabled ? 'STRICT LOCK ENFORCED' : 'UNRESTRICTED (DISABLED)'}
-                  </span>
+                  <h4 className="font-bold text-xs text-slate-900">1. Live Current Workstation IP Detection</h4>
+                  <span className="text-[11px] font-mono text-slate-500">Real-time Network Monitor</span>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
-                  {/* Option 1: STRICT LOCK */}
-                  <div
-                    onClick={() => updateIpLockSettings({ enabled: true })}
-                    className={`p-4 rounded-2xl border-2 cursor-pointer transition ${
-                      ipLockSettings?.enabled
-                        ? 'border-rose-500 bg-rose-50/40 shadow-xs'
-                        : 'border-slate-200 hover:border-slate-300 bg-white'
-                    }`}
-                  >
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="font-bold text-xs text-slate-900">Locked Workstations Only (Strict)</span>
-                      <span className={`w-3 h-3 rounded-full border-2 ${
-                        ipLockSettings?.enabled ? 'bg-rose-500 border-rose-500' : 'border-slate-300'
-                      }`} />
+                <div className="p-4 rounded-2xl bg-slate-900 text-white border border-slate-800 space-y-3">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-[10px] font-mono uppercase tracking-wider text-slate-400 font-bold">Current Workstation IP</span>
+                        {isDetectingIp && (
+                          <span className="text-[9px] text-orange-400 font-mono animate-pulse">Detecting...</span>
+                        )}
+                      </div>
+                      <div className="flex items-baseline gap-3 mt-1">
+                        <span className="text-xl font-black font-mono tracking-tight text-white">
+                          {detectedAdminIp || (isDetectingIp ? 'Scanning network...' : '127.0.0.1 (Local)')}
+                        </span>
+                        {(() => {
+                          const matched = ipLockSettings?.lockedIps?.find(l => l.ip === detectedAdminIp);
+                          if (matched && matched.isActive) {
+                            return (
+                              <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-950/80 text-emerald-400 border border-emerald-500/40 inline-flex items-center gap-1.5">
+                                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                                <span>Authorized Workstation ({matched.label})</span>
+                              </span>
+                            );
+                          }
+                          if (matched && !matched.isActive) {
+                            return (
+                              <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-950/80 text-amber-400 border border-amber-500/40">
+                                Registered But Inactive ({matched.label})
+                              </span>
+                            );
+                          }
+                          return (
+                            <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-slate-800 text-slate-300 border border-slate-700">
+                              Unregistered Workstation IP
+                            </span>
+                          );
+                        })()}
+                      </div>
                     </div>
-                    <p className="text-[11px] text-slate-600 leading-relaxed">
-                      Staff shift clock-in and clock-out is strictly restricted to active locked workstation IPs. Any punch attempt from an unapproved IP is immediately rejected with an authorization error.
-                    </p>
-                    <div className="mt-2 text-[10px] font-bold text-rose-700">
-                      Maximum Security • Zero Unapproved Punching
-                    </div>
-                  </div>
 
-                  {/* Option 2: DISABLED */}
-                  <div
-                    onClick={() => updateIpLockSettings({ enabled: false })}
-                    className={`p-4 rounded-2xl border-2 cursor-pointer transition ${
-                      !ipLockSettings?.enabled
-                        ? 'border-slate-700 bg-slate-100 shadow-xs'
-                        : 'border-slate-200 hover:border-slate-300 bg-white'
-                    }`}
-                  >
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="font-bold text-xs text-slate-900">Unrestricted (Disabled)</span>
-                      <span className={`w-3 h-3 rounded-full border-2 ${
-                        !ipLockSettings?.enabled ? 'bg-slate-700 border-slate-700' : 'border-slate-300'
-                      }`} />
-                    </div>
-                    <p className="text-[11px] text-slate-600 leading-relaxed">
-                      Punches are permitted from any network. Client workstation IP and device signatures are stamped on timecards for Fair Work compliance without blocking punches.
-                    </p>
-                    <div className="mt-2 text-[10px] font-bold text-slate-600">
-                      Audit Logging Only • Open Access
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* 2. Live Current Workstation IP Detection Banner */}
-              <div className="p-4 rounded-2xl bg-slate-900 text-white border border-slate-800 space-y-3">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                  <div>
                     <div className="flex items-center gap-2">
-                      <span className="text-[10px] font-mono uppercase tracking-wider text-slate-400 font-bold">Current Workstation IP</span>
-                      {isDetectingIp && (
-                        <span className="text-[9px] text-orange-400 font-mono animate-pulse">Detecting...</span>
-                      )}
-                    </div>
-                    <div className="flex items-baseline gap-3 mt-1">
-                      <span className="text-xl font-black font-mono tracking-tight text-white">
-                        {detectedAdminIp || (isDetectingIp ? 'Scanning network...' : '127.0.0.1 (Local)')}
-                      </span>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIsDetectingIp(true);
+                          detectWorkstationIp().then(ip => {
+                            setDetectedAdminIp(ip);
+                            setIsDetectingIp(false);
+                            addToast('IP Detected', `Current workstation IP is ${ip}`, 'info');
+                          });
+                        }}
+                        className="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs transition cursor-pointer"
+                      >
+                        Re-Detect IP
+                      </button>
+
                       {(() => {
-                        const matched = ipLockSettings?.lockedIps?.find(l => l.ip === detectedAdminIp);
-                        if (matched && matched.isActive) {
+                        const matched = ipLockSettings?.lockedIps?.find(l => l.ip === detectedAdminIp && l.isActive);
+                        if (matched) {
                           return (
-                            <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-950/80 text-emerald-400 border border-emerald-500/40 inline-flex items-center gap-1.5">
-                              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                              <span>Authorized Workstation ({matched.label})</span>
-                            </span>
+                            <button
+                              type="button"
+                              onClick={() => setReleasingLock(matched)}
+                              className="px-3.5 py-1.5 rounded-xl bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 border border-rose-500/40 font-bold text-xs transition cursor-pointer flex items-center gap-1.5"
+                            >
+                              <span>Release Current Lock</span>
+                            </button>
                           );
                         }
-                        if (matched && !matched.isActive) {
+                        const inactiveMatch = ipLockSettings?.lockedIps?.find(l => l.ip === detectedAdminIp && !l.isActive);
+                        if (inactiveMatch) {
                           return (
-                            <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-950/80 text-amber-400 border border-amber-500/40">
-                              Registered But Inactive ({matched.label})
-                            </span>
+                            <div className="flex items-center gap-2">
+                              <button
+                                type="button"
+                                onClick={() => toggleLockedIp(inactiveMatch.id)}
+                                className="px-3.5 py-1.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-xs transition cursor-pointer shadow-xs"
+                              >
+                                Enable Lock
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => setReleasingLock(inactiveMatch)}
+                                className="px-3 py-1.5 rounded-xl bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 border border-rose-500/40 font-bold text-xs transition cursor-pointer"
+                              >
+                                Release
+                              </button>
+                            </div>
                           );
                         }
-                        return (
-                          <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-slate-800 text-slate-300 border border-slate-700">
-                            Unregistered Workstation IP
-                          </span>
-                        );
-                      })()}
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-2">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setIsDetectingIp(true);
-                        detectWorkstationIp().then(ip => {
-                          setDetectedAdminIp(ip);
-                          setIsDetectingIp(false);
-                          addToast('IP Detected', `Current workstation IP is ${ip}`, 'info');
-                        });
-                      }}
-                      className="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs transition cursor-pointer"
-                    >
-                      Re-Detect IP
-                    </button>
-
-                    {(() => {
-                      const matched = ipLockSettings?.lockedIps?.find(l => l.ip === detectedAdminIp && l.isActive);
-                      if (matched) {
                         return (
                           <button
                             type="button"
-                            onClick={() => setReleasingLock(matched)}
-                            className="px-3.5 py-1.5 rounded-xl bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 border border-rose-500/40 font-bold text-xs transition cursor-pointer flex items-center gap-1.5"
+                            onClick={async () => {
+                              const res = await detectAndLockCurrentIp(
+                                detectedAdminIp ? `Workstation (${detectedAdminIp})` : 'Current Workstation'
+                              );
+                              if (res?.success) {
+                                setDetectedAdminIp(res.ip);
+                              }
+                            }}
+                            className="px-3.5 py-1.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-xs transition cursor-pointer shadow-xs"
                           >
-                            <span>Release Current Lock</span>
+                            Lock This Workstation
                           </button>
                         );
-                      }
-                      const inactiveMatch = ipLockSettings?.lockedIps?.find(l => l.ip === detectedAdminIp && !l.isActive);
-                      if (inactiveMatch) {
-                        return (
-                          <div className="flex items-center gap-2">
-                            <button
-                              type="button"
-                              onClick={() => toggleLockedIp(inactiveMatch.id)}
-                              className="px-3.5 py-1.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-xs transition cursor-pointer shadow-xs"
-                            >
-                              Enable Lock
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => setReleasingLock(inactiveMatch)}
-                              className="px-3 py-1.5 rounded-xl bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 border border-rose-500/40 font-bold text-xs transition cursor-pointer"
-                            >
-                              Release
-                            </button>
-                          </div>
-                        );
-                      }
-                      return (
-                        <button
-                          type="button"
-                          onClick={() => {
-                            if (detectedAdminIp) {
-                              detectAndLockCurrentIp('Admin Workstation');
-                            }
-                          }}
-                          className="px-3.5 py-1.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-xs transition cursor-pointer shadow-xs"
-                        >
-                          Lock This Workstation
-                        </button>
-                      );
-                    })()}
+                      })()}
+                    </div>
                   </div>
                 </div>
               </div>
@@ -1281,6 +1195,68 @@ export default function AdminSettingsHub({
                       </div>
                     </div>
                   ))}
+                </div>
+              </div>
+
+              {/* 3. Shift Clock IP Lock Enforcement Policy Selector */}
+              <div className="space-y-3 pt-3 border-t border-slate-100">
+                <div className="flex items-center justify-between">
+                  <h4 className="font-bold text-xs text-slate-900">3. Shift Clock IP Lock Enforcement Policy</h4>
+                  <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold border font-mono ${
+                    ipLockSettings?.enabled
+                      ? 'bg-rose-50 text-rose-700 border-rose-200'
+                      : 'bg-slate-100 text-slate-600 border-slate-200'
+                  }`}>
+                    POLICY: {ipLockSettings?.enabled ? 'STRICT LOCK ENFORCED' : 'UNRESTRICTED (DISABLED)'}
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
+                  {/* Option 1: STRICT LOCK */}
+                  <div
+                    onClick={() => updateIpLockSettings({ enabled: true })}
+                    className={`p-4 rounded-2xl border-2 cursor-pointer transition ${
+                      ipLockSettings?.enabled
+                        ? 'border-rose-500 bg-rose-50/40 shadow-xs'
+                        : 'border-slate-200 hover:border-slate-300 bg-white'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="font-bold text-xs text-slate-900">Locked Workstations Only (Strict)</span>
+                      <span className={`w-3 h-3 rounded-full border-2 ${
+                        ipLockSettings?.enabled ? 'bg-rose-500 border-rose-500' : 'border-slate-300'
+                      }`} />
+                    </div>
+                    <p className="text-[11px] text-slate-600 leading-relaxed">
+                      Staff shift clock-in and clock-out is strictly restricted to active locked workstation IPs. Any punch attempt from an unapproved IP is immediately rejected with an authorization error.
+                    </p>
+                    <div className="mt-2 text-[10px] font-bold text-rose-700">
+                      Maximum Security • Zero Unapproved Punching
+                    </div>
+                  </div>
+
+                  {/* Option 2: DISABLED */}
+                  <div
+                    onClick={() => updateIpLockSettings({ enabled: false })}
+                    className={`p-4 rounded-2xl border-2 cursor-pointer transition ${
+                      !ipLockSettings?.enabled
+                        ? 'border-slate-700 bg-slate-100 shadow-xs'
+                        : 'border-slate-200 hover:border-slate-300 bg-white'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="font-bold text-xs text-slate-900">Unrestricted (Disabled)</span>
+                      <span className={`w-3 h-3 rounded-full border-2 ${
+                        !ipLockSettings?.enabled ? 'bg-slate-700 border-slate-700' : 'border-slate-300'
+                      }`} />
+                    </div>
+                    <p className="text-[11px] text-slate-600 leading-relaxed">
+                      Punches are permitted from any network. Client workstation IP and device signatures are stamped on timecards for Fair Work compliance without blocking punches.
+                    </p>
+                    <div className="mt-2 text-[10px] font-bold text-slate-600">
+                      Audit Logging Only • Open Access
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
