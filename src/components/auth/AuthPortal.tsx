@@ -7,10 +7,10 @@ import confetti from 'canvas-confetti';
 import ForgotPasswordModal from './ForgotPasswordModal';
 import ResetPasswordModal from './ResetPasswordModal';
 import { 
-  DEMO_LOCATION_PRESETS, 
-  formatDistanceDisplay, 
-  evaluatePunchLocation 
-} from '@/lib/geoUtils';
+  DEMO_IP_PRESETS, 
+  evaluateIpAccess, 
+  detectWorkstationIp 
+} from '@/lib/ipUtils';
 
 export default function AuthPortal() {
   const { 
@@ -22,7 +22,7 @@ export default function AuthPortal() {
     clockInWithKiosk,
     clockOutWithKiosk,
     setPasswordFromInvite,
-    geofenceSettings,
+    ipLockSettings,
   } = useApp();
 
   // Mode on right side / inside login modal: 'LOGIN' | 'VERIFY_OTP'
@@ -47,11 +47,17 @@ export default function AuthPortal() {
   const [inviteError, setInviteError] = useState<string | null>(null);
   const [inviteMatchedEmp, setInviteMatchedEmp] = useState<Employee | null>(null);
 
-  // Geolocation & GPS Restricton States
-  const [selectedPresetId, setSelectedPresetId] = useState<string>('riverwood');
-  const [gpsCoords, setGpsCoords] = useState<{ latitude: number; longitude: number } | null>({ latitude: -33.9482, longitude: 151.0505 });
-  const [gpsState, setGpsState] = useState<'ACQUIRED' | 'DENIED' | 'DETECTING' | 'SIMULATED'>('SIMULATED');
+  // Workstation IP & Restriction States
+  const [selectedIpPresetId, setSelectedIpPresetId] = useState<string>('preset-plant');
+  const [currentIp, setCurrentIp] = useState<string>('192.168.1.100');
+  const [isDetectingIp, setIsDetectingIp] = useState<boolean>(false);
   const [punchError, setPunchError] = useState<string | null>(null);
+
+  useEffect(() => {
+    detectWorkstationIp().then(ip => {
+      if (ip) setCurrentIp(ip);
+    });
+  }, []);
 
   // Shift Clock state (Left Column)
   const [clockUsername, setClockUsername] = useState('');
@@ -64,9 +70,8 @@ export default function AuthPortal() {
     time: string;
     hours?: number;
     message: string;
-    locationStatus?: string;
-    distanceMeters?: number;
-    matchedSiteName?: string;
+    workstationLabel?: string;
+    ipAddress?: string;
   } | null>(null);
 
   // Login form state (Right Column)
@@ -227,32 +232,18 @@ export default function AuthPortal() {
     return matchUser && matchPin;
   });
 
-  const handleSelectLocationPreset = (presetId: string) => {
-    setSelectedPresetId(presetId);
+  const handleSelectIpPreset = async (presetId: string) => {
+    setSelectedIpPresetId(presetId);
     setPunchError(null);
     if (presetId === 'real') {
-      setGpsState('DETECTING');
-      if (typeof navigator !== 'undefined' && navigator.geolocation) {
-        navigator.geolocation.getCurrentPosition(
-          pos => {
-            setGpsCoords({ latitude: pos.coords.latitude, longitude: pos.coords.longitude });
-            setGpsState('ACQUIRED');
-          },
-          err => {
-            console.warn('GPS Error:', err);
-            setGpsState('DENIED');
-            setGpsCoords({ latitude: -33.9482, longitude: 151.0505 });
-          },
-          { enableHighAccuracy: true, timeout: 8000 }
-        );
-      } else {
-        setGpsState('DENIED');
-      }
+      setIsDetectingIp(true);
+      const realIp = await detectWorkstationIp();
+      setCurrentIp(realIp);
+      setIsDetectingIp(false);
     } else {
-      const preset = DEMO_LOCATION_PRESETS.find(p => p.id === presetId);
+      const preset = DEMO_IP_PRESETS.find(p => p.id === presetId);
       if (preset) {
-        setGpsCoords({ latitude: preset.latitude, longitude: preset.longitude });
-        setGpsState('SIMULATED');
+        setCurrentIp(preset.ip);
       }
     }
   };
@@ -265,7 +256,7 @@ export default function AuthPortal() {
     // Clear the input fields immediately once used
     setClockUsername('');
     setClockPin('');
-    const res = clockInWithKiosk(user, pin, { coords: gpsCoords });
+    const res = clockInWithKiosk(user, pin, { ip: currentIp });
     if (res.success && res.employee) {
       try {
         confetti({ particleCount: 80, spread: 70, origin: { y: 0.6 } });
@@ -278,9 +269,8 @@ export default function AuthPortal() {
         avatarUrl: res.employee.avatarUrl,
         time: now.toLocaleTimeString('en-AU', { timeZone: 'Australia/Sydney', hour: '2-digit', minute: '2-digit', hour12: true }),
         message: res.message,
-        locationStatus: res.locationStatus,
-        distanceMeters: res.distanceMeters,
-        matchedSiteName: res.matchedSiteName
+        workstationLabel: res.workstationLabel,
+        ipAddress: res.ipAddress,
       });
       setTimeout(() => {
         setClockFeedback(null);
@@ -298,7 +288,7 @@ export default function AuthPortal() {
     // Clear the input fields immediately once used
     setClockUsername('');
     setClockPin('');
-    const res = clockOutWithKiosk(user, pin, 30, { coords: gpsCoords });
+    const res = clockOutWithKiosk(user, pin, 30, { ip: currentIp });
     if (res.success && res.employee) {
       try {
         confetti({ particleCount: 80, spread: 70, origin: { y: 0.6 } });
@@ -312,9 +302,8 @@ export default function AuthPortal() {
         time: now.toLocaleTimeString('en-AU', { timeZone: 'Australia/Sydney', hour: '2-digit', minute: '2-digit', hour12: true }),
         hours: res.totalHours,
         message: res.message,
-        locationStatus: res.locationStatus,
-        distanceMeters: res.distanceMeters,
-        matchedSiteName: res.matchedSiteName
+        workstationLabel: res.workstationLabel,
+        ipAddress: res.ipAddress,
       });
       setTimeout(() => {
         setClockFeedback(null);
@@ -649,34 +638,29 @@ export default function AuthPortal() {
               </div>
             </div>
 
-            {/* Geofence & GPS Verification Strip */}
+            {/* Workstation IP Security & Lock Strip */}
             {(() => {
-              const currentPreviewEval = evaluatePunchLocation(gpsCoords, geofenceSettings, matchedStaff);
-              const effectiveMode = geofenceSettings?.mode || geofenceSettings?.enforcementMode || 'WARN_AND_FLAG';
+              const ipEval = evaluateIpAccess(currentIp, ipLockSettings);
               return (
                 <div className="p-4 rounded-2xl bg-slate-950/95 border border-slate-800 space-y-3 shadow-inner">
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2.5 border-b border-slate-800/80">
                     <div className="flex items-center gap-2">
                       <span className="text-[10px] font-black uppercase tracking-wider text-slate-400">
-                        GPS Verification:
+                        Workstation IP:
                       </span>
-                      {currentPreviewEval.status === 'VERIFIED_ON_SITE' ? (
+                      {ipEval.status === 'LOCKED_IP_AUTHORIZED' ? (
                         <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 flex items-center gap-1.5">
                           <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                          <span>ON-SITE: {currentPreviewEval.matchedSiteName} ({currentPreviewEval.distanceMeters !== undefined ? `${currentPreviewEval.distanceMeters}m` : '0m'})</span>
+                          <span>LOCKED &amp; AUTHORIZED: {ipEval.workstationLabel} ({currentIp})</span>
                         </span>
-                      ) : currentPreviewEval.status === 'OUT_OF_BOUNDS' ? (
+                      ) : ipEval.status === 'UNAUTHORIZED_IP' ? (
                         <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black bg-rose-500/20 text-rose-300 border border-rose-500/40 flex items-center gap-1.5">
                           <span className="w-1.5 h-1.5 rounded-full bg-rose-400 animate-pulse" />
-                          <span>OUT OF BOUNDS: {formatDistanceDisplay(currentPreviewEval.distanceMeters || 0)} from {currentPreviewEval.matchedSiteName}</span>
-                        </span>
-                      ) : currentPreviewEval.status === 'REMOTE_EXEMPT' ? (
-                        <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black bg-blue-500/20 text-blue-300 border border-blue-500/40">
-                          REMOTE EXEMPT APPROVED
+                          <span>UNAUTHORIZED WORKSTATION IP: {currentIp} (PUNCH BLOCKED)</span>
                         </span>
                       ) : (
                         <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black bg-slate-800 text-slate-400 border border-slate-700">
-                          GEOFENCING DISABLED
+                          IP LOCK INACTIVE (UNRESTRICTED)
                         </span>
                       )}
                     </div>
@@ -684,59 +668,56 @@ export default function AuthPortal() {
                     <div className="flex items-center gap-2">
                       <span className="text-[10px] text-slate-400 font-semibold">Policy:</span>
                       <span className={`px-2 py-0.5 rounded-md text-[9px] font-black font-mono border ${
-                        effectiveMode === 'STRICT_BLOCK'
-                          ? 'bg-rose-950/60 text-rose-400 border-rose-500/40'
-                          : effectiveMode === 'WARN_AND_FLAG'
-                          ? 'bg-amber-950/60 text-amber-400 border-amber-500/40'
+                        ipLockSettings.enabled
+                          ? 'bg-emerald-950/60 text-emerald-400 border-emerald-500/40'
                           : 'bg-slate-900 text-slate-400 border-slate-700'
                       }`}>
-                        {effectiveMode === 'STRICT_BLOCK' ? 'STRICT BLOCK' : effectiveMode === 'WARN_AND_FLAG' ? 'WARN & FLAG' : 'DISABLED'}
+                        {ipLockSettings.enabled ? 'LOCKED IPS ONLY' : 'DISABLED'}
                       </span>
                     </div>
                   </div>
 
-                  {/* Quick Demo Location Preset Switcher */}
+                  {/* Quick Workstation IP Switcher */}
                   <div>
                     <div className="flex items-center justify-between mb-1.5">
                       <span className="text-[10px] text-slate-400 font-bold">
-                        Simulate Kiosk / Staff Device GPS Location:
+                        Simulate / Select Workstation Terminal:
                       </span>
                       <span className="text-[9px] text-slate-500 font-mono">
-                        {gpsCoords ? `${gpsCoords.latitude.toFixed(4)}, ${gpsCoords.longitude.toFixed(4)}` : 'No coordinates'}
+                        Active IP: {currentIp}
                       </span>
                     </div>
                     <div className="flex flex-wrap gap-1.5">
-                      {DEMO_LOCATION_PRESETS.map(preset => {
-                        const isSelected = selectedPresetId === preset.id;
-                        const isOut = preset.id === 'preset-bondi' || preset.id === 'preset-parramatta';
+                      {DEMO_IP_PRESETS.map(preset => {
+                        const isSelected = selectedIpPresetId === preset.id;
                         return (
                           <button
                             key={preset.id}
                             type="button"
-                            onClick={() => handleSelectLocationPreset(preset.id)}
+                            onClick={() => handleSelectIpPreset(preset.id)}
                             className={`px-2.5 py-1 rounded-lg text-[10px] font-bold border transition cursor-pointer ${
                               isSelected
-                                ? isOut
+                                ? !preset.isAuthorizedExpected
                                   ? 'bg-rose-500/20 text-rose-300 border-rose-500/60 shadow-xs'
                                   : 'bg-emerald-500/20 text-emerald-300 border-emerald-500/60 shadow-xs'
                                 : 'bg-slate-900 text-slate-400 border-slate-800 hover:border-slate-700 hover:text-slate-200'
                             }`}
                           >
-                            <span>{preset.label || preset.name}</span>
-                            {isOut && <span className="ml-1 text-[9px] font-black text-rose-400">(Out of bounds)</span>}
+                            <span>{preset.label}</span>
+                            {!preset.isAuthorizedExpected && <span className="ml-1 text-[9px] font-black text-rose-400">(Blocked)</span>}
                           </button>
                         );
                       })}
                       <button
                         type="button"
-                        onClick={() => handleSelectLocationPreset('real')}
+                        onClick={() => handleSelectIpPreset('real')}
                         className={`px-2.5 py-1 rounded-lg text-[10px] font-bold border transition cursor-pointer ${
-                          selectedPresetId === 'real'
+                          selectedIpPresetId === 'real'
                             ? 'bg-blue-500/20 text-blue-300 border-blue-500/60'
                             : 'bg-slate-900 text-slate-400 border-slate-800 hover:border-slate-700 hover:text-slate-200'
                         }`}
                       >
-                        <span>{gpsState === 'DETECTING' ? 'Detecting Browser GPS...' : 'Real Device GPS'}</span>
+                        <span>{isDetectingIp ? 'Detecting Workstation IP...' : 'Real Detected IP'}</span>
                       </button>
                     </div>
                   </div>
@@ -744,13 +725,13 @@ export default function AuthPortal() {
               );
             })()}
 
-            {/* Punch Error Banner if out of bounds or blocked */}
+            {/* Punch Error Banner if workstation IP is unauthorized */}
             {punchError && (
               <div className="p-4 rounded-2xl bg-rose-950/60 border-2 border-rose-500/60 text-rose-200 text-xs space-y-2 animate-in fade-in">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2 font-black text-rose-300">
                     <span className="w-2 h-2 rounded-full bg-rose-500" />
-                    <span>Punch Blocked by Worksite Geofence Policy</span>
+                    <span>Shift Punch Blocked by Workstation IP Lock</span>
                   </div>
                   <button
                     type="button"
@@ -764,7 +745,7 @@ export default function AuthPortal() {
                   {punchError}
                 </p>
                 <div className="pt-1 flex items-center gap-2 text-[10px] text-rose-400">
-                  <span>Tip: Select an authorized on-site worksite preset above (e.g. Riverwood or Rockdale) to simulate on-site punch.</span>
+                  <span>To test punch authorization, select an approved workstation preset above (e.g. Riverwood Plant Kiosk or Head Office).</span>
                 </div>
               </div>
             )}
@@ -787,19 +768,11 @@ export default function AuthPortal() {
                   {clockFeedback.hours !== undefined && (
                     <div>Logged Shift: <strong className="text-emerald-400">{clockFeedback.hours.toFixed(2)} Hours</strong></div>
                   )}
-                  {clockFeedback.locationStatus && (
+                  {clockFeedback.workstationLabel && (
                     <div className="pt-1 border-t border-slate-800 flex items-center justify-center gap-2">
-                      <span className="text-slate-400 text-[10px]">Location Status:</span>
-                      <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
-                        clockFeedback.locationStatus === 'VERIFIED_ON_SITE'
-                          ? 'bg-emerald-500/20 text-emerald-300'
-                          : clockFeedback.locationStatus === 'OUT_OF_BOUNDS'
-                          ? 'bg-amber-500/20 text-amber-300'
-                          : 'bg-blue-500/20 text-blue-300'
-                      }`}>
-                        {clockFeedback.locationStatus === 'VERIFIED_ON_SITE' ? `Verified On-site (${clockFeedback.matchedSiteName})` :
-                         clockFeedback.locationStatus === 'OUT_OF_BOUNDS' ? `Flagged Out-of-Bounds (${formatDistanceDisplay(clockFeedback.distanceMeters || 0)} from ${clockFeedback.matchedSiteName})` :
-                         clockFeedback.locationStatus}
+                      <span className="text-slate-400 text-[10px]">Workstation:</span>
+                      <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/20 text-emerald-300">
+                        {clockFeedback.workstationLabel} (IP: {clockFeedback.ipAddress})
                       </span>
                     </div>
                   )}

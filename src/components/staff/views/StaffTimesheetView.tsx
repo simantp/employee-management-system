@@ -653,33 +653,22 @@ export default function StaffTimesheetView() {
                               {t.status === 'MANUALLY_ADJUSTED' ? 'Admin Adjusted' : t.status === 'CLOCKED_IN' ? 'Live on Shift' : t.status}
                             </span>
 
-                            {t.locationStatus && (
+                            {(t.ipStatus || t.workstationLabel || t.ipAddress) && (
                               <span className={`px-2 py-0.5 rounded-md text-[9px] font-bold border inline-flex items-center gap-1 ${
-                                t.locationStatus === 'VERIFIED_ON_SITE'
+                                t.ipStatus === 'LOCKED_IP_AUTHORIZED'
                                   ? 'bg-emerald-50 text-emerald-800 border-emerald-300'
-                                  : t.locationStatus === 'OUT_OF_BOUNDS'
-                                  ? 'bg-rose-50 text-rose-800 border-rose-300 animate-pulse'
-                                  : t.locationStatus === 'REMOTE_EXEMPT'
-                                  ? 'bg-blue-50 text-blue-800 border-blue-300'
-                                  : 'bg-slate-100 text-slate-600 border-slate-200'
+                                  : t.ipStatus === 'UNAUTHORIZED_IP'
+                                  ? 'bg-rose-50 text-rose-800 border-rose-300'
+                                  : 'bg-slate-100 text-slate-700 border-slate-200'
                               }`}>
-                                {t.locationStatus === 'VERIFIED_ON_SITE' && (
-                                  <>
-                                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                                    <span>{t.matchedSiteName || 'On-site'}</span>
-                                  </>
-                                )}
-                                {t.locationStatus === 'OUT_OF_BOUNDS' && (
-                                  <>
-                                    <span className="w-1.5 h-1.5 rounded-full bg-rose-500" />
-                                    <span>Out of Bounds {t.distanceMeters !== undefined ? `(${t.distanceMeters > 1000 ? `${(t.distanceMeters / 1000).toFixed(1)}km` : `${t.distanceMeters}m`})` : ''}</span>
-                                  </>
-                                )}
-                                {t.locationStatus === 'REMOTE_EXEMPT' && (
-                                  <>
-                                    <span className="w-1.5 h-1.5 rounded-full bg-blue-500" />
-                                    <span>Remote Approved</span>
-                                  </>
+                                <span className={`w-1.5 h-1.5 rounded-full ${
+                                  t.ipStatus === 'LOCKED_IP_AUTHORIZED' ? 'bg-emerald-500' :
+                                  t.ipStatus === 'UNAUTHORIZED_IP' ? 'bg-rose-500' :
+                                  'bg-slate-400'
+                                }`} />
+                                <span>{t.workstationLabel || (t.ipAddress ? `IP: ${t.ipAddress}` : 'Workstation')}</span>
+                                {t.ipAddress && t.workstationLabel && (
+                                  <span className="text-[8px] font-mono text-slate-500 ml-0.5">({t.ipAddress})</span>
                                 )}
                               </span>
                             )}

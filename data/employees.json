@@ -85,7 +85,8 @@
     "lastClockIn": "2026-09-11T15:36:37.880Z",
     "clockInTimestamp": null,
     "currentShiftId": null,
-    "lastClockOut": "2026-09-11T15:37:27.120Z"
+    "lastClockOut": "2026-09-11T15:37:27.120Z",
+    "isRemoteAllowed": false
   },
   {
     "id": "emp-42",

@@ -20,10 +20,8 @@ import {
   TimecardRecord,
   TimecardStatus,
   ExpiryReminderSettings,
-  GeofenceLocation,
-  GeofenceSettings,
-  GeofenceMode,
-  LocationVerificationStatus
+  LockedIpRecord,
+  IpLockSettings
 } from '@/types';
 import { 
   INITIAL_EMPLOYEES, 
@@ -36,11 +34,11 @@ import {
 import { encryptAES256, maskSensitive } from './crypto';
 import { getOnboardingProgress } from './onboarding';
 import { 
-  INITIAL_GEOFENCE_SETTINGS, 
-  evaluatePunchLocation, 
-  getDeviceDescription, 
-  formatDistanceDisplay 
-} from './geoUtils';
+  INITIAL_IP_LOCK_SETTINGS, 
+  evaluateIpAccess, 
+  detectWorkstationIp,
+  getDeviceDescription 
+} from './ipUtils';
 
 interface ToastMessage {
   id: string;
@@ -257,14 +255,14 @@ interface AppContextType {
   clockInWithKiosk: (
     username: string, 
     pin: string, 
-    options?: { coords?: { latitude: number; longitude: number } | null; ip?: string; device?: string }
-  ) => { success: boolean; message: string; employee?: Employee; locationStatus?: LocationVerificationStatus; distanceMeters?: number; matchedSiteName?: string };
+    options?: { ip?: string; device?: string }
+  ) => { success: boolean; message: string; employee?: Employee; ipStatus?: string; workstationLabel?: string; ipAddress?: string };
   clockOutWithKiosk: (
     username: string, 
     pin: string, 
     breakMinutes?: number, 
-    options?: { coords?: { latitude: number; longitude: number } | null; ip?: string; device?: string }
-  ) => { success: boolean; message: string; employee?: Employee; totalHours?: number; locationStatus?: LocationVerificationStatus; distanceMeters?: number; matchedSiteName?: string };
+    options?: { ip?: string; device?: string }
+  ) => { success: boolean; message: string; employee?: Employee; totalHours?: number; ipStatus?: string; workstationLabel?: string; ipAddress?: string };
   adminClockOutStaff: (employeeId: string, options?: { breakMinutes?: number; note?: string }) => { success: boolean; message: string; totalHours?: number };
   updateStaffUsername: (empId: string, newUsername: string) => { success: boolean; message?: string };
   updateStaffKioskPin: (empId: string, newPin: string) => void;
@@ -343,13 +341,14 @@ interface AppContextType {
   updateAuditRetentionDays: (days: number) => Promise<void>;
   pruneAuditLogs: (days?: number) => Promise<{ success: boolean; prunedCount: number; message: string }>;
 
-  // Worksite Geofencing & Network Restrictions
-  geofenceSettings: GeofenceSettings;
-  updateGeofenceSettings: (settings: Partial<GeofenceSettings>) => Promise<void> | void;
-  addGeofenceLocation: (location: Omit<GeofenceLocation, 'id'>) => void;
-  updateGeofenceLocation: (id: string, updates: Partial<GeofenceLocation>) => void;
-  deleteGeofenceLocation: (id: string) => void;
-  toggleGeofenceLocation: (id: string) => void;
+  // Workstation IP Lock & Restrictions
+  ipLockSettings: IpLockSettings;
+  updateIpLockSettings: (settings: Partial<IpLockSettings>) => Promise<void> | void;
+  addLockedIp: (ip: string, label: string, notes?: string) => Promise<void> | void;
+  updateLockedIp: (id: string, updates: Partial<LockedIpRecord>) => Promise<void> | void;
+  deleteLockedIp: (id: string) => Promise<void> | void;
+  toggleLockedIp: (id: string) => Promise<void> | void;
+  detectAndLockCurrentIp: (label?: string) => Promise<{ success: boolean; ip: string; message: string }>;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -428,7 +427,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [timecards, setTimecards] = useState<TimecardRecord[]>(INITIAL_TIMECARDS);
   const [expirySettings, setExpirySettings] = useState<ExpiryReminderSettings>(INITIAL_EXPIRY_SETTINGS);
   const [auditRetentionDays, setAuditRetentionDays] = useState<number>(90);
-  const [geofenceSettings, setGeofenceSettings] = useState<GeofenceSettings>(INITIAL_GEOFENCE_SETTINGS);
+  const [ipLockSettings, setIpLockSettings] = useState<IpLockSettings>(INITIAL_IP_LOCK_SETTINGS);
   const [passwordResetTokens, setPasswordResetTokens] = useState<PasswordResetToken[]>([]);
   const [showForgotPasswordModal, setShowForgotPasswordModal] = useState(false);
   const [showChangePasswordModal, setShowChangePasswordModal] = useState(false);
@@ -557,10 +556,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         } catch (e) {}
       }
 
-      const savedGeofence = localStorage.getItem('ems_geofence_v1');
-      if (savedGeofence) {
+      const savedIpLock = localStorage.getItem('ems_ip_lock_v1');
+      if (savedIpLock) {
         try {
-          setGeofenceSettings({ ...INITIAL_GEOFENCE_SETTINGS, ...JSON.parse(savedGeofence) });
+          setIpLockSettings({ ...INITIAL_IP_LOCK_SETTINGS, ...JSON.parse(savedIpLock) });
         } catch (e) {}
       }
 
@@ -643,8 +642,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           if (setRes.value.settings.auditRetentionDays !== undefined) {
             setAuditRetentionDays(Number(setRes.value.settings.auditRetentionDays) || 90);
           }
-          if (setRes.value.settings.geofenceSettings) {
-            setGeofenceSettings(prev => ({ ...prev, ...setRes.value.settings.geofenceSettings }));
+          if (setRes.value.settings.ipLockSettings) {
+            setIpLockSettings(prev => ({ ...prev, ...setRes.value.settings.ipLockSettings }));
           }
         }
       } catch (err) {
@@ -3583,8 +3582,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const clockInWithKiosk = (
     username: string, 
     pin: string, 
-    options?: { coords?: { latitude: number; longitude: number } | null; ip?: string; device?: string }
-  ): { success: boolean; message: string; employee?: Employee; locationStatus?: LocationVerificationStatus; distanceMeters?: number; matchedSiteName?: string } => {
+    options?: { ip?: string; device?: string }
+  ): { success: boolean; message: string; employee?: Employee; ipStatus?: string; workstationLabel?: string; ipAddress?: string } => {
     const cleanUser = username.trim().toLowerCase();
     const cleanPin = pin.trim();
 
@@ -3617,24 +3616,21 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       return { success: false, message: `${emp.firstName} is already clocked in.`, employee: emp };
     }
 
-    // Evaluate Geolocation & Restrictions
-    const geoEval = evaluatePunchLocation(options?.coords, geofenceSettings, emp);
+    // Workstation IP Verification
+    const clientIp = options?.ip || '192.168.1.100';
     const device = options?.device || getDeviceDescription();
-    const ip = options?.ip || '192.168.1.100';
-    const effectiveMode = geofenceSettings.mode || geofenceSettings.enforcementMode || 'WARN_AND_FLAG';
+    const ipEval = evaluateIpAccess(clientIp, ipLockSettings);
 
-    if (geoEval.status === 'OUT_OF_BOUNDS' && effectiveMode === 'STRICT_BLOCK') {
-      const distDisplay = formatDistanceDisplay(geoEval.distanceMeters || 0);
-      const blockMsg = `Clock-in blocked: You are outside authorized worksite boundary (${distDisplay} away). Nearest site: ${geoEval.matchedSiteName || 'Plant'}.`;
-      addToast('Geofence Verification Blocked', blockMsg, 'error');
-      addAudit('CLOCK_IN_BLOCKED_OUT_OF_BOUNDS', 'Employee', emp.id, `${emp.firstName} ${emp.lastName} attempted clock-in from out of bounds (${distDisplay} away from ${geoEval.matchedSiteName}). Punch blocked under STRICT_BLOCK policy.`, `${emp.firstName} ${emp.lastName}`, 'Staff');
+    if (!ipEval.isAllowed) {
+      addToast('Workstation IP Blocked', ipEval.message, 'error');
+      addAudit('CLOCK_IN_BLOCKED_UNAUTHORIZED_IP', 'Employee', emp.id, `${emp.firstName} ${emp.lastName} attempted clock-in from unauthorized workstation IP (${clientIp}). Punch rejected by Workstation IP Lock policy.`, `${emp.firstName} ${emp.lastName}`, 'Staff');
       return { 
         success: false, 
-        message: blockMsg, 
+        message: ipEval.message, 
         employee: emp, 
-        locationStatus: 'OUT_OF_BOUNDS', 
-        distanceMeters: geoEval.distanceMeters, 
-        matchedSiteName: geoEval.matchedSiteName 
+        ipAddress: clientIp,
+        workstationLabel: 'Unregistered Workstation',
+        ipStatus: 'UNAUTHORIZED_IP'
       };
     }
 
@@ -3658,15 +3654,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       durationSeconds: 0,
       overtimeHours: 0,
       status: 'CLOCKED_IN',
-      notes: geoEval.status === 'OUT_OF_BOUNDS'
-        ? `Flagged Out-of-Bounds (${formatDistanceDisplay(geoEval.distanceMeters || 0)} from ${geoEval.matchedSiteName})`
-        : `Clocked in via Shift Terminal at ${geoEval.matchedSiteName || emp.workLocation || 'Sydney NSW'}`,
-      locationStatus: geoEval.status,
-      matchedSiteName: geoEval.matchedSiteName,
-      distanceMeters: geoEval.distanceMeters,
-      punchCoordinates: options?.coords ? { latitude: options.coords.latitude, longitude: options.coords.longitude } : undefined,
-      ipAddress: ip,
+      notes: `Clocked in via ${ipEval.workstationLabel} (IP: ${clientIp})`,
+      ipAddress: clientIp,
+      workstationLabel: ipEval.workstationLabel,
       deviceInfo: device,
+      ipStatus: ipEval.status,
     };
 
     setTimecards(prev => [newTimecard, ...prev]);
@@ -3707,40 +3699,32 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     const newNotif: NotificationItem = {
       id: 'notif-' + nowMs,
       recipient: 'ADMIN',
-      title: geoEval.status === 'OUT_OF_BOUNDS' 
-        ? `Out-of-Bounds Clock In: ${emp.firstName} ${emp.lastName}` 
-        : `${emp.firstName} ${emp.lastName} Clocked In`,
-      message: geoEval.status === 'OUT_OF_BOUNDS'
-        ? `${emp.firstName} ${emp.lastName} clocked IN at ${timeStr} (${emp.department || 'Production'}) but was ${formatDistanceDisplay(geoEval.distanceMeters || 0)} outside ${geoEval.matchedSiteName}. Flagged for review.`
-        : `${emp.firstName} ${emp.lastName} clocked IN at ${timeStr} (${emp.department || 'Production'}) at ${geoEval.matchedSiteName || 'Sydney Plant'}.`,
-      type: geoEval.status === 'OUT_OF_BOUNDS' ? 'TIMECARD_ADJUST' : 'TIMECARD_CLOCK_IN',
+      title: `${emp.firstName} ${emp.lastName} Clocked In`,
+      message: `${emp.firstName} ${emp.lastName} clocked IN at ${timeStr} (${emp.department || 'Production'}) from ${ipEval.workstationLabel} (${clientIp}).`,
+      type: 'TIMECARD_CLOCK_IN',
       timestamp: 'Just now',
       read: false
     };
     setNotifications(prev => [newNotif, ...prev]);
 
-    if (geoEval.status === 'OUT_OF_BOUNDS') {
-      addToast('Out-of-Bounds Warning', `Clock-in recorded but flagged: You are ${formatDistanceDisplay(geoEval.distanceMeters || 0)} from ${geoEval.matchedSiteName}. Supervisor alerted.`, 'warning');
-    } else {
-      addToast('Clock-In Successful', `Welcome ${emp.firstName}! Clocked in at ${timeStr} AEST (${geoEval.matchedSiteName || 'On-site'}).`, 'success');
-    }
+    addToast('Clock-In Successful', `Welcome ${emp.firstName}! Clocked in from ${ipEval.workstationLabel}.`, 'success');
     
     addAudit(
-      geoEval.status === 'OUT_OF_BOUNDS' ? 'SHIFT_CLOCK_IN_FLAGGED_LOCATION' : 'SHIFT_CLOCK_IN',
+      'SHIFT_CLOCK_IN',
       'Timecard', 
       shiftId, 
-      `${emp.firstName} ${emp.lastName} clocked IN at ${timeStr} (${geoEval.status}${geoEval.distanceMeters ? ` - ${formatDistanceDisplay(geoEval.distanceMeters)} from ${geoEval.matchedSiteName}` : ''})`, 
+      `${emp.firstName} ${emp.lastName} clocked IN at ${timeStr} from ${ipEval.workstationLabel} (IP: ${clientIp})`, 
       `${emp.firstName} ${emp.lastName}`, 
       'Staff'
     );
 
     return { 
       success: true, 
-      message: `Successfully clocked in at ${timeStr}${geoEval.status === 'OUT_OF_BOUNDS' ? ' (Flagged Out-of-Bounds)' : ''}`, 
+      message: `Successfully clocked in at ${timeStr} from ${ipEval.workstationLabel}`, 
       employee: updatedEmp,
-      locationStatus: geoEval.status,
-      distanceMeters: geoEval.distanceMeters,
-      matchedSiteName: geoEval.matchedSiteName
+      ipAddress: clientIp,
+      workstationLabel: ipEval.workstationLabel,
+      ipStatus: ipEval.status
     };
   };
 
@@ -3748,8 +3732,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     username: string, 
     pin: string, 
     breakMinutes: number = 0,
-    options?: { coords?: { latitude: number; longitude: number } | null; ip?: string; device?: string }
-  ): { success: boolean; message: string; employee?: Employee; totalHours?: number; locationStatus?: LocationVerificationStatus; distanceMeters?: number; matchedSiteName?: string } => {
+    options?: { ip?: string; device?: string }
+  ): { success: boolean; message: string; employee?: Employee; totalHours?: number; ipAddress?: string; workstationLabel?: string; ipStatus?: string } => {
     const cleanUser = username.trim().toLowerCase();
     const cleanPin = pin.trim();
 
@@ -3776,24 +3760,21 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       return { success: false, message: `${emp.firstName} is not clocked in.`, employee: emp };
     }
 
-    // Evaluate Geolocation & Restrictions
-    const geoEval = evaluatePunchLocation(options?.coords, geofenceSettings, emp);
+    // Workstation IP Verification
+    const clientIp = options?.ip || '192.168.1.100';
     const device = options?.device || getDeviceDescription();
-    const ip = options?.ip || '192.168.1.100';
-    const effectiveMode = geofenceSettings.mode || geofenceSettings.enforcementMode || 'WARN_AND_FLAG';
+    const ipEval = evaluateIpAccess(clientIp, ipLockSettings);
 
-    if (geoEval.status === 'OUT_OF_BOUNDS' && effectiveMode === 'STRICT_BLOCK') {
-      const distDisplay = formatDistanceDisplay(geoEval.distanceMeters || 0);
-      const blockMsg = `Clock-out blocked: You are outside authorized worksite boundary (${distDisplay} away). Nearest site: ${geoEval.matchedSiteName || 'Plant'}.`;
-      addToast('Geofence Verification Blocked', blockMsg, 'error');
-      addAudit('CLOCK_OUT_BLOCKED_OUT_OF_BOUNDS', 'Employee', emp.id, `${emp.firstName} ${emp.lastName} attempted clock-out from out of bounds (${distDisplay} away from ${geoEval.matchedSiteName}). Punch blocked under STRICT_BLOCK policy.`, `${emp.firstName} ${emp.lastName}`, 'Staff');
+    if (!ipEval.isAllowed) {
+      addToast('Workstation IP Blocked', ipEval.message, 'error');
+      addAudit('CLOCK_OUT_BLOCKED_UNAUTHORIZED_IP', 'Employee', emp.id, `${emp.firstName} ${emp.lastName} attempted clock-out from unauthorized workstation IP (${clientIp}). Punch rejected by Workstation IP Lock policy.`, `${emp.firstName} ${emp.lastName}`, 'Staff');
       return { 
         success: false, 
-        message: blockMsg, 
+        message: ipEval.message, 
         employee: emp, 
-        locationStatus: 'OUT_OF_BOUNDS', 
-        distanceMeters: geoEval.distanceMeters, 
-        matchedSiteName: geoEval.matchedSiteName 
+        ipAddress: clientIp,
+        workstationLabel: 'Unregistered Workstation',
+        ipStatus: 'UNAUTHORIZED_IP'
       };
     }
 
@@ -3813,8 +3794,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     const elapsedGrossSec = Math.floor(elapsedMs / 1000);
 
     // Automatic Break Calculation:
-    // If worked more than 4 hours (> 14400 sec), assume 30 minutes break and deduct it from total hours,
-    // unless admin explicitly specified a manual break override.
     let effectiveBreak = breakMinutes;
     let isManual = breakMinutes > 0;
     if (!isManual) {
@@ -3852,12 +3831,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           totalHours,
           overtimeHours: 0,
           status: 'COMPLETED',
-          locationStatus: geoEval.status,
-          matchedSiteName: geoEval.matchedSiteName || updated[existingIdx].matchedSiteName,
-          distanceMeters: geoEval.distanceMeters !== undefined ? geoEval.distanceMeters : updated[existingIdx].distanceMeters,
-          punchCoordinates: options?.coords ? { latitude: options.coords.latitude, longitude: options.coords.longitude } : updated[existingIdx].punchCoordinates,
-          ipAddress: ip,
+          ipAddress: clientIp,
+          workstationLabel: ipEval.workstationLabel,
           deviceInfo: device,
+          ipStatus: ipEval.status,
         };
         updated[existingIdx] = updatedRec;
         recordToSave = updatedRec;
@@ -3880,12 +3857,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           totalHours,
           overtimeHours: 0,
           status: 'COMPLETED',
-          locationStatus: geoEval.status,
-          matchedSiteName: geoEval.matchedSiteName,
-          distanceMeters: geoEval.distanceMeters,
-          punchCoordinates: options?.coords ? { latitude: options.coords.latitude, longitude: options.coords.longitude } : undefined,
-          ipAddress: ip,
+          ipAddress: clientIp,
+          workstationLabel: ipEval.workstationLabel,
           deviceInfo: device,
+          ipStatus: ipEval.status,
         };
         recordToSave = newRecord;
         return [newRecord, ...prev];
@@ -3930,41 +3905,33 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     const newNotif: NotificationItem = {
       id: 'notif-' + nowMs,
       recipient: 'ADMIN',
-      title: geoEval.status === 'OUT_OF_BOUNDS' 
-        ? `Out-of-Bounds Clock Out: ${emp.firstName} ${emp.lastName}` 
-        : `${emp.firstName} ${emp.lastName} Clocked Out`,
-      message: geoEval.status === 'OUT_OF_BOUNDS'
-        ? `${emp.firstName} ${emp.lastName} clocked OUT at ${timeStr} (Duration: ${hmsFormatted}) from ${formatDistanceDisplay(geoEval.distanceMeters || 0)} outside ${geoEval.matchedSiteName}. Flagged for review.`
-        : `${emp.firstName} ${emp.lastName} clocked OUT at ${timeStr} (Duration: ${hmsFormatted}).`,
-      type: geoEval.status === 'OUT_OF_BOUNDS' ? 'TIMECARD_ADJUST' : 'TIMECARD_CLOCK_OUT',
+      title: `${emp.firstName} ${emp.lastName} Clocked Out`,
+      message: `${emp.firstName} ${emp.lastName} clocked OUT at ${timeStr} (Duration: ${hmsFormatted}) from ${ipEval.workstationLabel} (${clientIp}).`,
+      type: 'TIMECARD_CLOCK_OUT',
       timestamp: 'Just now',
       read: false
     };
     setNotifications(prev => [newNotif, ...prev]);
 
-    if (geoEval.status === 'OUT_OF_BOUNDS') {
-      addToast('Out-of-Bounds Warning', `Clock-out recorded but flagged: ${formatDistanceDisplay(geoEval.distanceMeters || 0)} from ${geoEval.matchedSiteName}.`, 'warning');
-    } else {
-      addToast('Clock-Out Successful', `Goodbye ${emp.firstName}! Shift recorded: ${hmsFormatted} (${totalHours.toFixed(2)} hrs).`, 'success');
-    }
+    addToast('Clock-Out Successful', `Goodbye ${emp.firstName}! Shift recorded: ${hmsFormatted} (${totalHours.toFixed(2)} hrs).`, 'success');
     
     addAudit(
-      geoEval.status === 'OUT_OF_BOUNDS' ? 'SHIFT_CLOCK_OUT_FLAGGED_LOCATION' : 'SHIFT_CLOCK_OUT',
+      'SHIFT_CLOCK_OUT',
       'Timecard', 
       emp.currentShiftId || 'tc', 
-      `${emp.firstName} ${emp.lastName} clocked OUT at ${timeStr} (${hmsFormatted})${geoEval.status === 'OUT_OF_BOUNDS' ? ` [Flagged: ${formatDistanceDisplay(geoEval.distanceMeters || 0)} from ${geoEval.matchedSiteName}]` : ''}`, 
+      `${emp.firstName} ${emp.lastName} clocked OUT at ${timeStr} (${hmsFormatted}) from ${ipEval.workstationLabel} (IP: ${clientIp})`, 
       `${emp.firstName} ${emp.lastName}`, 
       'Staff'
     );
 
     return { 
       success: true, 
-      message: `Shift ended: ${hmsFormatted} (${totalHours.toFixed(2)} hrs)${geoEval.status === 'OUT_OF_BOUNDS' ? ' (Flagged Out-of-Bounds)' : ''}`, 
+      message: `Shift ended: ${hmsFormatted} (${totalHours.toFixed(2)} hrs) from ${ipEval.workstationLabel}`, 
       employee: updatedEmp, 
       totalHours,
-      locationStatus: geoEval.status,
-      distanceMeters: geoEval.distanceMeters,
-      matchedSiteName: geoEval.matchedSiteName
+      ipAddress: clientIp,
+      workstationLabel: ipEval.workstationLabel,
+      ipStatus: ipEval.status
     };
   };
 
@@ -4728,24 +4695,24 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     return { success: true, message: `Notification dispatched to ${emp.firstName} ${emp.lastName}` };
   };
 
-  // Worksite Geofence & Restrictions Management Methods
-  const updateGeofenceSettings = async (settings: Partial<GeofenceSettings>) => {
-    const merged = { ...geofenceSettings, ...settings };
-    setGeofenceSettings(merged);
+  // Workstation IP Lock & Restrictions Management Methods
+  const updateIpLockSettings = async (settings: Partial<IpLockSettings>) => {
+    const merged = { ...ipLockSettings, ...settings };
+    setIpLockSettings(merged);
     try {
-      localStorage.setItem('ems_geofence_v1', JSON.stringify(merged));
+      localStorage.setItem('ems_ip_lock_v1', JSON.stringify(merged));
       const res = await fetch('/api/settings', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ geofenceSettings: merged }),
+        body: JSON.stringify({ ipLockSettings: merged }),
       });
       if (res.ok) {
-        addToast('Geofence Rules Updated', 'Worksite perimeter and network restrictions saved in real time.', 'success');
+        addToast('Workstation IP Rules Updated', `Workstation IP Lock is now ${merged.enabled ? 'ACTIVE (Locked IPs Only)' : 'DISABLED (Unrestricted)'}.`, 'success');
         addAudit(
-          'GEOFENCE_SETTINGS_UPDATED',
+          'IP_LOCK_SETTINGS_UPDATED',
           'Settings',
-          'geofence',
-          `Updated worksite geofence policy (Mode: ${merged.mode || merged.enforcementMode || 'WARN_AND_FLAG'}, Sites: ${merged.locations.length})`,
+          'ip_lock',
+          `Updated Workstation IP Lock policy (Enforced: ${merged.enabled}, Total Locked Workstations: ${merged.lockedIps.length})`,
           currentUser?.name || 'Admin',
           currentUser?.role || 'SuperAdmin'
         );
@@ -4757,78 +4724,107 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const addGeofenceLocation = (location: Omit<GeofenceLocation, 'id'>) => {
-    const newLoc: GeofenceLocation = { ...location, id: 'geo-' + Date.now() };
-    const merged = { ...geofenceSettings, locations: [...geofenceSettings.locations, newLoc] };
-    setGeofenceSettings(merged);
+  const addLockedIp = async (ip: string, label: string, notes?: string) => {
+    const cleanIp = ip.trim();
+    const cleanLabel = label.trim() || `Workstation (${cleanIp})`;
+    if (!cleanIp) {
+      addToast('Invalid IP', 'Please provide a valid workstation IP address.', 'error');
+      return;
+    }
+    const newRecord: LockedIpRecord = {
+      id: 'iplock-' + Date.now(),
+      ip: cleanIp,
+      label: cleanLabel,
+      addedAt: new Date().toLocaleDateString('en-AU', { day: '2-digit', month: 'short', year: 'numeric' }),
+      addedBy: currentUser?.name || 'Super Admin',
+      isActive: true,
+      notes: notes || undefined,
+    };
+    const merged: IpLockSettings = {
+      ...ipLockSettings,
+      lockedIps: [newRecord, ...ipLockSettings.lockedIps.filter(r => r.ip !== cleanIp)],
+    };
+    setIpLockSettings(merged);
     try {
-      localStorage.setItem('ems_geofence_v1', JSON.stringify(merged));
+      localStorage.setItem('ems_ip_lock_v1', JSON.stringify(merged));
       fetch('/api/settings', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ geofenceSettings: merged }),
+        body: JSON.stringify({ ipLockSettings: merged }),
       }).catch(() => {});
     } catch(e) {}
-    addToast('Worksite Added', `Added ${newLoc.name} (${newLoc.radiusMeters}m perimeter).`, 'success');
-    addAudit('GEOFENCE_LOCATION_ADDED', 'GeofenceLocation', newLoc.id, `Added worksite ${newLoc.name}`, currentUser?.name || 'Admin', currentUser?.role || 'SuperAdmin');
+    addToast('Workstation IP Locked', `Locked workstation: ${cleanLabel} (${cleanIp}).`, 'success');
+    addAudit('WORKSTATION_IP_LOCKED', 'LockedIpRecord', newRecord.id, `Locked workstation IP ${cleanIp} (${cleanLabel})`, currentUser?.name || 'Admin', currentUser?.role || 'SuperAdmin');
   };
 
-  const updateGeofenceLocation = (id: string, updates: Partial<GeofenceLocation>) => {
-    const merged = {
-      ...geofenceSettings,
-      locations: geofenceSettings.locations.map(loc => loc.id === id ? { ...loc, ...updates } : loc)
+  const updateLockedIp = async (id: string, updates: Partial<LockedIpRecord>) => {
+    const merged: IpLockSettings = {
+      ...ipLockSettings,
+      lockedIps: ipLockSettings.lockedIps.map(loc => loc.id === id ? { ...loc, ...updates } : loc)
     };
-    setGeofenceSettings(merged);
+    setIpLockSettings(merged);
     try {
-      localStorage.setItem('ems_geofence_v1', JSON.stringify(merged));
+      localStorage.setItem('ems_ip_lock_v1', JSON.stringify(merged));
       fetch('/api/settings', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ geofenceSettings: merged }),
+        body: JSON.stringify({ ipLockSettings: merged }),
       }).catch(() => {});
     } catch(e) {}
-    addToast('Worksite Updated', 'Worksite location parameters updated.', 'success');
-    addAudit('GEOFENCE_LOCATION_UPDATED', 'GeofenceLocation', id, `Updated worksite ${id}`, currentUser?.name || 'Admin', currentUser?.role || 'SuperAdmin');
+    addToast('Workstation Updated', 'Workstation IP parameters updated.', 'success');
+    addAudit('WORKSTATION_IP_UPDATED', 'LockedIpRecord', id, `Updated locked workstation ${id}`, currentUser?.name || 'Admin', currentUser?.role || 'SuperAdmin');
   };
 
-  const deleteGeofenceLocation = (id: string) => {
-    const locToDelete = geofenceSettings.locations.find(l => l.id === id);
-    const merged = {
-      ...geofenceSettings,
-      locations: geofenceSettings.locations.filter(loc => loc.id !== id)
+  const deleteLockedIp = async (id: string) => {
+    const recordToDelete = ipLockSettings.lockedIps.find(l => l.id === id);
+    const merged: IpLockSettings = {
+      ...ipLockSettings,
+      lockedIps: ipLockSettings.lockedIps.filter(loc => loc.id !== id)
     };
-    setGeofenceSettings(merged);
+    setIpLockSettings(merged);
     try {
-      localStorage.setItem('ems_geofence_v1', JSON.stringify(merged));
+      localStorage.setItem('ems_ip_lock_v1', JSON.stringify(merged));
       fetch('/api/settings', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ geofenceSettings: merged }),
+        body: JSON.stringify({ ipLockSettings: merged }),
       }).catch(() => {});
     } catch(e) {}
-    if (locToDelete) {
-      addToast('Worksite Deleted', `Removed worksite ${locToDelete.name}.`, 'info');
-      addAudit('GEOFENCE_LOCATION_DELETED', 'GeofenceLocation', id, `Deleted worksite ${locToDelete.name}`, currentUser?.name || 'Admin', currentUser?.role || 'SuperAdmin');
+    if (recordToDelete) {
+      addToast('Workstation Unlocked', `Removed ${recordToDelete.label} (${recordToDelete.ip}) from locked whitelist.`, 'info');
+      addAudit('WORKSTATION_IP_DELETED', 'LockedIpRecord', id, `Unlocked/deleted workstation ${recordToDelete.label} (${recordToDelete.ip})`, currentUser?.name || 'Admin', currentUser?.role || 'SuperAdmin');
     }
   };
 
-  const toggleGeofenceLocation = (id: string) => {
-    const loc = geofenceSettings.locations.find(l => l.id === id);
-    const newActive = loc ? !loc.isActive : true;
-    const merged = {
-      ...geofenceSettings,
-      locations: geofenceSettings.locations.map(l => l.id === id ? { ...l, isActive: newActive } : l)
+  const toggleLockedIp = async (id: string) => {
+    const rec = ipLockSettings.lockedIps.find(l => l.id === id);
+    const newActive = rec ? !rec.isActive : true;
+    const merged: IpLockSettings = {
+      ...ipLockSettings,
+      lockedIps: ipLockSettings.lockedIps.map(l => l.id === id ? { ...l, isActive: newActive } : l)
     };
-    setGeofenceSettings(merged);
+    setIpLockSettings(merged);
     try {
-      localStorage.setItem('ems_geofence_v1', JSON.stringify(merged));
+      localStorage.setItem('ems_ip_lock_v1', JSON.stringify(merged));
       fetch('/api/settings', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ geofenceSettings: merged }),
+        body: JSON.stringify({ ipLockSettings: merged }),
       }).catch(() => {});
     } catch(e) {}
-    addToast('Worksite Toggled', `${loc?.name || 'Worksite'} is now ${newActive ? 'Active' : 'Disabled'}.`, 'info');
+    addToast('Workstation Status Updated', `${rec?.label || 'Workstation'} is now ${newActive ? 'Active' : 'Disabled'}.`, 'info');
+  };
+
+  const detectAndLockCurrentIp = async (label?: string): Promise<{ success: boolean; ip: string; message: string }> => {
+    try {
+      const detectedIp = await detectWorkstationIp();
+      const wsLabel = label || `Current Workstation (${detectedIp})`;
+      await addLockedIp(detectedIp, wsLabel, 'Auto-detected & locked from Admin Hub');
+      return { success: true, ip: detectedIp, message: `Successfully locked current workstation IP: ${detectedIp}` };
+    } catch (e: any) {
+      addToast('Detection Failed', 'Could not detect workstation IP.', 'error');
+      return { success: false, ip: '', message: e.message || 'IP detection failed' };
+    }
   };
 
   return (
@@ -4922,12 +4918,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       auditRetentionDays,
       updateAuditRetentionDays,
       pruneAuditLogs,
-      geofenceSettings,
-      updateGeofenceSettings,
-      addGeofenceLocation,
-      updateGeofenceLocation,
-      deleteGeofenceLocation,
-      toggleGeofenceLocation,
+      ipLockSettings,
+      updateIpLockSettings,
+      addLockedIp,
+      updateLockedIp,
+      deleteLockedIp,
+      toggleLockedIp,
+      detectAndLockCurrentIp,
     }}>
       {children}
     </AppContext.Provider>

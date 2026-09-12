@@ -170,7 +170,6 @@ export interface Employee {
 }
 
 export type TimecardStatus = 'CLOCKED_IN' | 'COMPLETED' | 'ON_LEAVE' | 'MANUALLY_ADJUSTED';
-export type LocationVerificationStatus = 'VERIFIED_ON_SITE' | 'OUT_OF_BOUNDS' | 'GPS_UNAVAILABLE' | 'REMOTE_EXEMPT';
 
 export interface TimecardRecord {
   id: string;
@@ -198,13 +197,11 @@ export interface TimecardRecord {
   adjustedBy?: string;
   adjustedAt?: string;
 
-  // Geofence & Device Tracking
-  locationStatus?: LocationVerificationStatus;
-  matchedSiteName?: string;
-  distanceMeters?: number;
-  punchCoordinates?: { latitude: number; longitude: number };
+  // Workstation IP & Device Tracking
   ipAddress?: string;
+  workstationLabel?: string;
   deviceInfo?: string;
+  ipStatus?: 'LOCKED_IP_AUTHORIZED' | 'UNAUTHORIZED_IP' | 'UNRESTRICTED';
 }
 
 export interface LeaveRequest {
@@ -306,32 +303,25 @@ export interface AuditRetentionSettings {
   lastPrunedAt?: string;
 }
 
-export type GeofenceMode = 'STRICT_BLOCK' | 'WARN_AND_FLAG' | 'DISABLED';
-
-export interface GeofenceLocation {
+export interface LockedIpRecord {
   id: string;
-  name: string;
-  address: string;
-  latitude: number;
-  longitude: number;
-  radiusMeters: number;
+  ip: string; // e.g. "192.168.1.100" or "203.0.113.50"
+  label: string; // e.g. "Sydney Riverwood Plant Kiosk"
+  addedAt: string;
+  addedBy?: string;
   isActive: boolean;
+  notes?: string;
 }
 
-export interface GeofenceSettings {
-  enabled: boolean;
-  mode: GeofenceMode;
-  enforcementMode?: GeofenceMode;
-  requireIpWhitelist: boolean;
-  whitelistedIps: string[];
-  ipWhitelist?: string[];
-  locations: GeofenceLocation[];
+export interface IpLockSettings {
+  enabled: boolean; // Master lock active/disabled
+  lockedIps: LockedIpRecord[];
 }
 
 export interface SystemSettingsConfig {
   expirySettings: ExpiryReminderSettings;
   auditRetentionDays: number;
   autoPruneAuditLogs: boolean;
-  geofenceSettings?: GeofenceSettings;
+  ipLockSettings?: IpLockSettings;
 }
 
