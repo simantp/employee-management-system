@@ -129,6 +129,7 @@ export default function AdminSettingsHub({
   });
   const [detectedAdminIp, setDetectedAdminIp] = useState<string>('');
   const [isDetectingIp, setIsDetectingIp] = useState(false);
+  const [releasingLock, setReleasingLock] = useState<LockedIpRecord | null>(null);
 
   useEffect(() => {
     if (activeTab === 'IP_LOCK') {
@@ -1148,9 +1149,34 @@ export default function AdminSettingsHub({
                       const matched = ipLockSettings?.lockedIps?.find(l => l.ip === detectedAdminIp && l.isActive);
                       if (matched) {
                         return (
-                          <span className="px-3 py-1.5 rounded-xl bg-emerald-950/60 text-emerald-400 border border-emerald-800/60 font-bold text-xs">
-                            Workstation Locked
-                          </span>
+                          <button
+                            type="button"
+                            onClick={() => setReleasingLock(matched)}
+                            className="px-3.5 py-1.5 rounded-xl bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 border border-rose-500/40 font-bold text-xs transition cursor-pointer flex items-center gap-1.5"
+                          >
+                            <span>Release Current Lock</span>
+                          </button>
+                        );
+                      }
+                      const inactiveMatch = ipLockSettings?.lockedIps?.find(l => l.ip === detectedAdminIp && !l.isActive);
+                      if (inactiveMatch) {
+                        return (
+                          <div className="flex items-center gap-2">
+                            <button
+                              type="button"
+                              onClick={() => toggleLockedIp(inactiveMatch.id)}
+                              className="px-3.5 py-1.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-xs transition cursor-pointer shadow-xs"
+                            >
+                              Enable Lock
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setReleasingLock(inactiveMatch)}
+                              className="px-3 py-1.5 rounded-xl bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 border border-rose-500/40 font-bold text-xs transition cursor-pointer"
+                            >
+                              Release
+                            </button>
+                          </div>
                         );
                       }
                       return (
@@ -1171,7 +1197,7 @@ export default function AdminSettingsHub({
                 </div>
               </div>
 
-              {/* 3. Authorized & Locked Workstations List */}
+              {/* 2. Authorized & Locked Workstations List */}
               <div className="space-y-3 pt-3 border-t border-slate-100">
                 <div className="flex items-center justify-between">
                   <div>
@@ -1246,64 +1272,13 @@ export default function AdminSettingsHub({
                           </button>
                           <button
                             type="button"
-                            onClick={() => {
-                              if (window.confirm(`Delete locked workstation "${loc.label}" (${loc.ip})?`)) {
-                                deleteLockedIp(loc.id);
-                              }
-                            }}
+                            onClick={() => setReleasingLock(loc)}
                             className="text-[11px] font-bold text-rose-600 hover:text-rose-800 cursor-pointer"
                           >
-                            Delete
+                            Release Lock
                           </button>
                         </div>
                       </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* 4. Remote Work Staff Exemptions */}
-              <div className="space-y-3 pt-3 border-t border-slate-100">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h4 className="font-bold text-xs text-slate-900">3. Remote Work Staff Exemptions</h4>
-                    <p className="text-slate-500 text-[11px]">Staff with remote authorization can clock in and out from any workstation without IP lock rejection.</p>
-                  </div>
-                  <span className="text-[11px] font-bold text-slate-600 font-mono">
-                    {employees.filter(e => e.isRemoteAllowed).length} Remote Authorized
-                  </span>
-                </div>
-
-                <div className="bg-slate-50/70 p-3.5 rounded-2xl border border-slate-200 max-h-56 overflow-y-auto divide-y divide-slate-100">
-                  {employees.map(emp => (
-                    <div key={emp.id} className="py-2 flex items-center justify-between gap-3">
-                      <div className="flex items-center gap-2.5 min-w-0">
-                        <img
-                          src={emp.avatarUrl || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150'}
-                          alt={emp.firstName}
-                          className="w-7 h-7 rounded-lg object-cover ring-1 ring-slate-200 shrink-0"
-                        />
-                        <div className="truncate">
-                          <span className="font-bold text-xs text-slate-900 block truncate">{emp.firstName} {emp.lastName}</span>
-                          <span className="text-[10px] text-slate-500 font-mono truncate">{emp.jobTitle} • {emp.department || 'Operations'}</span>
-                        </div>
-                      </div>
-
-                      <button
-                        type="button"
-                        onClick={() => {
-                          const next = !emp.isRemoteAllowed;
-                          updateEmployee(emp.id, { isRemoteAllowed: next });
-                          addToast('Remote Exemption Updated', `${emp.firstName} ${emp.lastName} is ${next ? 'now authorized for remote punching' : 'now restricted to locked workstations'}`, 'info');
-                        }}
-                        className={`px-3 py-1 rounded-xl text-[10px] font-bold border transition cursor-pointer shrink-0 ${
-                          emp.isRemoteAllowed
-                            ? 'bg-blue-50 text-blue-700 border-blue-300 font-black'
-                            : 'bg-white text-slate-600 border-slate-200 hover:border-slate-300'
-                        }`}
-                      >
-                        {emp.isRemoteAllowed ? 'Remote Allowed' : 'Locked Workstation Only'}
-                      </button>
                     </div>
                   ))}
                 </div>
@@ -1418,6 +1393,78 @@ export default function AdminSettingsHub({
                     className="px-4 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs shadow-xs transition cursor-pointer"
                   >
                     {editingIpId ? 'Save Changes' : 'Lock Workstation IP'}
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Modern Release / Delete Workstation IP Lock Modal */}
+          {releasingLock && (
+            <div className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in duration-150">
+              <div className="bg-white rounded-3xl border border-slate-200 shadow-2xl max-w-md w-full p-6 space-y-4 animate-in zoom-in-95 duration-150">
+                <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-8 h-8 rounded-xl bg-rose-50 text-rose-600 border border-rose-200 flex items-center justify-center font-bold text-xs">
+                      IP
+                    </div>
+                    <div>
+                      <h4 className="font-black text-sm text-slate-900">Release Workstation Lock</h4>
+                      <p className="text-[10px] text-slate-500">Remove from authorized IP whitelist</p>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setReleasingLock(null)}
+                    className="text-slate-400 hover:text-slate-600 text-xs font-bold cursor-pointer"
+                  >
+                    Cancel
+                  </button>
+                </div>
+
+                <div className="p-3.5 rounded-2xl bg-rose-50/60 border border-rose-200/80 space-y-2 text-xs">
+                  <p className="text-slate-700 leading-relaxed text-[11px]">
+                    Are you sure you want to release and remove the locked IP for <strong className="text-slate-950 font-bold">{releasingLock.label}</strong>?
+                  </p>
+                  <div className="p-2.5 rounded-xl bg-white border border-rose-200 font-mono text-xs text-slate-800 space-y-1">
+                    <div className="flex justify-between">
+                      <span className="font-sans text-slate-400 text-[10px]">Workstation:</span>
+                      <span className="font-bold text-slate-900">{releasingLock.label}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="font-sans text-slate-400 text-[10px]">IP Address:</span>
+                      <span className="font-bold text-rose-700">{releasingLock.ip}</span>
+                    </div>
+                    {releasingLock.notes && (
+                      <div className="flex justify-between">
+                        <span className="font-sans text-slate-400 text-[10px]">Notes:</span>
+                        <span className="font-sans text-slate-600 text-[11px]">{releasingLock.notes}</span>
+                      </div>
+                    )}
+                  </div>
+                  <p className="text-[10px] text-rose-700 font-semibold">
+                    Once released, shift clock punch from this workstation will be blocked if IP lock enforcement is active.
+                  </p>
+                </div>
+
+                <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100">
+                  <button
+                    type="button"
+                    onClick={() => setReleasingLock(null)}
+                    className="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs transition cursor-pointer"
+                  >
+                    Keep Locked
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      deleteLockedIp(releasingLock.id);
+                      addToast('Workstation Lock Released', `Unlocked and removed IP ${releasingLock.ip} (${releasingLock.label}).`, 'info');
+                      setReleasingLock(null);
+                    }}
+                    className="px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs shadow-xs transition cursor-pointer"
+                  >
+                    Release &amp; Delete Lock
                   </button>
                 </div>
               </div>

@@ -55,31 +55,13 @@
     "enabled": true,
     "lockedIps": [
       {
-        "id": "iplock-riverwood-kiosk",
-        "ip": "192.168.1.100",
-        "label": "Riverwood Plant Floor Kiosk",
-        "addedAt": "12 Sep 2026",
-        "addedBy": "SuperAdmin",
-        "notes": "Main Production Facility Clocking Terminal",
-        "isActive": true
-      },
-      {
-        "id": "iplock-head-office",
-        "ip": "120.18.42.110",
-        "label": "Head Office Reception",
-        "addedAt": "12 Sep 2026",
-        "addedBy": "SuperAdmin",
-        "notes": "Administration Building Front Desk Terminal",
-        "isActive": true
-      },
-      {
-        "id": "iplock-rockdale-terminal",
-        "ip": "10.0.4.25",
-        "label": "Rockdale Hub Terminal",
-        "addedAt": "12 Sep 2026",
-        "addedBy": "SuperAdmin",
-        "notes": "Logistics & Dispatch Workstation",
-        "isActive": true
+        "id": "iplock-1789174822838",
+        "ip": "27.34.73.145",
+        "label": "Current Workstation",
+        "addedAt": "12 Sept 2026",
+        "addedBy": "Admin User",
+        "isActive": true,
+        "notes": "Auto-detected & locked from Admin Hub"
       }
     ]
   }
