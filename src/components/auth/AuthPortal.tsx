@@ -527,32 +527,6 @@ export default function AuthPortal() {
             </p>
           </div>
         </div>
-
-        <div className="flex items-center gap-3">
-          {/* Live Sydney Time Badge */}
-          <div className="flex items-center gap-2.5 px-3.5 py-1.5 sm:px-4 sm:py-2 rounded-full bg-slate-900/90 border border-slate-800 text-xs text-slate-300 backdrop-blur-md shadow-lg shadow-black/20">
-            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-            <span className="font-mono font-bold text-orange-400 text-[11px] sm:text-xs">
-              {sydneyTimeStr || 'AEST Live'}
-            </span>
-            <span className="hidden md:inline text-[10px] text-slate-400 font-semibold border-l border-slate-700 pl-2">
-              Sydney Plant
-            </span>
-          </div>
-
-          {/* Sign In Button on Top Navbar */}
-          <button
-            type="button"
-            onClick={() => {
-              setErrorMessage(null);
-              setRightMode('LOGIN');
-              setShowLoginModal(true);
-            }}
-            className="px-4 py-2 rounded-xl bg-gradient-to-r from-orange-500 via-amber-500 to-orange-500 hover:from-orange-400 hover:to-amber-400 text-slate-950 font-black text-xs shadow-lg shadow-orange-500/25 transition-all hover:scale-105 active:scale-95 flex items-center gap-1.5 cursor-pointer"
-          >
-            <span>Sign In</span>
-          </button>
-        </div>
       </header>
 
       {/* Main Full-Page Workspace: SHIFT CLOCK TERMINAL */}
