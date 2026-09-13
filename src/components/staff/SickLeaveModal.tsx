@@ -106,12 +106,12 @@ export default function SickLeaveModal({ onClose }: { onClose: () => void }) {
           </div>
 
           {/* Medical Certificate Reminder Box */}
-          <div className="p-3.5 rounded-xl bg-slate-900 text-white space-y-2">
+          <div className="p-3.5 rounded-xl bg-cyan-50/90 border border-cyan-200 text-slate-800 space-y-2">
             <div className="flex items-center justify-between">
-              <span className="font-bold text-xs text-cyan-300">Medical Certificate</span>
-              <span className="text-[10px] text-slate-400">Upload now or later</span>
+              <span className="font-bold text-xs text-cyan-900">Medical Certificate</span>
+              <span className="text-[10px] text-slate-500">Upload now or later</span>
             </div>
-            <p className="text-[11px] text-slate-300">
+            <p className="text-[11px] text-slate-600">
               Per Fair Work standards, if not attached now, system sends an automated reminder every <strong>24 hours for 3 days</strong>.
             </p>
             <label className="flex items-center gap-2 text-xs pt-1 cursor-pointer">
@@ -119,13 +119,13 @@ export default function SickLeaveModal({ onClose }: { onClose: () => void }) {
                 type="checkbox"
                 checked={uploadNow}
                 onChange={e => setUploadNow(e.target.checked)}
-                className="rounded text-cyan-500 focus:ring-0 cursor-pointer"
+                className="rounded text-cyan-600 focus:ring-0 cursor-pointer"
               />
-              <span className="font-semibold text-slate-200">I have medical certificate ready to attach</span>
+              <span className="font-semibold text-slate-800">I have medical certificate ready to attach</span>
             </label>
 
             {uploadNow && (
-              <div className="pt-2 border-t border-slate-800 space-y-2">
+              <div className="pt-2 border-t border-cyan-200 space-y-2">
                 <input
                   type="file"
                   ref={fileInputRef}
@@ -136,7 +136,7 @@ export default function SickLeaveModal({ onClose }: { onClose: () => void }) {
                 <button
                   type="button"
                   onClick={() => fileInputRef.current?.click()}
-                  className="w-full py-2 px-3 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-cyan-300 font-bold text-xs transition cursor-pointer flex items-center justify-center gap-2"
+                  className="w-full py-2 px-3 rounded-lg bg-white hover:bg-cyan-100/50 border border-cyan-300 text-cyan-900 font-bold text-xs transition cursor-pointer flex items-center justify-center gap-2 shadow-xs"
                 >
                   <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
@@ -144,7 +144,7 @@ export default function SickLeaveModal({ onClose }: { onClose: () => void }) {
                   <span>{certPreview ? 'Change Selected File / Photo' : 'Select Certificate (Image or PDF)'}</span>
                 </button>
                 {certPreview && (
-                  <p className="text-[10px] text-emerald-400 font-medium text-center">
+                  <p className="text-[10px] text-emerald-700 font-bold text-center">
                     Certificate loaded &amp; ready to attach
                   </p>
                 )}

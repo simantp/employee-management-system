@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import React, { useState, useEffect } from 'react';
 import { useApp } from '@/lib/store';
@@ -437,7 +437,7 @@ export default function AdminAlertsReminders({
                         <button
                           onClick={() => handleSendInstant(record)}
                           disabled={isSending}
-                          className="px-3 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-[11px] shadow-xs transition cursor-pointer inline-flex items-center gap-1.5 disabled:opacity-50"
+                          className="px-3 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-[11px] shadow-sm shadow-blue-500/20 transition cursor-pointer inline-flex items-center gap-1.5 disabled:opacity-50"
                           title="Sends reminder email to employee and notification to Staff Portal"
                         >
                           {isSending ? (

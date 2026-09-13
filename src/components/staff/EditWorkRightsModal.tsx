@@ -78,12 +78,12 @@ export default function EditWorkRightsModal({ onClose }: { onClose: () => void }
                   onClick={() => setForm({...form, citizenStatus: opt.id as CitizenStatus})}
                   className={`p-3 rounded-xl border text-left transition cursor-pointer ${
                     form.citizenStatus === opt.id
-                      ? 'bg-slate-900 border-slate-900 text-white font-semibold'
+                      ? 'bg-blue-600 border-blue-600 text-white font-semibold shadow-sm'
                       : 'bg-slate-50 border-slate-200 text-slate-700 hover:bg-white'
                   }`}
                 >
                   <span className={`block text-xs font-bold mb-0.5 ${form.citizenStatus === opt.id ? 'text-white' : 'text-slate-900'}`}>{opt.label}</span>
-                  <span className={`block text-[10px] leading-tight ${form.citizenStatus === opt.id ? 'text-slate-300' : 'text-slate-500'}`}>{opt.desc}</span>
+                  <span className={`block text-[10px] leading-tight ${form.citizenStatus === opt.id ? 'text-blue-100' : 'text-slate-500'}`}>{opt.desc}</span>
                 </button>
               ))}
             </div>
@@ -231,7 +231,7 @@ export default function EditWorkRightsModal({ onClose }: { onClose: () => void }
           {/* Action Buttons */}
           <div className="flex items-center justify-end gap-2.5 pt-4 border-t border-slate-100">
             <button type="button" onClick={onClose} className="px-4 py-2 rounded-lg border border-slate-200 text-slate-700 font-semibold hover:bg-slate-100 transition text-xs cursor-pointer">Cancel</button>
-            <button type="submit" className="px-5 py-2 rounded-lg bg-slate-900 hover:bg-slate-800 text-white font-semibold text-xs transition cursor-pointer">Save Work Rights & Visa</button>
+            <button type="submit" className="px-5 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs transition shadow-md shadow-blue-500/20 cursor-pointer">Save Work Rights & Visa</button>
           </div>
 
         </form>

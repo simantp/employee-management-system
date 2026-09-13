@@ -78,7 +78,7 @@ export default function StaffDocumentsView({ embedded = false }: { embedded?: bo
               onClick={() => setFilterType(cat)}
               className={`px-3 py-1.5 rounded-xl font-bold transition text-xs cursor-pointer ${
                 filterType === cat
-                  ? 'bg-slate-900 text-white shadow-xs'
+                  ? 'bg-blue-600 text-white shadow-sm'
                   : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
               }`}
             >
@@ -218,25 +218,25 @@ export default function StaffDocumentsView({ embedded = false }: { embedded?: bo
         );
 
         return (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/70 backdrop-blur-xs p-4 cursor-pointer overflow-y-auto" onClick={() => setSelectedPreviewDoc(null)}>
-            <div className="bg-white rounded-3xl shadow-2xl border border-slate-200/90 max-w-3xl w-full overflow-hidden animate-in zoom-in-95 text-xs cursor-default shadow-black/20 my-6" onClick={(e) => e.stopPropagation()}>
-              <div className="p-4 sm:p-5 bg-slate-900 text-white flex items-center justify-between">
+          <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4 cursor-pointer overflow-y-auto" onClick={() => setSelectedPreviewDoc(null)}>
+            <div className="bg-white rounded-3xl shadow-2xl border border-slate-200/90 max-w-3xl w-full overflow-hidden animate-in zoom-in-95 text-xs cursor-default my-6" onClick={(e) => e.stopPropagation()}>
+              <div className="p-4 sm:p-5 bg-slate-50 border-b border-slate-200 text-slate-900 flex items-center justify-between">
                 <div>
-                  <h3 className="font-bold text-sm text-white flex items-center gap-2">
+                  <h3 className="font-bold text-sm text-slate-900 flex items-center gap-2">
                     <span>{selectedPreviewDoc.name}</span>
                     <span className={`px-2 py-0.5 rounded-full text-[9px] font-bold uppercase ${
-                      selectedPreviewDoc.status === 'Verified' ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30' :
-                      selectedPreviewDoc.status === 'Pending' ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30' :
-                      'bg-rose-500/20 text-rose-300 border border-rose-500/30'
+                      selectedPreviewDoc.status === 'Verified' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' :
+                      selectedPreviewDoc.status === 'Pending' ? 'bg-amber-50 text-amber-700 border border-amber-200' :
+                      'bg-rose-50 text-rose-700 border border-rose-200'
                     }`}>
                       {selectedPreviewDoc.status}
                     </span>
                   </h3>
-                  <p className="text-[11px] text-orange-400 mt-0.5">{selectedPreviewDoc.type} • Uploaded {selectedPreviewDoc.uploadDate}</p>
+                  <p className="text-[11px] text-slate-500 mt-0.5">{selectedPreviewDoc.type} • Uploaded {selectedPreviewDoc.uploadDate}</p>
                 </div>
                 <button 
                   onClick={() => setSelectedPreviewDoc(null)} 
-                  className="text-slate-400 hover:text-white font-bold p-1.5 rounded-lg hover:bg-slate-800 transition cursor-pointer"
+                  className="text-slate-400 hover:text-slate-700 font-bold p-1.5 rounded-lg hover:bg-slate-200 transition cursor-pointer"
                 >
                   <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -245,19 +245,19 @@ export default function StaffDocumentsView({ embedded = false }: { embedded?: bo
               </div>
 
               {/* Document Body / PDF Viewer / Image Viewer */}
-              <div className="p-4 sm:p-6 bg-slate-950 flex flex-col items-center justify-center min-h-[350px] max-h-[60vh] overflow-auto">
+              <div className="p-4 sm:p-6 bg-slate-100/70 flex flex-col items-center justify-center min-h-[350px] max-h-[60vh] overflow-auto border-b border-slate-200">
                 {isPdf ? (
                   <iframe 
                     src={selectedPreviewDoc.previewUrl || ''} 
                     title={selectedPreviewDoc.name} 
-                    className="w-full h-[50vh] rounded-2xl bg-white border border-slate-800 shadow-2xl"
+                    className="w-full h-[50vh] rounded-2xl bg-white border border-slate-200 shadow-sm"
                   />
                 ) : (
                   <div className="flex items-center justify-center max-w-full max-h-[50vh]">
                     <img 
                       src={selectedPreviewDoc.previewUrl || defaultPreviews[selectedPreviewDoc.name] || 'https://images.unsplash.com/photo-1589829545856-d10d557cf95f?w=600'} 
                       alt={selectedPreviewDoc.name} 
-                      className="max-h-[48vh] w-auto max-w-full rounded-2xl object-contain shadow-2xl border border-slate-800 bg-white"
+                      className="max-h-[48vh] w-auto max-w-full rounded-2xl object-contain shadow-sm border border-slate-200 bg-white"
                     />
                   </div>
                 )}

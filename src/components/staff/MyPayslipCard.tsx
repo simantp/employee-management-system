@@ -106,7 +106,7 @@ export default function MyPayslipCard() {
             </div>
             <button
               onClick={() => setShowSlipModal(false)}
-              className="w-full py-2 bg-slate-900 text-white rounded-xl font-bold cursor-pointer"
+              className="w-full py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold cursor-pointer shadow-md shadow-blue-500/20 transition"
             >
               Close
             </button>

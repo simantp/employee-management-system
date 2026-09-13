@@ -161,12 +161,12 @@ export default function ApplyLeaveModal({ onClose }: { onClose: () => void }) {
 
           {/* Medical Certificate Upload Box for Sick & Carer's Leave */}
           {isMedicalType && (
-            <div className="p-3.5 rounded-2xl bg-slate-900 text-white space-y-2">
+            <div className="p-3.5 rounded-2xl bg-cyan-50/90 border border-cyan-200 text-slate-800 space-y-2">
               <div className="flex items-center justify-between">
-                <span className="font-bold text-xs text-cyan-300">Medical Certificate &amp; Proof</span>
-                <span className="text-[10px] text-slate-400">Optional for 1-day, required for 2+ days</span>
+                <span className="font-bold text-xs text-cyan-800">Medical Certificate &amp; Proof</span>
+                <span className="text-[10px] text-slate-500">Optional for 1-day, required for 2+ days</span>
               </div>
-              <p className="text-[11px] text-slate-300">
+              <p className="text-[11px] text-slate-600">
                 Attach a photo or scan of your doctor's certificate. Admin will inspect this document directly in the portal.
               </p>
 

@@ -7,7 +7,7 @@
     "message": "Your shift on 12 Sept 2026 was adjusted by Admin User. Reason/Note: \"Clocked in via Current Workstation (IP: 27.34.73.145)\"",
     "type": "TIMECARD_ADJUST",
     "timestamp": "07:34 am",
-    "read": false
+    "read": true
   },
   {
     "id": "notif-adj-1789121908622",

@@ -88,22 +88,22 @@ export default function ForgotPasswordModal({
   };
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md animate-in fade-in duration-200">
-      <div className="bg-slate-900 border border-slate-700/80 rounded-3xl w-full max-w-md shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200 text-white">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-xs animate-in fade-in duration-200">
+      <div className="bg-white border border-slate-200 rounded-3xl w-full max-w-md shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200 text-slate-800">
         
         {/* MODAL HEADER */}
-        <div className="p-6 pb-4 border-b border-slate-800 flex items-center justify-between">
+        <div className="p-6 pb-4 border-b border-slate-100 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-orange-500/20 text-orange-400 border border-orange-500/30 flex items-center justify-center font-black text-base shadow-inner">
+            <div className="w-10 h-10 rounded-2xl bg-orange-500/10 text-orange-600 border border-orange-500/20 flex items-center justify-center font-black text-base shadow-xs">
               <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
               </svg>
             </div>
             <div>
-              <h3 className="font-extrabold text-base text-white tracking-tight">
+              <h3 className="font-extrabold text-base text-slate-900 tracking-tight">
                 {successData ? 'Reset Link Dispatched' : 'Forgot Password'}
               </h3>
-              <p className="text-[11px] text-slate-400">
+              <p className="text-[11px] text-slate-500">
                 {successData ? 'Check your inbox or use the instant link below' : 'HsCreations Identity & Security Hub'}
               </p>
             </div>
@@ -112,7 +112,7 @@ export default function ForgotPasswordModal({
           <button
             type="button"
             onClick={onClose}
-            className="p-2 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition cursor-pointer"
+            className="p-2 rounded-xl text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition cursor-pointer"
           >
             <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -126,18 +126,18 @@ export default function ForgotPasswordModal({
           {/* VIEW 1: EMAIL INPUT FORM */}
           {!successData ? (
             <form onSubmit={handleSubmit} className="space-y-4">
-              <p className="text-slate-300 text-xs leading-relaxed">
+              <p className="text-slate-600 text-xs leading-relaxed">
                 Enter your registered work email address below. We'll send you a secure password reset link valid for <strong>5 minutes</strong>.
               </p>
 
               {errorMessage && (
-                <div className="p-3 rounded-2xl bg-rose-500/10 border border-rose-500/40 text-rose-300 text-xs font-medium animate-in fade-in">
+                <div className="p-3 rounded-2xl bg-rose-50 border border-rose-200 text-rose-700 text-xs font-medium animate-in fade-in">
                   <span>{errorMessage}</span>
                 </div>
               )}
 
               <div className="space-y-1.5">
-                <label className="font-bold text-slate-200 block text-xs">
+                <label className="font-bold text-slate-700 block text-xs">
                   Registered Work Email *
                 </label>
                 <div className="relative">
@@ -148,15 +148,15 @@ export default function ForgotPasswordModal({
                     placeholder="e.g. admin@company.com.au or staff email"
                     value={email}
                     onChange={e => setEmail(e.target.value)}
-                    className="w-full px-4 py-3 rounded-xl bg-slate-950 border border-slate-700/80 text-white font-medium focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 focus:outline-none transition placeholder:text-slate-500 text-xs shadow-inner"
+                    className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-300 text-slate-900 font-medium focus:border-orange-500 focus:bg-white focus:ring-2 focus:ring-orange-500/20 focus:outline-none transition placeholder:text-slate-400 text-xs"
                   />
                 </div>
               </div>
 
               {/* 5-Minute Expiry Badge */}
-              <div className="p-3 rounded-2xl bg-slate-950/70 border border-slate-800 text-slate-400">
+              <div className="p-3 rounded-2xl bg-amber-50/70 border border-amber-200 text-slate-600">
                 <div className="text-[11px] leading-tight">
-                  <strong className="text-orange-400 font-bold">5-Minute Security Link:</strong> The generated password reset link is single-use and strictly expires in 5 minutes for privacy compliance.
+                  <strong className="text-amber-800 font-bold">5-Minute Security Link:</strong> The generated password reset link is single-use and strictly expires in 5 minutes for privacy compliance.
                 </div>
               </div>
 
@@ -180,32 +180,32 @@ export default function ForgotPasswordModal({
                 <button
                   type="button"
                   onClick={onClose}
-                  className="w-full py-2.5 rounded-xl border border-slate-800 bg-slate-950/50 hover:bg-slate-800 text-slate-400 hover:text-white font-bold text-xs transition cursor-pointer"
+                  className="w-full py-2.5 rounded-xl border border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-600 hover:text-slate-900 font-bold text-xs transition cursor-pointer"
                 >
                   Back to Sign In
                 </button>
               </div>
 
               {/* Quick Select Registered Accounts for Testing */}
-              <div className="pt-3 border-t border-slate-800 space-y-2">
-                <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">
+              <div className="pt-3 border-t border-slate-100 space-y-2">
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
                   Quick Select Account:
                 </span>
                 <div className="grid grid-cols-2 gap-2">
                   <button
                     type="button"
                     onClick={() => setEmail('admin@company.com.au')}
-                    className="p-2 rounded-xl bg-slate-950/80 hover:bg-slate-800 border border-slate-800 text-left transition cursor-pointer group"
+                    className="p-2 rounded-xl bg-slate-50 hover:bg-slate-100 border border-slate-200 text-left transition cursor-pointer group"
                   >
-                    <span className="block text-[11px] font-bold text-slate-300 group-hover:text-orange-400 truncate">Super Admin</span>
+                    <span className="block text-[11px] font-bold text-slate-800 group-hover:text-orange-600 truncate">Super Admin</span>
                     <span className="text-[9px] text-slate-500 truncate block">admin@company.com.au</span>
                   </button>
                   <button
                     type="button"
                     onClick={() => setEmail('suman.thapa@company.com')}
-                    className="p-2 rounded-xl bg-slate-950/80 hover:bg-slate-800 border border-slate-800 text-left transition cursor-pointer group"
+                    className="p-2 rounded-xl bg-slate-50 hover:bg-slate-100 border border-slate-200 text-left transition cursor-pointer group"
                   >
-                    <span className="block text-[11px] font-bold text-slate-300 group-hover:text-orange-400 truncate">Suman Thapa</span>
+                    <span className="block text-[11px] font-bold text-slate-800 group-hover:text-orange-600 truncate">Suman Thapa</span>
                     <span className="text-[9px] text-slate-500 truncate block">suman.thapa@company.com</span>
                   </button>
                 </div>
@@ -214,38 +214,38 @@ export default function ForgotPasswordModal({
           ) : (
             /* VIEW 2: SUCCESS WITH 5-MINUTE LIVE COUNTDOWN & INSTANT ACCESS */
             <div className="space-y-4 animate-in fade-in duration-200">
-              <div className="text-center p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 space-y-2">
-                <span className="px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 text-[11px] font-extrabold uppercase tracking-wider inline-block">
+              <div className="text-center p-4 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-800 space-y-2">
+                <span className="px-3 py-1 rounded-full bg-emerald-100 text-emerald-700 border border-emerald-300 text-[11px] font-extrabold uppercase tracking-wider inline-block">
                   Success
                 </span>
-                <h4 className="font-extrabold text-sm text-white">Reset Link Dispatched!</h4>
-                <p className="text-[11px] text-slate-300">
+                <h4 className="font-extrabold text-sm text-slate-900">Reset Link Dispatched!</h4>
+                <p className="text-[11px] text-slate-600">
                   A single-use password reset link has been dispatched to:
                 </p>
-                <div className="font-mono font-bold text-xs bg-slate-950/80 text-orange-400 px-3 py-1.5 rounded-xl border border-slate-800 inline-block">
+                <div className="font-mono font-bold text-xs bg-white text-orange-600 px-3 py-1.5 rounded-xl border border-slate-200 inline-block shadow-xs">
                   {successData.email}
                 </div>
               </div>
 
               {/* 5-Minute Live Countdown Timer Box */}
-              <div className="p-4 rounded-2xl bg-slate-950 border border-slate-800 space-y-2">
+              <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-2">
                 <div className="flex items-center justify-between">
-                  <span className="font-bold text-slate-400 text-xs">
+                  <span className="font-bold text-slate-600 text-xs">
                     Link Expires In:
                   </span>
                   <span className={`font-mono text-base font-black px-2.5 py-0.5 rounded-lg border ${
                     countdown > 60
-                      ? 'bg-orange-500/20 text-orange-400 border-orange-500/40'
+                      ? 'bg-orange-50 text-orange-600 border-orange-200'
                       : countdown > 0
-                      ? 'bg-rose-500/20 text-rose-400 border-rose-500/40 animate-pulse'
-                      : 'bg-slate-800 text-slate-500 border-slate-700'
+                      ? 'bg-rose-50 text-rose-600 border-rose-200 animate-pulse'
+                      : 'bg-slate-200 text-slate-500 border-slate-300'
                   }`}>
                     {formatTime(countdown)}
                   </span>
                 </div>
 
                 {/* Progress bar */}
-                <div className="w-full bg-slate-800 h-1.5 rounded-full overflow-hidden">
+                <div className="w-full bg-slate-200 h-1.5 rounded-full overflow-hidden">
                   <div
                     className={`h-full transition-all duration-1000 ${
                       countdown > 60 ? 'bg-orange-500' : 'bg-rose-500'
@@ -255,7 +255,7 @@ export default function ForgotPasswordModal({
                 </div>
 
                 {countdown === 0 && (
-                  <p className="text-[11px] text-rose-400 font-bold pt-1">
+                  <p className="text-[11px] text-rose-600 font-bold pt-1">
                     This reset link has expired. Please request a new link below.
                   </p>
                 )}
@@ -293,9 +293,9 @@ export default function ForgotPasswordModal({
                 <button
                   type="button"
                   onClick={handleCopyLink}
-                  className="w-full py-2.5 rounded-xl border border-slate-700 bg-slate-950/80 hover:bg-slate-800 text-slate-300 font-bold text-xs transition flex items-center justify-center gap-2 cursor-pointer"
+                  className="w-full py-2.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 font-bold text-xs transition flex items-center justify-center gap-2 cursor-pointer shadow-xs"
                 >
-                  <svg className="w-4 h-4 text-orange-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <svg className="w-4 h-4 text-orange-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3" />
                   </svg>
                   <span>{copied ? 'Link Copied to Clipboard!' : 'Copy Reset Link'}</span>
@@ -304,7 +304,7 @@ export default function ForgotPasswordModal({
                 <button
                   type="button"
                   onClick={onClose}
-                  className="w-full py-2 rounded-xl text-slate-400 hover:text-slate-200 font-semibold text-xs transition cursor-pointer text-center block"
+                  className="w-full py-2 rounded-xl text-slate-500 hover:text-slate-800 font-semibold text-xs transition cursor-pointer text-center block"
                 >
                   Done • Back to Sign In
                 </button>

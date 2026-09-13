@@ -132,25 +132,25 @@ export default function AuthModal({ onClose }: { onClose: () => void }) {
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/20 p-4 overflow-y-auto" onClick={onClose}>
       <div className="bg-white rounded-3xl shadow-2xl border border-slate-200 max-w-md w-full overflow-hidden animate-in fade-in zoom-in-95 duration-150" onClick={(e) => e.stopPropagation()}>
         
-        {/* Header with Dark Gradient */}
-        <div className="p-6 bg-slate-900 text-white relative">
+        {/* Header */}
+        <div className="p-6 bg-slate-50 border-b border-slate-200 text-slate-800 relative">
           <button 
             onClick={onClose} 
-            className="absolute top-4 right-4 text-xs font-bold text-slate-400 hover:text-white px-2 py-1 transition cursor-pointer"
+            className="absolute top-4 right-4 text-xs font-bold text-slate-400 hover:text-slate-700 px-2 py-1 transition cursor-pointer"
           >
             Close
           </button>
 
           <div className="mb-2">
-            <h2 className="font-bold text-base tracking-wide text-white">
+            <h2 className="font-extrabold text-base tracking-wide text-slate-900">
               EMPLOYEE PORTAL
             </h2>
-            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+            <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">
               Sydney, Australia (AEST)
             </span>
           </div>
 
-          <p className="text-xs text-slate-300">
+          <p className="text-xs text-slate-600">
             {mode === 'LOGIN' && 'Sign in to access your Staff or Admin Command Center'}
             {mode === 'REGISTER' && 'Create your official staff portal account'}
             {mode === 'VERIFY_OTP' && 'Verify your work email address with the 6-digit code'}
@@ -169,7 +169,7 @@ export default function AuthModal({ onClose }: { onClose: () => void }) {
                   placeholder="e.g. admin@company.com.au or staff email"
                   value={loginEmail}
                   onChange={e => setLoginEmail(e.target.value)}
-                  className="w-full px-3 py-2.5 border rounded-xl bg-slate-50 font-medium focus:bg-white focus:outline-none focus:ring-2 focus:ring-slate-500/20"
+                  className="w-full px-3 py-2.5 border border-slate-300 rounded-xl bg-slate-50 font-medium focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20"
                 />
               </div>
 
@@ -183,13 +183,13 @@ export default function AuthModal({ onClose }: { onClose: () => void }) {
                   placeholder="••••••••"
                   value={loginPassword}
                   onChange={e => setLoginPassword(e.target.value)}
-                  className="w-full px-3 py-2.5 border rounded-xl bg-slate-50 font-medium focus:bg-white focus:outline-none focus:ring-2 focus:ring-slate-500/20"
+                  className="w-full px-3 py-2.5 border border-slate-300 rounded-xl bg-slate-50 font-medium focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20"
                 />
               </div>
 
               <button
                 type="submit"
-                className="w-full py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs shadow-md transition flex items-center justify-center mt-2 cursor-pointer"
+                className="w-full py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs shadow-md shadow-blue-500/20 transition flex items-center justify-center mt-2 cursor-pointer"
               >
                 Sign In to Portal
               </button>

@@ -255,7 +255,7 @@ export default function AdminComplianceManagement({
 
                             <button
                               onClick={() => setSelectedEmployee(emp)}
-                              className="px-2.5 py-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 text-white font-bold text-[11px] transition cursor-pointer"
+                              className="px-2.5 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-bold text-[11px] transition shadow-xs cursor-pointer"
                             >
                               Edit
                             </button>
@@ -355,7 +355,7 @@ export default function AdminComplianceManagement({
 
                             <button
                               onClick={() => setSelectedEmployee(emp)}
-                              className="px-2.5 py-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 text-white font-bold text-[11px] transition cursor-pointer"
+                              className="px-2.5 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-bold text-[11px] transition shadow-xs cursor-pointer"
                             >
                               Edit
                             </button>

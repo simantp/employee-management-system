@@ -213,23 +213,23 @@ export default function ActiveStaffModal({
       >
         
         {/* Modal Header */}
-        <div className="p-6 bg-slate-900 text-white flex items-center justify-between border-b border-slate-800">
+        <div className="p-6 bg-slate-50 text-slate-900 flex items-center justify-between border-b border-slate-200">
           <div className="flex items-center gap-3.5">
-            <div className="w-11 h-11 rounded-2xl bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center text-emerald-400 shadow-inner">
-              <span className="w-3.5 h-3.5 rounded-full bg-emerald-400 animate-pulse" />
+            <div className="w-11 h-11 rounded-2xl bg-emerald-100 border border-emerald-200 flex items-center justify-center text-emerald-600 shadow-xs">
+              <span className="w-3.5 h-3.5 rounded-full bg-emerald-500 animate-pulse" />
             </div>
             <div>
               <div className="flex items-center gap-2.5">
-                <h2 className="text-lg font-bold text-white tracking-tight">Active On-Shift Staff</h2>
-                <span className="px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 font-extrabold text-[10px] border border-emerald-500/30 flex items-center gap-1">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                <h2 className="text-lg font-bold text-slate-900 tracking-tight">Active On-Shift Staff</h2>
+                <span className="px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 font-extrabold text-[10px] border border-emerald-300 flex items-center gap-1">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
                   {activeStaff.length} Clocked In
                 </span>
-                <span className="hidden sm:inline-flex px-2 py-0.5 rounded-full bg-slate-800 text-slate-300 text-[10px] font-semibold border border-slate-700">
+                <span className="hidden sm:inline-flex px-2 py-0.5 rounded-full bg-slate-200 text-slate-700 text-[10px] font-semibold border border-slate-300">
                   {totalFloorHours} total floor hrs
                 </span>
               </div>
-              <p className="text-xs text-slate-400 mt-0.5 font-medium">
+              <p className="text-xs text-slate-500 mt-0.5 font-medium">
                 Live floor workforce attendance across Sydney printing &amp; prepress plants
               </p>
             </div>
@@ -238,10 +238,12 @@ export default function ActiveStaffModal({
           <button
             type="button"
             onClick={onClose}
-            className="p-2.5 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition cursor-pointer font-bold text-xs"
+            className="p-2 rounded-xl text-slate-400 hover:text-slate-700 hover:bg-slate-200 transition cursor-pointer"
             title="Close"
           >
-            Close
+            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
           </button>
         </div>
 
@@ -394,7 +396,7 @@ export default function ActiveStaffModal({
           <button
             type="button"
             onClick={onClose}
-            className="px-5 py-2 rounded-xl bg-slate-900 text-white font-bold text-xs hover:bg-slate-800 transition cursor-pointer"
+            className="px-5 py-2 rounded-xl bg-blue-600 text-white font-bold text-xs hover:bg-blue-700 transition shadow-md shadow-blue-500/20 cursor-pointer"
           >
             Done
           </button>

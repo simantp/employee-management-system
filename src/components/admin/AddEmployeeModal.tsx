@@ -203,7 +203,7 @@ export default function AddEmployeeModal({ onClose }: { onClose: () => void }) {
               onClick={() => setMode('FULL_ENTRY')}
               className={`py-2 px-4 rounded-xl text-xs font-bold transition cursor-pointer ${
                 mode === 'FULL_ENTRY'
-                  ? 'bg-slate-900 text-white shadow-md'
+                  ? 'bg-blue-600 text-white shadow-md shadow-blue-500/20'
                   : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
               }`}
             >
@@ -245,7 +245,7 @@ export default function AddEmployeeModal({ onClose }: { onClose: () => void }) {
               <button
                 type="button"
                 onClick={handleCopyLink}
-                className="flex-1 py-3 px-4 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs shadow-md transition flex items-center justify-center gap-2 cursor-pointer"
+                className="flex-1 py-3 px-4 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs shadow-md shadow-blue-500/20 transition flex items-center justify-center gap-2 cursor-pointer"
               >
                 <span>{copied ? 'Copied to Clipboard!' : 'Copy Invitation Link'}</span>
               </button>

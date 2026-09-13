@@ -145,7 +145,7 @@ export default function EditProfileModal({ onClose }: { onClose: () => void }) {
             </button>
             <button
               type="submit"
-              className="px-5 py-2 rounded-lg bg-slate-900 hover:bg-slate-800 text-white font-semibold text-xs transition cursor-pointer"
+              className="px-5 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs transition shadow-md shadow-blue-500/20 cursor-pointer"
             >
               Save Profile
             </button>

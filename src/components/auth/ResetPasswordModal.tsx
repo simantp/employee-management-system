@@ -116,22 +116,22 @@ export default function ResetPasswordModal({
   };
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md animate-in fade-in duration-200">
-      <div className="bg-slate-900 border border-slate-700/80 rounded-3xl w-full max-w-md shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200 text-white">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-xs animate-in fade-in duration-200">
+      <div className="bg-white border border-slate-200 rounded-3xl w-full max-w-md shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200 text-slate-800">
         
         {/* HEADER */}
-        <div className="p-6 pb-4 border-b border-slate-800 flex items-center justify-between">
+        <div className="p-6 pb-4 border-b border-slate-100 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-orange-500/20 text-orange-400 border border-orange-500/30 flex items-center justify-center font-black text-base shadow-inner">
+            <div className="w-10 h-10 rounded-2xl bg-orange-500/10 text-orange-600 border border-orange-500/20 flex items-center justify-center font-black text-base shadow-xs">
               <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
               </svg>
             </div>
             <div>
-              <h3 className="font-extrabold text-base text-white tracking-tight">
+              <h3 className="font-extrabold text-base text-slate-900 tracking-tight">
                 {isSuccess ? 'Password Reset Complete' : isExpired ? 'Link Expired' : 'Set New Password'}
               </h3>
-              <p className="text-[11px] text-slate-400">
+              <p className="text-[11px] text-slate-500">
                 {isSuccess ? 'Your account credentials have been updated' : 'HsCreations Single-Use Security Setup'}
               </p>
             </div>
@@ -140,7 +140,7 @@ export default function ResetPasswordModal({
           <button
             type="button"
             onClick={onClose}
-            className="p-2 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition cursor-pointer"
+            className="p-2 rounded-xl text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition cursor-pointer"
           >
             <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -154,18 +154,18 @@ export default function ResetPasswordModal({
           {/* CASE 1: LINK EXPIRED */}
           {isExpired && !isSuccess && (
             <div className="space-y-4 text-center py-2 animate-in fade-in">
-              <span className="px-3 py-1 rounded-full bg-rose-500/20 text-rose-400 border border-rose-500/40 text-[11px] font-extrabold uppercase tracking-wider inline-block">
+              <span className="px-3 py-1 rounded-full bg-rose-50 text-rose-600 border border-rose-200 text-[11px] font-extrabold uppercase tracking-wider inline-block">
                 Link Expired
               </span>
               <div className="space-y-1">
-                <h4 className="font-extrabold text-base text-white">Reset Link Expired</h4>
-                <p className="text-slate-300 text-xs max-w-sm mx-auto leading-relaxed">
+                <h4 className="font-extrabold text-base text-slate-900">Reset Link Expired</h4>
+                <p className="text-slate-600 text-xs max-w-sm mx-auto leading-relaxed">
                   For your security, password reset links are strictly valid for <strong>5 minutes</strong>. This link has expired and can no longer be used.
                 </p>
               </div>
 
               {accountEmail && (
-                <div className="font-mono text-xs bg-slate-950 px-3 py-1.5 rounded-xl border border-slate-800 text-slate-400 inline-block">
+                <div className="font-mono text-xs bg-slate-50 px-3 py-1.5 rounded-xl border border-slate-200 text-slate-600 inline-block font-semibold">
                   Account: {accountEmail}
                 </div>
               )}
@@ -188,7 +188,7 @@ export default function ResetPasswordModal({
                 <button
                   type="button"
                   onClick={onClose}
-                  className="w-full py-2.5 rounded-xl border border-slate-800 bg-slate-950/50 hover:bg-slate-800 text-slate-400 hover:text-white font-bold text-xs transition cursor-pointer"
+                  className="w-full py-2.5 rounded-xl border border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-600 hover:text-slate-900 font-bold text-xs transition cursor-pointer"
                 >
                   Back to Sign In
                 </button>
@@ -199,18 +199,18 @@ export default function ResetPasswordModal({
           {/* CASE 2: SUCCESS STATE */}
           {isSuccess && (
             <div className="space-y-4 text-center py-2 animate-in fade-in">
-              <span className="px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 text-[11px] font-extrabold uppercase tracking-wider inline-block">
+              <span className="px-3 py-1 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 text-[11px] font-extrabold uppercase tracking-wider inline-block">
                 Success
               </span>
               <div className="space-y-1">
-                <h4 className="font-extrabold text-base text-white">Password Updated!</h4>
-                <p className="text-slate-300 text-xs max-w-sm mx-auto leading-relaxed">
+                <h4 className="font-extrabold text-base text-slate-900">Password Updated!</h4>
+                <p className="text-slate-600 text-xs max-w-sm mx-auto leading-relaxed">
                   Your new password has been saved to the database. You can now sign in using your updated credentials.
                 </p>
               </div>
 
               {accountEmail && (
-                <div className="font-mono text-xs bg-slate-950 px-3 py-1.5 rounded-xl border border-slate-800 text-orange-400 inline-block font-bold">
+                <div className="font-mono text-xs bg-slate-50 px-3 py-1.5 rounded-xl border border-slate-200 text-orange-600 inline-block font-bold">
                   {accountEmail}
                 </div>
               )}
@@ -238,12 +238,12 @@ export default function ResetPasswordModal({
             <form onSubmit={handleSubmit} className="space-y-4">
               
               {/* Top Banner with Account & Live 5-Minute Timer */}
-              <div className="p-3.5 rounded-2xl bg-slate-950 border border-slate-800 flex items-center justify-between">
+              <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200 flex items-center justify-between">
                 <div>
                   <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
                     Resetting Password For
                   </span>
-                  <span className="font-bold text-xs text-white block truncate max-w-[200px]">
+                  <span className="font-bold text-xs text-slate-900 block truncate max-w-[200px]">
                     {accountName} ({accountEmail || 'Registered User'})
                   </span>
                 </div>
@@ -254,8 +254,8 @@ export default function ResetPasswordModal({
                   </span>
                   <span className={`font-mono text-xs font-black px-2 py-0.5 rounded-lg border ${
                     remainingSeconds > 60
-                      ? 'bg-orange-500/20 text-orange-400 border-orange-500/40'
-                      : 'bg-rose-500/20 text-rose-400 border-rose-500/40 animate-pulse'
+                      ? 'bg-orange-50 text-orange-600 border-orange-200'
+                      : 'bg-rose-50 text-rose-600 border-rose-200 animate-pulse'
                   }`}>
                     {formatTime(remainingSeconds)}
                   </span>
@@ -263,7 +263,7 @@ export default function ResetPasswordModal({
               </div>
 
               {errorMessage && (
-                <div className="p-3 rounded-2xl bg-rose-500/10 border border-rose-500/40 text-rose-300 text-xs font-medium animate-in fade-in">
+                <div className="p-3 rounded-2xl bg-rose-50 border border-rose-200 text-rose-700 text-xs font-medium animate-in fade-in">
                   <span>{errorMessage}</span>
                 </div>
               )}
@@ -271,11 +271,11 @@ export default function ResetPasswordModal({
               {/* New Password Input */}
               <div className="space-y-1.5">
                 <div className="flex items-center justify-between">
-                  <label className="font-bold text-slate-200 block text-xs">New Password *</label>
+                  <label className="font-bold text-slate-700 block text-xs">New Password *</label>
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="text-[11px] text-orange-400 hover:underline cursor-pointer"
+                    className="text-[11px] text-orange-600 font-semibold hover:underline cursor-pointer"
                   >
                     {showPassword ? 'Hide' : 'Show'}
                   </button>
@@ -287,29 +287,29 @@ export default function ResetPasswordModal({
                   placeholder="At least 6 characters"
                   value={password}
                   onChange={e => setPassword(e.target.value)}
-                  className="w-full px-4 py-3 rounded-xl bg-slate-950 border border-slate-700/80 text-white font-medium focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 focus:outline-none transition placeholder:text-slate-500 text-xs shadow-inner"
+                  className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-300 text-slate-900 font-medium focus:border-orange-500 focus:bg-white focus:ring-2 focus:ring-orange-500/20 focus:outline-none transition placeholder:text-slate-400 text-xs"
                 />
               </div>
 
               {/* Confirm Password Input */}
               <div className="space-y-1.5">
-                <label className="font-bold text-slate-200 block text-xs">Confirm New Password *</label>
+                <label className="font-bold text-slate-700 block text-xs">Confirm New Password *</label>
                 <input
                   type={showPassword ? 'text' : 'password'}
                   required
                   placeholder="Re-enter identical password"
                   value={confirmPassword}
                   onChange={e => setConfirmPassword(e.target.value)}
-                  className="w-full px-4 py-3 rounded-xl bg-slate-950 border border-slate-700/80 text-white font-medium focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 focus:outline-none transition placeholder:text-slate-500 text-xs shadow-inner"
+                  className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-300 text-slate-900 font-medium focus:border-orange-500 focus:bg-white focus:ring-2 focus:ring-orange-500/20 focus:outline-none transition placeholder:text-slate-400 text-xs"
                 />
               </div>
 
               {/* Password strength criteria indicator */}
-              <div className="grid grid-cols-2 gap-2 text-[10px] text-slate-400 pt-1">
-                <span className={`flex items-center gap-1 ${password.length >= 6 ? 'text-emerald-400 font-bold' : ''}`}>
+              <div className="grid grid-cols-2 gap-2 text-[10px] text-slate-500 pt-1">
+                <span className={`flex items-center gap-1 ${password.length >= 6 ? 'text-emerald-600 font-bold' : ''}`}>
                   {password.length >= 6 ? 'Valid:' : '•'} Min. 6 characters
                 </span>
-                <span className={`flex items-center gap-1 ${password && password === confirmPassword ? 'text-emerald-400 font-bold' : ''}`}>
+                <span className={`flex items-center gap-1 ${password && password === confirmPassword ? 'text-emerald-600 font-bold' : ''}`}>
                   {password && password === confirmPassword ? 'Valid:' : '•'} Passwords match
                 </span>
               </div>
@@ -334,7 +334,7 @@ export default function ResetPasswordModal({
                 <button
                   type="button"
                   onClick={onClose}
-                  className="w-full py-2.5 rounded-xl border border-slate-800 bg-slate-950/50 hover:bg-slate-800 text-slate-400 hover:text-white font-bold text-xs transition cursor-pointer"
+                  className="w-full py-2.5 rounded-xl border border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-600 hover:text-slate-900 font-bold text-xs transition cursor-pointer"
                 >
                   Cancel
                 </button>

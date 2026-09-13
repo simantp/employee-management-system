@@ -139,7 +139,7 @@ export default function AvatarUploadModal({ onClose }: { onClose: () => void }) 
                 <button
                   type="button"
                   onClick={() => fileInputRef.current?.click()}
-                  className="w-full py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-lg font-semibold transition cursor-pointer text-xs"
+                  className="w-full py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold transition shadow-md shadow-blue-500/20 cursor-pointer text-xs"
                 >
                   Open Camera / Photo Gallery
                 </button>
@@ -150,7 +150,7 @@ export default function AvatarUploadModal({ onClose }: { onClose: () => void }) 
                     setMobilePermissionGranted(true);
                     fileInputRef.current?.click();
                   }}
-                  className="w-full py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-lg font-semibold transition cursor-pointer text-xs"
+                  className="w-full py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold transition shadow-md shadow-blue-500/20 cursor-pointer text-xs"
                 >
                   Allow Mobile Storage & Camera
                 </button>
@@ -171,7 +171,7 @@ export default function AvatarUploadModal({ onClose }: { onClose: () => void }) 
               type="button"
               onClick={handleSave}
               disabled={!previewImg || isSaving}
-              className="px-5 py-2 rounded-lg bg-slate-900 hover:bg-slate-800 disabled:opacity-50 text-white font-semibold text-xs transition cursor-pointer"
+              className="px-5 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-semibold text-xs transition shadow-md shadow-blue-500/20 cursor-pointer"
             >
               {isSaving ? 'Saving to Database...' : 'Save Profile Photo'}
             </button>

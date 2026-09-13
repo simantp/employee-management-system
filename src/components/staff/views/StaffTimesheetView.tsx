@@ -391,12 +391,12 @@ export default function StaffTimesheetView() {
       {/* ========================================================================= */}
       <div className="bg-white rounded-3xl border border-slate-200/90 shadow-xs overflow-hidden">
         {/* Month Selector Bar */}
-        <div className="px-5 py-4 bg-slate-900 text-white flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div className="px-5 py-4 bg-slate-50 border-b border-slate-200 text-slate-900 flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div className="flex items-center gap-3">
-            <div className="flex items-center bg-slate-800 rounded-xl p-1 border border-slate-700">
+            <div className="flex items-center bg-white rounded-xl p-1 border border-slate-200 shadow-xs">
               <button
                 onClick={handlePrevMonth}
-                className="p-1.5 rounded-lg hover:bg-slate-700 text-slate-300 hover:text-white transition cursor-pointer"
+                className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-600 hover:text-slate-900 transition cursor-pointer"
                 title="Previous Month"
               >
                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -404,13 +404,13 @@ export default function StaffTimesheetView() {
                 </svg>
               </button>
 
-              <span className="px-3 py-1 font-black text-sm text-white tracking-wide min-w-[130px] text-center">
+              <span className="px-3 py-1 font-black text-sm text-slate-900 tracking-wide min-w-[130px] text-center">
                 {currentMonthLabel}
               </span>
 
               <button
                 onClick={handleNextMonth}
-                className="p-1.5 rounded-lg hover:bg-slate-700 text-slate-300 hover:text-white transition cursor-pointer"
+                className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-600 hover:text-slate-900 transition cursor-pointer"
                 title="Next Month"
               >
                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -426,7 +426,7 @@ export default function StaffTimesheetView() {
                 setSelectedMonthIndex(now.getMonth());
                 setSelectedDateString(formatDateDisplay(now));
               }}
-              className="px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-[11px] font-bold border border-slate-700 transition cursor-pointer"
+              className="px-2.5 py-1.5 rounded-lg bg-white hover:bg-slate-100 text-slate-700 text-[11px] font-bold border border-slate-200 shadow-xs transition cursor-pointer"
             >
               Today
             </button>
@@ -434,8 +434,8 @@ export default function StaffTimesheetView() {
 
           <div className="flex items-center gap-3 text-xs">
             <div className="flex items-center gap-2">
-              <span className="inline-flex items-center gap-1.5 text-[11px] text-emerald-300 font-bold">
-                <span className="w-2 h-2 rounded-full bg-emerald-400" />
+              <span className="inline-flex items-center gap-1.5 text-[11px] text-emerald-700 font-bold bg-emerald-50 px-2.5 py-1 rounded-full border border-emerald-200">
+                <span className="w-2 h-2 rounded-full bg-emerald-500" />
                 <span>Operational Daily (Mon–Sun • Open Everyday)</span>
               </span>
             </div>
@@ -443,18 +443,18 @@ export default function StaffTimesheetView() {
         </div>
 
         {/* Date Selector Strip (Day 1 to Last Day + "All Month" Pill) */}
-        <div className="p-4 bg-slate-50/70 border-b border-slate-200/80">
+        <div className="p-4 bg-slate-50/50 border-b border-slate-200/80">
           <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-thin">
             {/* "All Days in Month" Button */}
             <button
               onClick={() => setSelectedDateString('ALL')}
               className={`px-4 py-2.5 rounded-2xl font-bold text-xs whitespace-nowrap transition cursor-pointer shrink-0 flex flex-col items-center justify-center border shadow-2xs ${
                 selectedDateString === 'ALL'
-                  ? 'bg-slate-900 text-white border-slate-900 ring-2 ring-slate-900/30'
+                  ? 'bg-blue-600 text-white border-blue-600 shadow-md shadow-blue-500/20'
                   : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-100'
               }`}
             >
-              <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">View Entire</span>
+              <span className={`text-[10px] font-bold uppercase tracking-wider ${selectedDateString === 'ALL' ? 'text-blue-100' : 'text-slate-400'}`}>View Entire</span>
               <span className="text-xs font-black">All Month</span>
             </button>
 
@@ -864,7 +864,7 @@ export default function StaffTimesheetView() {
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2 rounded-xl bg-slate-900 text-white font-bold hover:bg-slate-800 cursor-pointer shadow-sm flex items-center gap-1.5"
+                  className="px-5 py-2 rounded-xl bg-blue-600 text-white font-bold hover:bg-blue-700 cursor-pointer shadow-md shadow-blue-500/20 flex items-center gap-1.5"
                 >
                   <span>Submit Message to Admin</span>
                 </button>

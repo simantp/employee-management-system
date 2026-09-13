@@ -175,17 +175,17 @@ export default function VisaLicenseAlertsModal({
       >
         
         {/* Modal Header */}
-        <div className="p-6 bg-slate-900 text-white flex items-center justify-between border-b border-slate-800">
+        <div className="p-6 bg-slate-50 text-slate-900 flex items-center justify-between border-b border-slate-200">
           <div>
             <div className="flex items-center gap-2">
-              <h2 className="text-lg font-bold text-white tracking-tight">
+              <h2 className="text-lg font-bold text-slate-900 tracking-tight">
                 Visa and License Expiry Alerts
               </h2>
-              <span className="px-2.5 py-0.5 rounded-full bg-rose-500/20 text-rose-300 font-extrabold text-[10px] border border-rose-500/30">
+              <span className="px-2.5 py-0.5 rounded-full bg-rose-50 text-rose-700 font-extrabold text-[10px] border border-rose-200">
                 {uniqueItems.length} Warning &amp; Critical Alerts
               </span>
             </div>
-            <p className="text-xs text-slate-400 mt-0.5 font-medium">
+            <p className="text-xs text-slate-500 mt-0.5 font-medium">
               Active alerts for TSS 482 visas, student visas, and driver licences requiring renewal
             </p>
           </div>
@@ -193,32 +193,32 @@ export default function VisaLicenseAlertsModal({
           <button
             type="button"
             onClick={onClose}
-            className="px-3 py-1.5 rounded-xl border border-slate-700 text-slate-400 hover:text-white hover:bg-slate-800 transition cursor-pointer font-bold text-xs"
+            className="px-3 py-1.5 rounded-xl border border-slate-200 text-slate-600 hover:text-slate-900 hover:bg-slate-200/80 transition cursor-pointer font-bold text-xs"
           >
             Close
           </button>
         </div>
 
         {/* Severity Summary Filter Strip */}
-        <div className="grid grid-cols-2 bg-slate-950/90 text-white p-3 border-b border-slate-800 text-center text-xs divide-x divide-slate-800">
+        <div className="grid grid-cols-2 bg-slate-100/70 text-slate-800 p-3 border-b border-slate-200 text-center text-xs divide-x divide-slate-200">
           <div 
             onClick={() => setSeverityFilter(severityFilter === 'CRITICAL' ? 'ALL' : 'CRITICAL')}
             className={`cursor-pointer px-2 py-1 rounded-xl transition ${
-              severityFilter === 'CRITICAL' ? 'bg-rose-500/20 text-rose-300' : 'hover:bg-slate-900'
+              severityFilter === 'CRITICAL' ? 'bg-rose-100 text-rose-800 font-bold border border-rose-200' : 'hover:bg-slate-200/60'
             }`}
           >
-            <span className="text-rose-400 font-black text-sm block">{criticalCount}</span>
-            <span className="text-[10px] text-slate-400 uppercase tracking-wider font-bold">Critical Alerts (&le; {expirySettings.visaCriticalDays}d)</span>
+            <span className="text-rose-600 font-black text-sm block">{criticalCount}</span>
+            <span className="text-[10px] text-slate-500 uppercase tracking-wider font-bold">Critical Alerts (&le; {expirySettings.visaCriticalDays}d)</span>
           </div>
 
           <div 
             onClick={() => setSeverityFilter(severityFilter === 'WARNING' ? 'ALL' : 'WARNING')}
             className={`cursor-pointer px-2 py-1 rounded-xl transition ${
-              severityFilter === 'WARNING' ? 'bg-amber-500/20 text-amber-300' : 'hover:bg-slate-900'
+              severityFilter === 'WARNING' ? 'bg-amber-100 text-amber-800 font-bold border border-amber-200' : 'hover:bg-slate-200/60'
             }`}
           >
-            <span className="text-amber-400 font-black text-sm block">{warningCount}</span>
-            <span className="text-[10px] text-slate-400 uppercase tracking-wider font-bold">Warning Alerts (&le; {expirySettings.visaWarningDays}d)</span>
+            <span className="text-amber-600 font-black text-sm block">{warningCount}</span>
+            <span className="text-[10px] text-slate-500 uppercase tracking-wider font-bold">Warning Alerts (&le; {expirySettings.visaWarningDays}d)</span>
           </div>
         </div>
 

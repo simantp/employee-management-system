@@ -43,9 +43,9 @@ export default function CompanyLatestAnnouncementBanner() {
 
   if (!displayAnnouncements || displayAnnouncements.length === 0) {
     return (
-      <div className="relative overflow-hidden rounded-3xl bg-slate-900 border border-slate-800 p-8 text-white text-center space-y-2 shadow-xl animate-in fade-in duration-150">
-        <h3 className="text-sm font-bold text-white">No Announcements at this time</h3>
-        <p className="text-xs text-slate-400 max-w-sm mx-auto">
+      <div className="relative overflow-hidden rounded-3xl bg-white border border-slate-200 p-8 text-slate-800 text-center space-y-2 shadow-sm animate-in fade-in duration-150">
+        <h3 className="text-sm font-bold text-slate-900">No Announcements at this time</h3>
+        <p className="text-xs text-slate-500 max-w-sm mx-auto">
           When company management posts new notices or operational updates, they will appear here.
         </p>
       </div>
@@ -58,31 +58,31 @@ export default function CompanyLatestAnnouncementBanner() {
   const getCategoryColor = (cat?: string) => {
     switch (cat) {
       case 'Operations & Safety':
-        return 'bg-amber-500/20 text-amber-300 border-amber-500/30';
+        return 'bg-amber-100 text-amber-800 border-amber-300';
       case 'Fair Work NSW':
-        return 'bg-blue-500/20 text-blue-300 border-blue-500/30';
+        return 'bg-blue-100 text-blue-800 border-blue-300';
       case 'HR & Compliance':
-        return 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30';
+        return 'bg-emerald-100 text-emerald-800 border-emerald-300';
       case 'Company Event':
-        return 'bg-purple-500/20 text-purple-300 border-purple-500/30';
+        return 'bg-purple-100 text-purple-800 border-purple-300';
       default:
-        return 'bg-white/10 text-orange-300 border-white/10';
+        return 'bg-orange-100 text-orange-800 border-orange-300';
     }
   };
 
   return (
     <div className="space-y-4">
       {/* Spotlight: Company's Latest Announcement Banner */}
-      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-slate-900 via-slate-950 to-navy-950 border border-orange-500/30 p-5 sm:p-6 text-white shadow-xl shadow-slate-950/20 animate-in fade-in duration-200">
+      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-amber-50 via-white to-orange-50/60 border border-orange-200/90 p-5 sm:p-6 text-slate-900 shadow-sm animate-in fade-in duration-200">
         {/* Subtle background glow */}
-        <div className="absolute top-0 right-0 -mt-8 -mr-8 w-48 h-48 bg-orange-500/10 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute top-0 right-0 -mt-8 -mr-8 w-48 h-48 bg-orange-400/10 rounded-full blur-3xl pointer-events-none" />
 
         <div className="relative z-10 flex flex-col md:flex-row md:items-start justify-between gap-4">
           
           {/* Left side info */}
           <div className="space-y-2.5 flex-1 min-w-0">
             <div className="flex flex-wrap items-center gap-2">
-              <span className="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full text-[10px] font-black bg-orange-500 text-slate-950 tracking-wider uppercase shadow-xs">
+              <span className="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full text-[10px] font-black bg-orange-600 text-white tracking-wider uppercase shadow-xs">
                 <span>Company's Latest Announcement</span>
               </span>
 
@@ -92,20 +92,20 @@ export default function CompanyLatestAnnouncementBanner() {
                 </span>
               )}
 
-              <span className="text-[11px] text-slate-400 font-medium">
+              <span className="text-[11px] text-slate-500 font-medium">
                 {currentAnnouncement.date}
               </span>
 
-              <span className="text-[11px] text-slate-400 font-medium">
-                by <strong className="text-slate-200">{currentAnnouncement.author}</strong>
+              <span className="text-[11px] text-slate-500 font-medium">
+                by <strong className="text-slate-800">{currentAnnouncement.author}</strong>
               </span>
             </div>
 
-            <h3 className="text-base sm:text-lg font-black text-white tracking-tight leading-snug">
+            <h3 className="text-base sm:text-lg font-black text-slate-900 tracking-tight leading-snug">
               {currentAnnouncement.title}
             </h3>
 
-            <p className="text-xs text-slate-300 font-normal leading-relaxed max-w-4xl whitespace-pre-line">
+            <p className="text-xs text-slate-700 font-normal leading-relaxed max-w-4xl whitespace-pre-line">
               {currentAnnouncement.content}
             </p>
 
@@ -117,7 +117,7 @@ export default function CompanyLatestAnnouncementBanner() {
                     key={i}
                     onClick={() => setCurrentIndex(i)}
                     className={`h-1.5 rounded-full transition-all cursor-pointer ${
-                      i === safeIndex ? 'w-6 bg-orange-400' : 'w-1.5 bg-slate-700 hover:bg-slate-500'
+                      i === safeIndex ? 'w-6 bg-orange-600' : 'w-1.5 bg-slate-300 hover:bg-slate-400'
                     }`}
                     title={`Announcement ${i + 1}`}
                   />
@@ -131,20 +131,20 @@ export default function CompanyLatestAnnouncementBanner() {
             
             {/* Carousel navigation buttons */}
             {displayAnnouncements.length > 1 && (
-              <div className="flex items-center gap-1.5 bg-white/5 p-1 rounded-2xl border border-white/10">
-                <span className="text-[10px] font-extrabold text-slate-400 px-2">
+              <div className="flex items-center gap-1.5 bg-white p-1 rounded-2xl border border-slate-200 shadow-xs">
+                <span className="text-[10px] font-extrabold text-slate-600 px-2">
                   {safeIndex + 1} of {displayAnnouncements.length}
                 </span>
                 <button
                   onClick={() => setCurrentIndex(prev => (prev > 0 ? prev - 1 : displayAnnouncements.length - 1))}
-                  className="px-2.5 py-1 text-xs font-semibold rounded-xl bg-white/10 hover:bg-white/20 text-white transition cursor-pointer"
+                  className="px-2.5 py-1 text-xs font-semibold rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 transition cursor-pointer"
                   title="Previous Announcement"
                 >
                   ◀ Prev
                 </button>
                 <button
                   onClick={() => setCurrentIndex(prev => (prev < displayAnnouncements.length - 1 ? prev + 1 : 0))}
-                  className="px-2.5 py-1 text-xs font-semibold rounded-xl bg-white/10 hover:bg-white/20 text-white transition cursor-pointer"
+                  className="px-2.5 py-1 text-xs font-semibold rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 transition cursor-pointer"
                   title="Next Announcement"
                 >
                   Next ▶
@@ -157,8 +157,8 @@ export default function CompanyLatestAnnouncementBanner() {
               onClick={() => setShowHistory(prev => !prev)}
               className={`px-3.5 py-1.5 text-xs font-bold rounded-xl transition flex items-center gap-1.5 cursor-pointer border ${
                 showHistory 
-                  ? 'bg-orange-500 text-slate-950 border-orange-400 shadow-md shadow-orange-500/20'
-                  : 'bg-white/10 text-white border-white/10 hover:bg-white/20'
+                  ? 'bg-orange-600 text-white border-orange-600 shadow-sm'
+                  : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-50'
               }`}
             >
               <span>{showHistory ? 'Hide Previous Notices' : `View Previous Notices (${displayAnnouncements.length})`}</span>

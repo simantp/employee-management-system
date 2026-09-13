@@ -100,7 +100,7 @@ export default function NotificationCenterModal({ onClose }: { onClose: () => vo
                 </div>
 
                 {!n.read && (
-                  <span className="w-2 h-2 rounded-full bg-slate-900 flex-shrink-0 mt-1.5"></span>
+                  <span className="w-2 h-2 rounded-full bg-blue-600 flex-shrink-0 mt-1.5 animate-pulse"></span>
                 )}
               </div>
             ))
@@ -110,7 +110,7 @@ export default function NotificationCenterModal({ onClose }: { onClose: () => vo
         <div className="p-3 border-t border-slate-100 bg-slate-50/50 flex justify-end">
           <button
             onClick={onClose}
-            className="px-4 py-1.5 rounded-lg bg-slate-900 text-white text-xs font-semibold hover:bg-slate-800 transition cursor-pointer"
+            className="px-4 py-1.5 rounded-lg bg-blue-600 text-white text-xs font-semibold hover:bg-blue-700 transition shadow-md shadow-blue-500/20 cursor-pointer"
           >
             Close
           </button>

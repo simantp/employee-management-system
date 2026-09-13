@@ -83,18 +83,18 @@ export default function StaffSupportView() {
           </form>
         </div>
 
-        <div className="bg-slate-900 text-white rounded-2xl p-6 border border-slate-800 shadow-sm space-y-4">
-          <h3 className="font-bold text-sm text-white border-b border-slate-800 pb-2 flex items-center gap-2">
+        <div className="bg-white text-slate-800 rounded-2xl p-6 border border-slate-200/80 shadow-sm space-y-4">
+          <h3 className="font-bold text-sm text-slate-900 border-b border-slate-100 pb-2 flex items-center gap-2">
             <span>Direct HR Contacts (Sydney)</span>
           </h3>
 
-          <div className="space-y-3 text-slate-300">
-            <div className="p-3 bg-slate-800 rounded-xl border border-slate-700 space-y-1">
-              <span className="font-bold text-white block">HR Manager Office</span>
+          <div className="space-y-3 text-slate-600">
+            <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 space-y-1">
+              <span className="font-bold text-slate-900 block">HR Manager Office</span>
               <span>Email: hr@company.com.au • Phone: (02) 9840 2200</span>
             </div>
-            <div className="p-3 bg-slate-800 rounded-xl border border-slate-700 space-y-1">
-              <span className="font-bold text-white block">Payroll &amp; Superannuation Dept</span>
+            <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 space-y-1">
+              <span className="font-bold text-slate-900 block">Payroll &amp; Superannuation Dept</span>
               <span>Email: payroll@company.com.au • Phone: (02) 9840 2204</span>
             </div>
           </div>

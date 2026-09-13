@@ -492,17 +492,17 @@ export default function Topbar({
             <div className="absolute right-0 top-full mt-2.5 w-84 sm:w-[420px] bg-white border border-slate-200 rounded-2xl shadow-2xl overflow-hidden z-50 animate-in fade-in zoom-in-95 duration-150 text-xs">
               
               {/* Dropdown Header */}
-              <div className="px-4 py-3 border-b border-slate-100 bg-slate-900 text-white flex items-center justify-between">
+              <div className="px-4 py-3 border-b border-slate-200 bg-slate-50 text-slate-900 flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <span className="w-2 h-2 rounded-full bg-emerald-400" />
+                  <span className="w-2 h-2 rounded-full bg-emerald-500" />
                   <div>
-                    <h4 className="text-xs font-black tracking-tight text-white flex items-center gap-1.5">
+                    <h4 className="text-xs font-black tracking-tight text-slate-900 flex items-center gap-1.5">
                       <span>{isAdmin ? 'Staff Requests & Attention' : 'Notifications'}</span>
-                      <span className="px-1.5 py-0.5 rounded-full bg-slate-800 text-slate-300 text-[9px] font-bold border border-slate-700">
+                      <span className="px-1.5 py-0.5 rounded-full bg-slate-200 text-slate-700 text-[9px] font-bold border border-slate-300">
                         {staffActionNotifications.length}
                       </span>
                     </h4>
-                    <p className="text-[10px] text-slate-400 font-medium">
+                    <p className="text-[10px] text-slate-500 font-medium">
                       {isAdmin 
                         ? 'Requests and compliance items needing administrator action'
                         : 'Your portal notifications & updates'}
@@ -512,7 +512,7 @@ export default function Topbar({
 
                 <button
                   onClick={markAllActionsAsViewed}
-                  className="text-[10px] font-black text-orange-400 hover:text-orange-300 transition py-1 px-2.5 rounded-lg bg-slate-800 hover:bg-slate-700 cursor-pointer"
+                  className="text-[10px] font-black text-orange-600 hover:text-orange-700 transition py-1 px-2.5 rounded-lg bg-orange-50 hover:bg-orange-100 border border-orange-200 cursor-pointer"
                 >
                   Mark all read
                 </button>
