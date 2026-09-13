@@ -21,7 +21,7 @@ export default function AdminDashboard({
 }: {
   activeTab?: string;
 }) {
-  const { employees, alerts, expirySettings } = useApp();
+  const { employees, alerts, expirySettings, leaveRequests } = useApp();
   const [showActiveStaffModal, setShowActiveStaffModal] = useState(false);
   const [showVisaLicenseAlertsModal, setShowVisaLicenseAlertsModal] = useState(false);
   const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
@@ -107,7 +107,7 @@ export default function AdminDashboard({
               value={String(activeStaffOnDuty)}
               label="Live on Shift"
               sublabel="Active floor staff • Click to view list"
-              colorScheme="green"
+              colorScheme="purple"
               onClick={() => setShowActiveStaffModal(true)}
             />
             <KPICard
@@ -119,10 +119,13 @@ export default function AdminDashboard({
             />
           </div>
 
-          {/* 2. Priority Action Items: Pending Approvals */}
+          {/* 2. Priority Action Items: Pending Approvals inside Rounded White Surface */}
           <div className="space-y-6">
-            <PendingLeaveApprovals mode="compact" />
-            <PendingDocumentApprovals />
+            <div className="bg-white rounded-3xl p-6 sm:p-7 border border-slate-200/70 shadow-sm space-y-6">
+              <PendingLeaveApprovals mode="compact" />
+              <div className="w-full h-[1px] bg-slate-100" />
+              <PendingDocumentApprovals />
+            </div>
           </div>
         </>
       )}

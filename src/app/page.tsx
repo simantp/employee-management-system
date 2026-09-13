@@ -43,7 +43,7 @@ export default function AppHome() {
   // 2. If logged in as Admin / Super Admin -> Show ONLY Admin Portal
   if (isAdmin) {
     return (
-      <div className="flex h-screen overflow-hidden bg-[#f0f4f9]">
+      <div className="flex h-screen overflow-hidden bg-[#eceef8]">
         <AdminSidebar activeTab={adminTab} onSelectTab={setAdminTab} />
         <div className="flex-1 flex flex-col min-w-0 h-screen overflow-hidden">
           <Topbar 
@@ -69,7 +69,7 @@ export default function AppHome() {
 
   // 3. If logged in as Staff -> Show ONLY Staff Portal
   return (
-    <div className="flex h-screen overflow-hidden bg-[#f0f4f9]">
+    <div className="flex h-screen overflow-hidden bg-[#eceef8]">
       <StaffSidebar activeTab={staffTab} onSelectTab={setStaffTab} />
       <div className="flex-1 flex flex-col min-w-0 h-screen overflow-hidden">
         <Topbar 

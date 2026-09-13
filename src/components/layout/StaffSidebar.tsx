@@ -15,8 +15,6 @@ export default function StaffSidebar({
   const navItems = [
     { id: 'dashboard', label: 'Dashboard' },
     { id: 'timesheet', label: 'Timesheet Records' },
-    { id: 'profile', label: 'My Profile' },
-    { id: 'leave', label: 'Leave Management' },
   ];
 
   const handleNav = (id: string) => {
@@ -24,130 +22,166 @@ export default function StaffSidebar({
   };
 
   return (
-    <aside className="w-64 bg-white text-slate-700 flex flex-col h-screen sticky top-0 flex-shrink-0 border-r border-slate-200 select-none z-20 font-sans shadow-xs">
+    <aside className="w-60 bg-[#453a6a] text-purple-100 flex flex-col h-screen sticky top-0 flex-shrink-0 select-none z-20 font-sans shadow-xl">
       
       {/* Brand Header */}
-      <div className="p-4 sm:p-5 border-b border-slate-100 flex items-center justify-between">
+      <div className="p-5 pb-6 flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <div className="bg-slate-50 px-2 py-1 rounded-xl shadow-xs border border-slate-200 flex items-center justify-center">
+          <div className="w-10 h-10 rounded-xl bg-white flex items-center justify-center p-1.5 shadow-md flex-shrink-0">
             <img 
               src="/images/hs-creations-logo.png" 
               alt="HsCreations" 
-              className="h-6 object-contain"
+              className="h-7 w-7 object-contain"
             />
           </div>
-          <div>
+          <div className="flex flex-col justify-center">
             <div className="flex items-center gap-1.5">
-              <h2 className="text-slate-900 font-extrabold text-xs tracking-wide">HSCREATIONS</h2>
-              <span className="text-[9px] font-black px-1.5 py-0.5 rounded bg-orange-500/10 text-orange-600 border border-orange-500/20">
+              <h2 className="text-white font-black text-xs tracking-wider">HSCREATIONS</h2>
+              <span className="text-[8px] font-black px-1.5 py-0.5 rounded bg-cyan-400/20 text-cyan-300 border border-cyan-400/30">
                 STAFF
               </span>
             </div>
-            <span className="text-[10px] text-slate-400 font-medium tracking-tight">
-              Sydney Printing &amp; Design
-            </span>
           </div>
         </div>
       </div>
 
-      {/* Flat List of Clickable Tabs */}
-      <div className="flex-1 overflow-y-auto px-3 py-3 space-y-1.5 scrollbar-thin scrollbar-thumb-slate-200">
+      {/* Main Navigation with Curved Active Tab */}
+      <div className="flex-1 overflow-y-auto pt-2 space-y-1 scrollbar-none">
         {navItems.map(item => {
           const isActive = activeTab === item.id;
           
           return (
-            <button
-              key={item.id}
-              onClick={() => handleNav(item.id)}
-              className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs transition-all duration-150 group relative cursor-pointer ${
-                isActive
-                  ? 'bg-gradient-to-r from-blue-600 to-cyan-600 text-white font-bold shadow-md shadow-blue-500/20'
-                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100 font-semibold'
-              }`}
-            >
-              <div className="flex items-center gap-2.5 min-w-0">
-                {isActive && <span className="w-1.5 h-1.5 rounded-full bg-white flex-shrink-0 animate-pulse" />}
-                <span className="truncate">{item.label}</span>
-              </div>
-            </button>
+            <div key={item.id} className="relative pl-3">
+              <button
+                onClick={() => handleNav(item.id)}
+                className={`w-full flex items-center justify-between px-4 py-3 text-xs transition-all duration-150 cursor-pointer ${
+                  isActive
+                    ? 'curved-active-tab font-bold text-[#453a6a]'
+                    : 'rounded-2xl text-purple-200/75 hover:text-white hover:bg-white/10 font-medium pr-4'
+                }`}
+              >
+                <div className="flex items-center gap-3 min-w-0">
+                  {isActive && <span className="w-2 h-2 rounded-full bg-[#453a6a] flex-shrink-0 animate-pulse" />}
+                  <span className="truncate">{item.label}</span>
+                </div>
+              </button>
+            </div>
           );
         })}
       </div>
 
-      {/* Bottom Section: Emergency Contacts, Company Directory, Resignation Notice */}
-      <div className="p-3 border-t border-slate-100 space-y-1">
-        <button
-          onClick={() => handleNav('emergency')}
-          className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs transition-all duration-150 group relative cursor-pointer ${
-            activeTab === 'emergency'
-              ? 'bg-gradient-to-r from-blue-600 to-cyan-600 text-white font-bold shadow-md shadow-blue-500/20'
-              : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100 font-semibold'
-          }`}
-        >
-          <div className="flex items-center gap-2.5 min-w-0">
-            {activeTab === 'emergency' && <span className="w-1.5 h-1.5 rounded-full bg-white flex-shrink-0 animate-pulse" />}
-            <span className="truncate">Emergency Contacts</span>
-          </div>
-        </button>
+      {/* Lower Navigation Section: My Profile, Leave Management, Emergency Contacts, Directory, Resignation */}
+      <div className="pt-3 pb-2 space-y-1 border-t border-white/10">
+        <div className="relative pl-3">
+          <button
+            onClick={() => handleNav('profile')}
+            className={`w-full flex items-center justify-between px-4 py-2.5 text-xs transition-all duration-150 cursor-pointer ${
+              activeTab === 'profile'
+                ? 'curved-active-tab font-bold text-[#453a6a]'
+                : 'rounded-2xl text-purple-200/75 hover:text-white hover:bg-white/10 font-medium pr-4'
+            }`}
+          >
+            <div className="flex items-center gap-3 min-w-0">
+              {activeTab === 'profile' && <span className="w-2 h-2 rounded-full bg-[#453a6a] flex-shrink-0 animate-pulse" />}
+              <span className="truncate">My Profile</span>
+            </div>
+          </button>
+        </div>
 
-        <button
-          onClick={() => handleNav('directory')}
-          className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs transition-all duration-150 group relative cursor-pointer ${
-            activeTab === 'directory'
-              ? 'bg-gradient-to-r from-blue-600 to-cyan-600 text-white font-bold shadow-md shadow-blue-500/20'
-              : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100 font-semibold'
-          }`}
-        >
-          <div className="flex items-center gap-2.5 min-w-0">
-            {activeTab === 'directory' && <span className="w-1.5 h-1.5 rounded-full bg-white flex-shrink-0 animate-pulse" />}
-            <span className="truncate">Company Directory</span>
-          </div>
-        </button>
+        <div className="relative pl-3">
+          <button
+            onClick={() => handleNav('leave')}
+            className={`w-full flex items-center justify-between px-4 py-2.5 text-xs transition-all duration-150 cursor-pointer ${
+              activeTab === 'leave'
+                ? 'curved-active-tab font-bold text-[#453a6a]'
+                : 'rounded-2xl text-purple-200/75 hover:text-white hover:bg-white/10 font-medium pr-4'
+            }`}
+          >
+            <div className="flex items-center gap-3 min-w-0">
+              {activeTab === 'leave' && <span className="w-2 h-2 rounded-full bg-[#453a6a] flex-shrink-0 animate-pulse" />}
+              <span className="truncate">Leave Management</span>
+            </div>
+          </button>
+        </div>
 
-        <button
-          onClick={() => handleNav('resignation')}
-          className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs transition-all duration-150 group relative cursor-pointer ${
-            activeTab === 'resignation'
-              ? 'bg-gradient-to-r from-rose-600 to-amber-600 text-white font-bold shadow-md shadow-rose-500/20'
-              : 'text-slate-600 hover:text-rose-600 hover:bg-rose-50 font-semibold'
-          }`}
-        >
-          <div className="flex items-center gap-2.5 min-w-0">
-            {activeTab === 'resignation' && <span className="w-1.5 h-1.5 rounded-full bg-white flex-shrink-0 animate-pulse" />}
-            <span className="truncate">Resignation Notice</span>
-          </div>
-        </button>
+        <div className="relative pl-3">
+          <button
+            onClick={() => handleNav('emergency')}
+            className={`w-full flex items-center justify-between px-4 py-2.5 text-xs transition-all duration-150 cursor-pointer ${
+              activeTab === 'emergency'
+                ? 'curved-active-tab font-bold text-[#453a6a]'
+                : 'rounded-2xl text-purple-200/75 hover:text-white hover:bg-white/10 font-medium pr-4'
+            }`}
+          >
+            <div className="flex items-center gap-3 min-w-0">
+              {activeTab === 'emergency' && <span className="w-2 h-2 rounded-full bg-[#453a6a] flex-shrink-0 animate-pulse" />}
+              <span className="truncate">Emergency Contacts</span>
+            </div>
+          </button>
+        </div>
+
+        <div className="relative pl-3">
+          <button
+            onClick={() => handleNav('directory')}
+            className={`w-full flex items-center justify-between px-4 py-2.5 text-xs transition-all duration-150 cursor-pointer ${
+              activeTab === 'directory'
+                ? 'curved-active-tab font-bold text-[#453a6a]'
+                : 'rounded-2xl text-purple-200/75 hover:text-white hover:bg-white/10 font-medium pr-4'
+            }`}
+          >
+            <div className="flex items-center gap-3 min-w-0">
+              {activeTab === 'directory' && <span className="w-2 h-2 rounded-full bg-[#453a6a] flex-shrink-0 animate-pulse" />}
+              <span className="truncate">Company Directory</span>
+            </div>
+          </button>
+        </div>
+
+        <div className="relative pl-3">
+          <button
+            onClick={() => handleNav('resignation')}
+            className={`w-full flex items-center justify-between px-4 py-2.5 text-xs transition-all duration-150 cursor-pointer ${
+              activeTab === 'resignation'
+                ? 'curved-active-tab font-bold text-[#453a6a]'
+                : 'rounded-2xl text-purple-200/75 hover:text-rose-300 hover:bg-rose-500/10 font-medium pr-4'
+            }`}
+          >
+            <div className="flex items-center gap-3 min-w-0">
+              {activeTab === 'resignation' && <span className="w-2 h-2 rounded-full bg-rose-600 flex-shrink-0 animate-pulse" />}
+              <span className="truncate">Resignation Notice</span>
+            </div>
+          </button>
+        </div>
       </div>
 
       {/* Bottom Sleek User Bar */}
-      <div className="p-3 border-t border-slate-100 bg-slate-50/80">
+      <div className="p-3 bg-[#3a3059]/90 border-t border-white/10 m-2 rounded-2xl">
         <div 
           onClick={() => handleNav('profile')}
-          className="p-2.5 rounded-xl bg-white hover:bg-slate-100/80 border border-slate-200/80 shadow-xs flex items-center justify-between gap-3 cursor-pointer transition group"
+          className="p-2 rounded-xl bg-white/5 hover:bg-white/10 flex items-center justify-between gap-3 cursor-pointer transition group"
         >
           <div className="flex items-center gap-2.5 min-w-0">
             {currentStaff.avatarUrl ? (
               <img 
                 src={currentStaff.avatarUrl} 
                 alt={currentStaff.firstName} 
-                className="w-8 h-8 rounded-lg object-cover ring-1 ring-blue-500/30 flex-shrink-0"
+                className="w-8 h-8 rounded-lg object-cover ring-1 ring-cyan-400/40 flex-shrink-0"
               />
             ) : (
-              <div className="w-8 h-8 rounded-lg bg-blue-50 border border-blue-200 flex items-center justify-center text-blue-700 font-bold text-xs flex-shrink-0">
+              <div className="w-8 h-8 rounded-lg bg-cyan-400/20 border border-cyan-400/30 flex items-center justify-center text-cyan-300 font-bold text-xs flex-shrink-0">
                 {currentStaff.firstName ? currentStaff.firstName.charAt(0) : 'U'}
               </div>
             )}
             <div className="min-w-0 flex-1">
-              <h4 className="text-slate-900 font-bold text-xs truncate group-hover:text-blue-600 transition">
+              <h4 className="text-white font-bold text-xs truncate group-hover:text-cyan-300 transition">
                 {currentStaff.firstName} {currentStaff.lastName}
               </h4>
-              <p className="text-[10px] text-slate-500 truncate">
+              <p className="text-[10px] text-purple-200/60 truncate">
                 {currentStaff.jobTitle || 'Staff Member'}
               </p>
             </div>
           </div>
 
-          <div className="w-2 h-2 rounded-full bg-emerald-500 ring-2 ring-emerald-500/20 animate-pulse flex-shrink-0" title="Active on shift" />
+          <div className="w-2 h-2 rounded-full bg-emerald-400 ring-2 ring-emerald-400/30 animate-pulse flex-shrink-0" title="Active Staff" />
         </div>
       </div>
 

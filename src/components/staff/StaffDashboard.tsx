@@ -90,7 +90,10 @@ export default function StaffDashboard({
       <StaffOnboardingBanner />
 
       {/* Spotlight: Company's Latest Announcement */}
-      <CompanyLatestAnnouncementBanner />
+      <div className="bg-white rounded-3xl p-6 sm:p-7 border border-slate-200/70 shadow-sm space-y-4">
+        <h3 className="text-sm font-black text-slate-800 tracking-tight">Activities &amp; Company Bulletins</h3>
+        <CompanyLatestAnnouncementBanner />
+      </div>
 
       {/* Modals */}
       {showResignModal && <ResignationModal onClose={() => setShowResignModal(false)} />}
