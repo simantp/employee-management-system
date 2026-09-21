@@ -580,7 +580,18 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   }, [currentUser]);
 
 
-  const unreadAdminCount = notifications.filter(n => (n.recipient === 'ADMIN' || n.recipient === 'ALL') && !n.read).length;
+  const unreadAdminCount = notifications.filter(n => {
+    if (n.recipient !== 'ADMIN' && n.recipient !== 'ALL') return false;
+    if (n.read) return false;
+    const nType = (n.type as string) || '';
+    if (nType.includes('EXPIRY') || nType.includes('VISA') || nType.includes('LICENSE') || nType.includes('COMPLIANCE')) {
+      return false;
+    }
+    if (nType.includes('ANNOUNCEMENT')) {
+      return false;
+    }
+    return true;
+  }).length;
   const unreadStaffCount = notifications.filter(n => {
     if (n.recipient !== 'STAFF' && n.recipient !== 'ALL') return false;
     if (n.read) return false;
@@ -594,8 +605,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         (currentStaff?.email && n.recipientId.toLowerCase() === currentStaff.email.toLowerCase())
       );
     }
-    if (n.recipient === 'ALL') return true;
-    return currentUser?.email === 'suman.thapa@company.com' || currentUser?.staffId === 'emp-42' || currentStaffId === 'emp-42';
+    return n.recipient === 'ALL';
   }).length;
 
   const playSoundChime = (tone: 'alert' | 'success' = 'alert') => {
@@ -4528,32 +4538,22 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     const docLabel = params.documentName || (params.documentType === 'VISA' ? (emp.visaType || 'Subclass 482 Visa') : `Driver Licence (${emp.licenseCountry || 'NSW'})`);
     const expiryDate = params.expiryDate || (params.documentType === 'VISA' ? emp.visaExpiryDate : emp.licenseExpiryDate) || 'Pending';
 
-    // 1. Create Staff in-app notification
+    // 1. Create and dispatch Staff in-app notification in real-time
     const staffNotif: NotificationItem = {
-      id: `notif-exp-${Date.now()}`,
+      id: `notif-exp-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
       recipient: 'STAFF',
       recipientId: emp.id,
       title: `${severity === 'CRITICAL' ? 'CRITICAL' : 'REMINDER'}: ${docLabel} Expiry Action Required`,
-      message: `Your ${docLabel} (Ref: ${params.documentNumber || emp.employeeNumber}) is scheduled to expire on ${expiryDate} (${params.daysRemaining} days remaining). Please submit updated documentation.`,
+      message: `Your ${docLabel} (Ref: ${params.documentNumber || emp.employeeNumber}) is scheduled to expire on ${expiryDate} (${params.daysRemaining} days remaining). Please submit updated renewal documentation.`,
       type: params.documentType === 'VISA' ? 'VISA_EXPIRY' : 'LICENSE_EXPIRY',
-      timestamp: new Date().toLocaleDateString('en-AU', { day: '2-digit', month: 'short', year: 'numeric' }),
+      timestamp: 'Just now',
       read: false,
     };
 
-    // 2. Create Admin audit alert notification
-    const adminNotif: NotificationItem = {
-      id: `notif-exp-admin-${Date.now()}`,
-      recipient: 'ADMIN',
-      title: `Dispatched Expiry Alert: ${emp.firstName} ${emp.lastName}`,
-      message: `Sent ${severity} ${docLabel} notification to ${emp.firstName} ${emp.lastName} (${emp.email}). Due: ${expiryDate}.`,
-      type: params.documentType === 'VISA' ? 'VISA_EXPIRY' : 'LICENSE_EXPIRY',
-      timestamp: new Date().toLocaleDateString('en-AU', { day: '2-digit', month: 'short', year: 'numeric' }),
-      read: false,
-    };
+    // Dispatch to staff in-app notification (persists to server, localStorage, and BroadcastChannel)
+    dispatchNotification(staffNotif);
 
-    setNotifications(prev => [staffNotif, adminNotif, ...prev]);
-
-    // 3. Add Toast & Audit Log
+    // 2. Add Toast & Audit Log for Admin
     addToast(
       'Instant Notice Dispatched',
       `Sent ${severity} expiry alert via email & Staff Portal to ${emp.firstName} ${emp.lastName}.`,
@@ -4568,8 +4568,22 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       currentUser?.role || 'SuperAdmin'
     );
 
-    // 4. Trigger Email API
+    // 3. Log to Email Logs table & send email
     try {
+      addEmailLog({
+        recipientEmail: emp.email,
+        recipientName: `${emp.firstName} ${emp.lastName}`,
+        subject: `ACTION REQUIRED: ${docLabel} Expiry Reminder (${params.daysRemaining} Days Remaining)`,
+        category: params.documentType === 'VISA' ? 'VISA_EXPIRY' : 'LICENSE_EXPIRY',
+        status: 'SENT',
+        deliveryMode: 'MOCK_SMTP',
+        messageId: `msg-${Date.now()}`,
+        previewSnippet: `Dear ${emp.firstName}, your ${docLabel} expires on ${expiryDate}. Please submit renewal proof.`,
+        actorId: currentUser?.id,
+        actorName: currentUser?.name || 'Admin',
+        details: `Dispatched instant ${severity} alert for ${docLabel}.`
+      });
+
       await fetch('/api/notifications/send-expiry-email', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },

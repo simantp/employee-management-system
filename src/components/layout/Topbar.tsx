@@ -150,27 +150,17 @@ export default function Topbar({
         }
       });
 
-      // 4. Critical & Warning Expiry Alerts
-      alerts.forEach(alert => {
-        const isUrgent = alert.severity === 'URGENT';
-        const itemId = `alert-${alert.id}`;
-        list.push({
-          id: itemId,
-          source: 'COMPLIANCE',
-          badge: isUrgent ? 'URGENT EXPIRY' : 'EXPIRY WARNING',
-          badgeColor: isUrgent ? 'bg-rose-50 text-rose-700 border-rose-200 font-bold' : 'bg-amber-50 text-amber-800 border-amber-200',
-          title: alert.title || `${alert.employeeName} • Expiry Alert`,
-          description: alert.description || 'Compliance renewal action needed',
-          timestamp: alert.dueDate ? `Due ${alert.dueDate}` : 'Action Required',
-          rawTimestamp: alert.dueDate ? new Date(alert.dueDate).getTime() : Date.now() - 86400000,
-          actorName: alert.employeeName,
-          isUnread: !viewedActionIds.includes(itemId),
-          targetTab: 'alerts',
-        });
+      // 4. Staff Content Updates & Requests Notifications (Only staff-initiated actions)
+      const adminNotifs = notifications.filter(n => {
+        if (n.recipient !== 'ADMIN' && n.recipient !== 'ALL') return false;
+        const nType = (n.type as string) || '';
+        // Exclude system compliance alerts, expiry warnings, and admin announcements
+        if (nType.includes('EXPIRY') || nType.includes('VISA') || nType.includes('LICENSE') || nType.includes('COMPLIANCE') || nType.includes('ANNOUNCEMENT')) {
+          return false;
+        }
+        return true;
       });
 
-      // 5. Actionable Admin Notifications & Announcements
-      const adminNotifs = notifications.filter(n => (n.recipient === 'ADMIN' || n.recipient === 'ALL'));
       adminNotifs.forEach(n => {
         const nType = (n.type as string) || '';
         // Avoid duplicate shift note entry if already captured in pendingShiftNotes
@@ -178,7 +168,7 @@ export default function Topbar({
           return;
         }
 
-        let badge = 'ADMIN NOTICE';
+        let badge = 'STAFF UPDATE';
         let badgeColor = 'bg-blue-50 text-blue-700 border-blue-200';
         let targetTab = 'dashboard';
 
@@ -206,14 +196,10 @@ export default function Topbar({
           badge = 'LEAVE NOTICE';
           badgeColor = 'bg-amber-50 text-amber-700 border-amber-200';
           targetTab = 'approvals';
-        } else if (nType.includes('EXPIRY') || nType.includes('VISA') || nType.includes('LICENSE')) {
-          badge = 'COMPLIANCE';
+        } else if (nType.includes('RESIGNATION')) {
+          badge = 'RESIGNATION';
           badgeColor = 'bg-rose-50 text-rose-700 border-rose-200';
-          targetTab = 'alerts';
-        } else if (nType.includes('ANNOUNCEMENT')) {
-          badge = 'ANNOUNCEMENT';
-          badgeColor = 'bg-orange-50 text-orange-700 border-orange-200';
-          targetTab = 'announcements';
+          targetTab = 'employees';
         }
 
         const itemId = `notif-${n.id}`;

@@ -42,10 +42,11 @@ export default function VisaLicenseAlertsModal({
   isOpen,
   onClose
 }: VisaLicenseAlertsModalProps) {
-  const { employees, alerts, expirySettings } = useApp();
+  const { employees, alerts, expirySettings, sendInstantExpiryNotification } = useApp();
   const [search, setSearch] = useState('');
   const [categoryFilter, setCategoryFilter] = useState<'ALL' | 'VISA' | 'LICENSE'>('ALL');
   const [severityFilter, setSeverityFilter] = useState<'ALL' | 'CRITICAL' | 'WARNING'>('ALL');
+  const [sendingId, setSendingId] = useState<string | null>(null);
 
   if (!isOpen) return null;
 
@@ -333,7 +334,7 @@ export default function VisaLicenseAlertsModal({
                     </div>
                   </div>
 
-                  {/* Expiry Status Badge */}
+                  {/* Expiry Status Badge & Instant Alert Button */}
                   <div className="flex items-center gap-2.5 self-end sm:self-center flex-shrink-0">
                     <div className="text-right">
                       {item.daysRemaining <= 0 ? (
@@ -343,15 +344,52 @@ export default function VisaLicenseAlertsModal({
                       ) : isCritical ? (
                         <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[10px] font-black bg-rose-100 text-rose-800 border border-rose-300">
                           <span className="w-2 h-2 rounded-full bg-rose-600 animate-pulse" />
-                          CRITICAL ({item.daysRemaining} DAYS REMAINING)
+                          CRITICAL ({item.daysRemaining}d)
                         </span>
                       ) : (
                         <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[10px] font-black bg-amber-100 text-amber-800 border border-amber-300">
                           <span className="w-2 h-2 rounded-full bg-amber-600" />
-                          WARNING ({item.daysRemaining} DAYS REMAINING)
+                          WARNING ({item.daysRemaining}d)
                         </span>
                       )}
                     </div>
+
+                    <button
+                      type="button"
+                      disabled={sendingId === item.id}
+                      onClick={async () => {
+                        setSendingId(item.id);
+                        try {
+                          await sendInstantExpiryNotification({
+                            employeeId: item.employee.id,
+                            documentType: item.documentType === 'VISA' ? 'VISA' : 'LICENSE',
+                            documentName: item.documentTitle,
+                            documentNumber: item.documentNumber,
+                            expiryDate: item.expiryDateStr,
+                            daysRemaining: item.daysRemaining,
+                            severity: item.severity,
+                          });
+                        } finally {
+                          setTimeout(() => setSendingId(null), 500);
+                        }
+                      }}
+                      className="px-2.5 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-[10px] shadow-sm shadow-blue-500/20 transition cursor-pointer inline-flex items-center gap-1 disabled:opacity-50"
+                      title="Send instant in-app notification & reminder email to staff"
+                    >
+                      {sendingId === item.id ? (
+                        <>
+                          <span className="w-2.5 h-2.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                          <span>Sending...</span>
+                        </>
+                      ) : (
+                        <>
+                          <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+                          </svg>
+                          <span>Send Alert</span>
+                        </>
+                      )}
+                    </button>
                   </div>
                 </div>
               );
