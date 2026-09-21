@@ -90,11 +90,16 @@ export default function AdminAlertsReminders({
 
     // Check uploaded visa documents
     emp.documents?.forEach(doc => {
-      if (doc.expiryDate && (doc.name?.toLowerCase().includes('visa') || doc.type?.toLowerCase().includes('visa'))) {
-        const days = parseExpiryDays(doc.expiryDate);
+      const isVisa = doc.name?.toLowerCase().includes('visa') || doc.type?.toLowerCase().includes('visa');
+      if (doc.expiryDate && isVisa) {
+        let days = parseExpiryDays(doc.expiryDate);
+        if (days === null) {
+          const matchingAlert = alerts.find(a => a.employeeId === emp.id && a.type === 'VISA_EXPIRY');
+          if (matchingAlert) days = matchingAlert.daysRemaining;
+        }
         if (days !== null && days <= expirySettings.visaWarningDays) {
           const severity: 'CRITICAL' | 'WARNING' = days <= expirySettings.visaCriticalDays ? 'CRITICAL' : 'WARNING';
-          const existing = visaExpiring.find(v => v.employeeId === emp.id);
+          const existing = visaExpiring.find(v => v.id === `doc-visa-${doc.id}` || (v.employeeId === emp.id && v.documentTitle === (doc.name || doc.type)));
           if (!existing) {
             visaExpiring.push({
               id: `doc-visa-${doc.id}`,
@@ -151,12 +156,16 @@ export default function AdminAlertsReminders({
 
     // Check uploaded license & forklift documents
     emp.documents?.forEach(doc => {
-      const isLic = doc.name?.toLowerCase().includes('licen') || doc.type?.toLowerCase().includes('licen') || doc.name?.toLowerCase().includes('forklift');
+      const isLic = doc.name?.toLowerCase().includes('licen') || doc.type?.toLowerCase().includes('licen') || doc.name?.toLowerCase().includes('forklift') || doc.type?.toLowerCase().includes('forklift');
       if (doc.expiryDate && isLic) {
-        const days = parseExpiryDays(doc.expiryDate);
+        let days = parseExpiryDays(doc.expiryDate);
+        if (days === null) {
+          const matchingAlert = alerts.find(a => a.employeeId === emp.id && a.type === 'LICENSE_EXPIRY');
+          if (matchingAlert) days = matchingAlert.daysRemaining;
+        }
         if (days !== null && days <= expirySettings.licenseWarningDays) {
           const severity: 'CRITICAL' | 'WARNING' = days <= expirySettings.licenseCriticalDays ? 'CRITICAL' : 'WARNING';
-          const existing = licenseExpiring.find(l => l.employeeId === emp.id && l.documentTitle === doc.name);
+          const existing = licenseExpiring.find(l => l.id === `doc-lic-${doc.id}` || (l.employeeId === emp.id && l.documentTitle === (doc.name || doc.type)));
           if (!existing) {
             licenseExpiring.push({
               id: `doc-lic-${doc.id}`,

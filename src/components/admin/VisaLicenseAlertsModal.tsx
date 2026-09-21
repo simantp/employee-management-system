@@ -103,24 +103,29 @@ export default function VisaLicenseAlertsModal({
     // 3. Uploaded Compliance Documents with Expiry
     emp.documents?.forEach(doc => {
       if (doc.expiryDate) {
-        const docName = (doc.name || doc.type || '').toLowerCase();
-        const isVisa = docName.includes('visa');
-        const isLicense = docName.includes('licen') || docName.includes('forklift');
+        const dName = (doc.name || '').toLowerCase();
+        const dType = (doc.type || '').toLowerCase();
+        const isVisa = dName.includes('visa') || dType.includes('visa');
+        const isLicense = dName.includes('licen') || dType.includes('licen') || dName.includes('forklift') || dType.includes('forklift');
         
         if (isVisa || isLicense) {
-          const days = parseExpiryDays(doc.expiryDate);
+          let days = parseExpiryDays(doc.expiryDate);
+          if (days === null) {
+            const matchingAlert = alerts.find(a => a.employeeId === emp.id && (isVisa ? a.type === 'VISA_EXPIRY' : a.type === 'LICENSE_EXPIRY'));
+            if (matchingAlert) days = matchingAlert.daysRemaining;
+          }
           const warnThreshold = isVisa ? expirySettings.visaWarningDays : expirySettings.licenseWarningDays;
           const critThreshold = isVisa ? expirySettings.visaCriticalDays : expirySettings.licenseCriticalDays;
 
           if (days !== null && days <= warnThreshold) {
             const severity: 'CRITICAL' | 'WARNING' = days <= critThreshold ? 'CRITICAL' : 'WARNING';
-            const existing = expiryItems.find(x => x.employee.id === emp.id && (isVisa ? x.documentType === 'VISA' : x.documentType === 'DRIVER_LICENSE'));
+            const existing = expiryItems.find(x => x.id === `doc-${doc.id}` || (x.employee.id === emp.id && x.documentTitle === (doc.name || doc.type)));
             if (!existing) {
               expiryItems.push({
                 id: `doc-${doc.id}`,
                 employee: emp,
                 documentType: isVisa ? 'VISA' : 'DRIVER_LICENSE',
-                documentTitle: doc.name || doc.type || 'Compliance Document',
+                documentTitle: doc.name || doc.type || (isVisa ? 'Visa Document' : 'Driver License Document'),
                 documentNumber: doc.documentNumber || 'Document On File',
                 expiryDateStr: doc.expiryDate,
                 daysRemaining: days,

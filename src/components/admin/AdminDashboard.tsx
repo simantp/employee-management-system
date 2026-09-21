@@ -44,8 +44,9 @@ export default function AdminDashboard({
     return Math.ceil((expDate.getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24));
   };
 
-  let visaAndLicenseAlertCount = 0;
+  const dashboardAlertList: { id: string }[] = [];
   employees.forEach(emp => {
+    // 1. Visa Expiry
     if (emp.visaExpiryDate && emp.citizenStatus !== 'CITIZEN' && emp.citizenStatus !== 'PERMANENT_RESIDENT') {
       let days = parseDays(emp.visaExpiryDate);
       if (days === null) {
@@ -53,9 +54,11 @@ export default function AdminDashboard({
         if (matching) days = matching.daysRemaining;
       }
       if (days !== null && days <= expirySettings.visaWarningDays) {
-        visaAndLicenseAlertCount++;
+        dashboardAlertList.push({ id: `visa-${emp.id}` });
       }
     }
+
+    // 2. Driver License Expiry
     if (emp.hasDriverLicense && emp.licenseExpiryDate) {
       let days = parseDays(emp.licenseExpiryDate);
       if (days === null) {
@@ -63,10 +66,38 @@ export default function AdminDashboard({
         if (matching) days = matching.daysRemaining;
       }
       if (days !== null && days <= expirySettings.licenseWarningDays) {
-        visaAndLicenseAlertCount++;
+        dashboardAlertList.push({ id: `license-${emp.id}` });
       }
     }
+
+    // 3. Uploaded Compliance Documents with Expiry
+    emp.documents?.forEach(doc => {
+      if (doc.expiryDate) {
+        const dName = (doc.name || '').toLowerCase();
+        const dType = (doc.type || '').toLowerCase();
+        const isVisa = dName.includes('visa') || dType.includes('visa');
+        const isLicense = dName.includes('licen') || dType.includes('licen') || dName.includes('forklift') || dType.includes('forklift');
+
+        if (isVisa || isLicense) {
+          let days = parseDays(doc.expiryDate);
+          if (days === null) {
+            const matching = alerts.find(a => a.employeeId === emp.id && (isVisa ? a.type === 'VISA_EXPIRY' : a.type === 'LICENSE_EXPIRY'));
+            if (matching) days = matching.daysRemaining;
+          }
+          const warnThreshold = isVisa ? expirySettings.visaWarningDays : expirySettings.licenseWarningDays;
+
+          if (days !== null && days <= warnThreshold) {
+            const docId = `doc-${doc.id}`;
+            if (!dashboardAlertList.some(item => item.id === docId)) {
+              dashboardAlertList.push({ id: docId });
+            }
+          }
+        }
+      }
+    });
   });
+
+  const visaAndLicenseAlertCount = dashboardAlertList.length;
 
   return (
     <div className="p-6 lg:p-8 space-y-6 max-w-7xl mx-auto animate-in fade-in duration-200">
