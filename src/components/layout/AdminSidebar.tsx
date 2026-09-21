@@ -138,13 +138,6 @@ export default function AdminSidebar({
               {activeTab === 'email-logs' && <span className="w-2 h-2 rounded-full bg-[#453a6a] animate-pulse" />}
               <span>Email Logs</span>
             </div>
-            {emailLogs && emailLogs.length > 0 && (
-              <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold ${
-                activeTab === 'email-logs' ? 'bg-purple-100 text-purple-800' : 'bg-purple-400/20 text-purple-200 border border-purple-400/30'
-              }`}>
-                {emailLogs.length}
-              </span>
-            )}
           </button>
         </div>
 
