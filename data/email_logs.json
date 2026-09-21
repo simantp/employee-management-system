@@ -1,5 +1,19 @@
 [
   {
+    "id": "eml-1790000301743-8lscg",
+    "timestamp": "22/09/2026, 12:18:21 am",
+    "recipientEmail": "suman.thapa@company.com",
+    "recipientName": "Suman Thapa",
+    "subject": "[CRITICAL] Visa Expiry Reminder: Suman Thapa (-22 days remaining)",
+    "category": "EXPIRY_REMINDER",
+    "status": "FAILED",
+    "deliveryMode": "REAL_SMTP",
+    "previewSnippet": "SMTP Error (Message failed: 451-4.3.0 Mail server temporarily rejected message. For more information, go to\n451 4.3.0  https://support.google.com/a/answer/3221692 98e67ed59e1d1-3a063a4185fsm316931a91.3 - gsmtp) when sending expiry reminder.",
+    "details": "Failed to deliver via SMTP: Message failed: 451-4.3.0 Mail server temporarily rejected message. For more information, go to\n451 4.3.0  https://support.google.com/a/answer/3221692 98e67ed59e1d1-3a063a4185fsm316931a91.3 - gsmtp",
+    "actorId": "system",
+    "actorName": "Automated Compliance Engine"
+  },
+  {
     "id": "eml-101",
     "timestamp": "21 Sep 2026, 09:00 AM",
     "recipientEmail": "suman.thapa@company.com",

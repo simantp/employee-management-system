@@ -70,7 +70,7 @@ export default function StaffSidebar({
         })}
       </div>
 
-      {/* Lower Navigation Section: My Profile, Leave Management, Emergency Contacts, Directory, Resignation */}
+      {/* Lower Navigation Section: My Profile, Leave Management, Emergency Contacts, Resignation */}
       <div className="pt-3 pb-2 space-y-1 border-t border-white/10">
         <div className="relative pl-3">
           <button
@@ -116,22 +116,6 @@ export default function StaffSidebar({
             <div className="flex items-center gap-3 min-w-0">
               {activeTab === 'emergency' && <span className="w-2 h-2 rounded-full bg-[#453a6a] flex-shrink-0 animate-pulse" />}
               <span className="truncate">Emergency Contacts</span>
-            </div>
-          </button>
-        </div>
-
-        <div className="relative pl-3">
-          <button
-            onClick={() => handleNav('directory')}
-            className={`w-full flex items-center justify-between px-4 py-2.5 text-xs transition-all duration-150 cursor-pointer ${
-              activeTab === 'directory'
-                ? 'curved-active-tab font-bold text-[#453a6a]'
-                : 'rounded-2xl text-purple-200/75 hover:text-white hover:bg-white/10 font-medium pr-4'
-            }`}
-          >
-            <div className="flex items-center gap-3 min-w-0">
-              {activeTab === 'directory' && <span className="w-2 h-2 rounded-full bg-[#453a6a] flex-shrink-0 animate-pulse" />}
-              <span className="truncate">Company Directory</span>
             </div>
           </button>
         </div>

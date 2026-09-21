@@ -1,5 +1,41 @@
 [
   {
+    "id": "aud-1790000320287",
+    "action": "USER_LOGIN",
+    "targetType": "User",
+    "targetId": "usr-2",
+    "details": "User logged in with role STAFF",
+    "actorId": "usr-1",
+    "actorName": "Suman Thapa",
+    "actorRole": "STAFF",
+    "timestamp": "22/09/2026, 12:18:40 am AEST",
+    "ipAddress": "127.0.0.1 (Localhost)"
+  },
+  {
+    "id": "aud-1790000317925",
+    "action": "USER_LOGOUT",
+    "targetType": "User",
+    "targetId": "usr-1",
+    "details": "User Admin User logged out",
+    "actorId": "usr-1",
+    "actorName": "Admin User",
+    "actorRole": "SUPER_ADMIN",
+    "timestamp": "22/09/2026, 12:18:37 am AEST",
+    "ipAddress": "127.0.0.1 (Localhost)"
+  },
+  {
+    "id": "aud-1790000296770",
+    "action": "EXPIRY_ALERT_DISPATCHED",
+    "targetType": "Compliance Alerts",
+    "targetId": "emp-42",
+    "details": "Dispatched instant CRITICAL reminder email & portal alert to Suman Thapa for Temporary Skill Shortage (Subclass 482) (-22d remaining)",
+    "actorId": "usr-1",
+    "actorName": "Admin User",
+    "actorRole": "SUPER_ADMIN",
+    "timestamp": "22/09/2026, 12:18:16 am AEST",
+    "ipAddress": "127.0.0.1 (Localhost)"
+  },
+  {
     "id": "aud-1789999125473",
     "action": "EXPIRY_SETTINGS_UPDATED",
     "targetType": "Settings",
