@@ -1,4 +1,4 @@
-import { Employee, LeaveRequest, ComplianceAlert, NotificationItem, AuditLog, TimecardRecord, DocumentTypeConfig, Announcement, AuthUser, ExpiryReminderSettings } from '@/types';
+import { Employee, LeaveRequest, ComplianceAlert, NotificationItem, AuditLog, TimecardRecord, DocumentTypeConfig, Announcement, AuthUser, ExpiryReminderSettings, SmtpSettings } from '@/types';
 import { encryptAES256 } from './crypto';
 
 const getTodayFormatted = (): string => {
@@ -354,6 +354,17 @@ export const INITIAL_EXPIRY_SETTINGS: ExpiryReminderSettings = {
   licenseCriticalDays: 30,
   warningFrequencyDays: 5,
   criticalFrequencyDays: 3,
+};
+
+export const INITIAL_SMTP_SETTINGS: SmtpSettings = {
+  host: '',
+  port: 587,
+  secure: false,
+  user: '',
+  pass: '',
+  fromEmail: '',
+  fromName: 'HsCreations Sydney',
+  enableSmtp: true,
 };
 
 export const INITIAL_DOCUMENT_TYPES: DocumentTypeConfig[] = [

@@ -1,5 +1,5 @@
 import nodemailer from 'nodemailer';
-import { appendStoredEmailLog } from './serverData';
+import { appendStoredEmailLog, getStoredSettings } from './serverData';
 import { EmailLog } from '@/types';
 
 export interface SendOTPParams {
@@ -16,6 +16,84 @@ export interface SendEmailResult {
   message: string;
 }
 
+export interface SmtpConfigResult {
+  host: string;
+  port: number;
+  secure: boolean;
+  user: string;
+  pass: string;
+  fromEmail: string;
+  fromName: string;
+  isConfigured: boolean;
+  source: 'SETTINGS_DB' | 'ENV_VARS' | 'NONE';
+}
+
+export async function getEffectiveSmtpConfig(): Promise<SmtpConfigResult> {
+  try {
+    const settings = await getStoredSettings();
+    const smtp = settings?.smtpSettings;
+    if (smtp && smtp.enableSmtp !== false && smtp.host && smtp.user && smtp.pass) {
+      const port = Number(smtp.port) || 587;
+      return {
+        host: smtp.host.trim(),
+        port: port,
+        secure: smtp.secure !== undefined ? Boolean(smtp.secure) : (port === 465),
+        user: smtp.user.trim(),
+        pass: smtp.pass,
+        fromEmail: smtp.fromEmail?.trim() || smtp.user.trim(),
+        fromName: smtp.fromName?.trim() || 'HsCreations Sydney',
+        isConfigured: true,
+        source: 'SETTINGS_DB',
+      };
+    }
+  } catch (e) {
+    console.error('Error fetching stored SMTP settings in emailService:', e);
+  }
+
+  // Fallback to process.env
+  const envHost = process.env.SMTP_HOST;
+  const envUser = process.env.SMTP_USER;
+  const envPass = process.env.SMTP_PASS;
+  if (envHost && envUser && envPass) {
+    const port = parseInt(process.env.SMTP_PORT || '587', 10);
+    return {
+      host: envHost,
+      port: port,
+      secure: process.env.SMTP_SECURE === 'true' || port === 465,
+      user: envUser,
+      pass: envPass,
+      fromEmail: process.env.EMAIL_FROM || envUser,
+      fromName: process.env.EMAIL_FROM_NAME || 'HsCreations Sydney',
+      isConfigured: true,
+      source: 'ENV_VARS',
+    };
+  }
+
+  return {
+    host: '',
+    port: 587,
+    secure: false,
+    user: '',
+    pass: '',
+    fromEmail: 'no-reply@company.com.au',
+    fromName: 'HsCreations Sydney',
+    isConfigured: false,
+    source: 'NONE',
+  };
+}
+
+export function createNodemailerTransporter(smtp: { host: string; port: number; secure: boolean; user: string; pass: string }) {
+  return nodemailer.createTransport({
+    host: smtp.host,
+    port: smtp.port,
+    secure: smtp.secure,
+    auth: {
+      user: smtp.user,
+      pass: smtp.pass,
+    },
+  });
+}
+
 async function logEmail(entry: Omit<EmailLog, 'id' | 'timestamp'>) {
   try {
     const newLog: EmailLog = {
@@ -30,24 +108,13 @@ async function logEmail(entry: Omit<EmailLog, 'id' | 'timestamp'>) {
 }
 
 export async function sendOTPEmail({ email, firstName, code }: SendOTPParams): Promise<SendEmailResult> {
-  const smtpHost = process.env.SMTP_HOST;
-  const smtpPort = parseInt(process.env.SMTP_PORT || '587', 10);
-  const smtpUser = process.env.SMTP_USER;
-  const smtpPass = process.env.SMTP_PASS;
-  const fromEmail = process.env.EMAIL_FROM || (smtpUser ? `"Australian Employee Portal" <${smtpUser}>` : '"Australian Employee Portal" <no-reply@company.com.au>');
+  const smtp = await getEffectiveSmtpConfig();
+  const fromEmail = `"${smtp.fromName || 'Australian Employee Portal'}" <${smtp.fromEmail}>`;
 
-  // 1. If real SMTP credentials are provided (e.g. Gmail App Password, Resend, SendGrid, etc.)
-  if (smtpHost && smtpUser && smtpPass) {
+  // 1. If real SMTP credentials are provided (from Admin Settings or .env)
+  if (smtp.isConfigured) {
     try {
-      const transporter = nodemailer.createTransport({
-        host: smtpHost,
-        port: smtpPort,
-        secure: smtpPort === 465,
-        auth: {
-          user: smtpUser,
-          pass: smtpPass,
-        },
-      });
+      const transporter = createNodemailerTransporter(smtp);
 
       const info = await transporter.sendMail({
         from: fromEmail,
@@ -181,11 +248,8 @@ export interface SendLeaveEmailParams {
 export type SendLeaveRequestEmailParams = SendLeaveEmailParams;
 
 export async function sendLeaveRequestEmailToAdmin(params: SendLeaveEmailParams): Promise<SendEmailResult> {
-  const smtpHost = process.env.SMTP_HOST;
-  const smtpPort = parseInt(process.env.SMTP_PORT || '587', 10);
-  const smtpUser = process.env.SMTP_USER;
-  const smtpPass = process.env.SMTP_PASS;
-  const fromEmail = process.env.EMAIL_FROM || (smtpUser ? `"Leave Management Service" <${smtpUser}>` : '"Leave Management Service" <leave-system@company.com.au>');
+  const smtp = await getEffectiveSmtpConfig();
+  const fromEmail = `"${smtp.fromName || 'Leave Management Service'}" <${smtp.fromEmail}>`;
   const adminEmail = params.adminEmail || process.env.ADMIN_NOTIFICATION_EMAIL || 'admin@company.com.au';
 
   const htmlContent = `
@@ -268,14 +332,9 @@ export async function sendLeaveRequestEmailToAdmin(params: SendLeaveEmailParams)
 </html>
 `;
 
-  if (smtpHost && smtpUser && smtpPass) {
+  if (smtp.isConfigured) {
     try {
-      const transporter = nodemailer.createTransport({
-        host: smtpHost,
-        port: smtpPort,
-        secure: smtpPort === 465,
-        auth: { user: smtpUser, pass: smtpPass },
-      });
+      const transporter = createNodemailerTransporter(smtp);
 
       const info = await transporter.sendMail({
         from: fromEmail,
@@ -352,11 +411,8 @@ export interface SendExpiryEmailParams {
 }
 
 export async function sendExpiryReminderEmail(params: SendExpiryEmailParams): Promise<SendEmailResult> {
-  const smtpHost = process.env.SMTP_HOST;
-  const smtpPort = parseInt(process.env.SMTP_PORT || '587', 10);
-  const smtpUser = process.env.SMTP_USER;
-  const smtpPass = process.env.SMTP_PASS;
-  const fromEmail = process.env.EMAIL_FROM || (smtpUser ? `"HsCreations Compliance" <${smtpUser}>` : '"HsCreations Compliance" <compliance@company.com.au>');
+  const smtp = await getEffectiveSmtpConfig();
+  const fromEmail = `"${smtp.fromName || 'HsCreations Compliance'}" <${smtp.fromEmail}>`;
 
   const isCritical = params.severity === 'CRITICAL' || params.daysRemaining <= 30;
   const docLabel = params.documentType === 'VISA' ? 'Visa' : 'Driver License';
@@ -444,14 +500,9 @@ export async function sendExpiryReminderEmail(params: SendExpiryEmailParams): Pr
 </html>
   `;
 
-  if (smtpHost && smtpUser && smtpPass) {
+  if (smtp.isConfigured) {
     try {
-      const transporter = nodemailer.createTransport({
-        host: smtpHost,
-        port: smtpPort,
-        secure: smtpPort === 465,
-        auth: { user: smtpUser, pass: smtpPass },
-      });
+      const transporter = createNodemailerTransporter(smtp);
 
       const info = await transporter.sendMail({
         from: fromEmail,
@@ -591,11 +642,8 @@ export interface SendInvitationEmailParams {
 }
 
 export async function sendStaffInvitationEmail(params: SendInvitationEmailParams): Promise<SendEmailResult> {
-  const smtpHost = process.env.SMTP_HOST;
-  const smtpPort = parseInt(process.env.SMTP_PORT || '587', 10);
-  const smtpUser = process.env.SMTP_USER;
-  const smtpPass = process.env.SMTP_PASS;
-  const fromEmail = process.env.EMAIL_FROM || (smtpUser ? `"HsCreations HR & Onboarding" <${smtpUser}>` : '"HsCreations HR & Onboarding" <onboarding@company.com.au>');
+  const smtp = await getEffectiveSmtpConfig();
+  const fromEmail = `"${smtp.fromName || 'HsCreations HR & Onboarding'}" <${smtp.fromEmail}>`;
 
   const fullName = `${params.firstName} ${params.lastName}`.trim();
   const dept = params.department || 'Production & Creative Operations';
@@ -692,14 +740,9 @@ export async function sendStaffInvitationEmail(params: SendInvitationEmailParams
 </html>
   `;
 
-  if (smtpHost && smtpUser && smtpPass) {
+  if (smtp.isConfigured) {
     try {
-      const transporter = nodemailer.createTransport({
-        host: smtpHost,
-        port: smtpPort,
-        secure: smtpPort === 465,
-        auth: { user: smtpUser, pass: smtpPass },
-      });
+      const transporter = createNodemailerTransporter(smtp);
 
       const info = await transporter.sendMail({
         from: fromEmail,
@@ -774,11 +817,8 @@ export interface SendProfileReminderEmailParams {
 }
 
 export async function sendProfileCompletionReminderEmail(params: SendProfileReminderEmailParams): Promise<SendEmailResult> {
-  const smtpHost = process.env.SMTP_HOST;
-  const smtpPort = parseInt(process.env.SMTP_PORT || '587', 10);
-  const smtpUser = process.env.SMTP_USER;
-  const smtpPass = process.env.SMTP_PASS;
-  const fromEmail = process.env.EMAIL_FROM || (smtpUser ? `"HsCreations HR & Compliance" <${smtpUser}>` : '"HsCreations HR & Compliance" <hr@company.com.au>');
+  const smtp = await getEffectiveSmtpConfig();
+  const fromEmail = `"${smtp.fromName || 'HsCreations HR & Compliance'}" <${smtp.fromEmail}>`;
 
   const fullName = `${params.firstName} ${params.lastName}`.trim();
   const dept = params.department || 'Production & Operations';
@@ -876,14 +916,9 @@ export async function sendProfileCompletionReminderEmail(params: SendProfileRemi
 </html>
   `;
 
-  if (smtpHost && smtpUser && smtpPass) {
+  if (smtp.isConfigured) {
     try {
-      const transporter = nodemailer.createTransport({
-        host: smtpHost,
-        port: smtpPort,
-        secure: smtpPort === 465,
-        auth: { user: smtpUser, pass: smtpPass },
-      });
+      const transporter = createNodemailerTransporter(smtp);
 
       const info = await transporter.sendMail({
         from: fromEmail,
@@ -953,11 +988,8 @@ export interface SendPasswordResetEmailParams {
 }
 
 export async function sendPasswordResetEmail(params: SendPasswordResetEmailParams): Promise<SendEmailResult> {
-  const smtpHost = process.env.SMTP_HOST;
-  const smtpPort = parseInt(process.env.SMTP_PORT || '587', 10);
-  const smtpUser = process.env.SMTP_USER;
-  const smtpPass = process.env.SMTP_PASS;
-  const fromEmail = process.env.EMAIL_FROM || (smtpUser ? `"HsCreations Security Hub" <${smtpUser}>` : '"HsCreations Security Hub" <security@company.com.au>');
+  const smtp = await getEffectiveSmtpConfig();
+  const fromEmail = `"${smtp.fromName || 'HsCreations Security Hub'}" <${smtp.fromEmail}>`;
 
   const expiresIn = params.expiresInMinutes || 5;
 
@@ -1044,14 +1076,9 @@ export async function sendPasswordResetEmail(params: SendPasswordResetEmailParam
 </html>
   `;
 
-  if (smtpHost && smtpUser && smtpPass) {
+  if (smtp.isConfigured) {
     try {
-      const transporter = nodemailer.createTransport({
-        host: smtpHost,
-        port: smtpPort,
-        secure: smtpPort === 465,
-        auth: { user: smtpUser, pass: smtpPass },
-      });
+      const transporter = createNodemailerTransporter(smtp);
 
       const info = await transporter.sendMail({
         from: fromEmail,
@@ -1127,11 +1154,8 @@ export interface SendShiftIssueEmailParams {
 }
 
 export async function sendShiftIssueEmailToAdmin(params: SendShiftIssueEmailParams): Promise<SendEmailResult> {
-  const smtpHost = process.env.SMTP_HOST;
-  const smtpPort = parseInt(process.env.SMTP_PORT || '587', 10);
-  const smtpUser = process.env.SMTP_USER;
-  const smtpPass = process.env.SMTP_PASS;
-  const fromEmail = process.env.EMAIL_FROM || (smtpUser ? `"Timecard & Operations Alert" <${smtpUser}>` : '"Timecard & Operations Alert" <timecard-alerts@company.com.au>');
+  const smtp = await getEffectiveSmtpConfig();
+  const fromEmail = `"${smtp.fromName || 'Timecard & Operations Alert'}" <${smtp.fromEmail}>`;
   const adminEmail = params.adminEmail || process.env.ADMIN_NOTIFICATION_EMAIL || 'admin@company.com.au';
 
   const htmlContent = `
@@ -1200,7 +1224,7 @@ export async function sendShiftIssueEmailToAdmin(params: SendShiftIssueEmailPara
       </div>
       
       <p style="font-size: 12px; color: #64748b; text-align: center; margin-bottom: 0;">
-        Log into the <strong>Admin Command Center $\rightarrow$ Timecard &amp; Shifts</strong> to review and adjust this shift.
+        Log into the <strong>Admin Command Center &rarr; Timecard &amp; Shifts</strong> to review and adjust this shift.
       </p>
     </div>
     <div class="footer">
@@ -1212,14 +1236,9 @@ export async function sendShiftIssueEmailToAdmin(params: SendShiftIssueEmailPara
 </html>
   `;
 
-  if (smtpHost && smtpUser && smtpPass) {
+  if (smtp.isConfigured) {
     try {
-      const transporter = nodemailer.createTransport({
-        host: smtpHost,
-        port: smtpPort,
-        secure: smtpPort === 465,
-        auth: { user: smtpUser, pass: smtpPass },
-      });
+      const transporter = createNodemailerTransporter(smtp);
 
       const info = await transporter.sendMail({
         from: fromEmail,
@@ -1279,6 +1298,158 @@ export async function sendShiftIssueEmailToAdmin(params: SendShiftIssueEmailPara
       message: `Admin shift note notification dispatched for ${params.employeeName}`,
     };
   }
+}
+
+export interface SendTestSmtpParams {
+  host: string;
+  port: number;
+  secure?: boolean;
+  user: string;
+  pass: string;
+  fromEmail?: string;
+  fromName?: string;
+  testRecipient: string;
+}
+
+export async function sendTestSmtpEmail(params: SendTestSmtpParams): Promise<SendEmailResult> {
+  const host = params.host?.trim();
+  const port = Number(params.port) || 587;
+  const secure = params.secure !== undefined ? Boolean(params.secure) : (port === 465);
+  const user = params.user?.trim();
+  const pass = params.pass;
+  const fromEmail = params.fromEmail?.trim() || user;
+  const fromName = params.fromName?.trim() || 'HsCreations Sydney';
+  const recipient = params.testRecipient?.trim();
+
+  if (!host || !user || !pass || !recipient) {
+    throw new Error('Host, port, username, password, and test recipient email are required.');
+  }
+
+  const transporter = nodemailer.createTransport({
+    host,
+    port,
+    secure,
+    auth: { user, pass },
+  });
+
+  // Verify connection first
+  await transporter.verify();
+
+  const formattedDate = new Date().toLocaleString('en-AU', { timeZone: 'Australia/Sydney' });
+  const htmlContent = `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background-color: #0b1120; margin: 0; padding: 24px; color: #f8fafc; }
+    .container { max-width: 560px; margin: 0 auto; background: #0f172a; border-radius: 24px; border: 1px solid #1e293b; overflow: hidden; box-shadow: 0 20px 40px rgba(0,0,0,0.4); }
+    .header { background: linear-gradient(135deg, #059669 0%, #10b981 100%); padding: 32px 28px; text-align: center; }
+    .brand-title { font-size: 18px; font-weight: 900; letter-spacing: 1.5px; margin: 0; color: #ffffff; }
+    .brand-sub { font-size: 11px; color: #d1fae5; font-weight: 800; text-transform: uppercase; margin-top: 5px; letter-spacing: 1px; }
+    .badge { display: inline-block; background: #ffffff; color: #065f46; font-size: 10px; font-weight: 900; text-transform: uppercase; padding: 4px 12px; border-radius: 999px; margin-top: 14px; letter-spacing: 0.5px; }
+    .content { padding: 32px 28px; }
+    .greeting { font-size: 20px; font-weight: 900; color: #ffffff; margin-top: 0; }
+    .desc { font-size: 13px; color: #94a3b8; line-height: 1.6; margin-bottom: 24px; }
+    .card { background: rgba(30, 41, 59, 0.8); border: 1px solid #334155; border-radius: 18px; padding: 20px; margin-bottom: 22px; }
+    .row { display: flex; justify-content: space-between; padding: 9px 0; border-bottom: 1px solid rgba(51, 65, 85, 0.6); font-size: 12px; }
+    .row:last-child { border-bottom: none; }
+    .label { color: #94a3b8; font-weight: 600; }
+    .val { color: #ffffff; font-weight: 700; font-family: monospace; }
+    .status-box { background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.35); border-radius: 14px; padding: 14px 16px; margin-bottom: 20px; font-size: 12px; color: #6ee7b7; line-height: 1.5; }
+    .footer { background: #0b1120; padding: 22px; text-align: center; border-top: 1px solid #1e293b; font-size: 11px; color: #64748b; line-height: 1.6; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <div class="brand-title">HSCREATIONS EMAIL GATEWAY</div>
+      <div class="brand-sub">SMTP Connection &amp; Authentication Test</div>
+      <div class="badge">SMTP Verified Successfully</div>
+    </div>
+    <div class="content">
+      <h2 class="greeting">Live SMTP Test Successful!</h2>
+      <p class="desc">
+        Your custom SMTP credentials have been tested and verified. The system is successfully connecting to your mail server, authenticating, and delivering outbound emails.
+      </p>
+
+      <div class="card">
+        <div class="row">
+          <span class="label">SMTP Server Host:</span>
+          <span class="val">${host}</span>
+        </div>
+        <div class="row">
+          <span class="label">Port &amp; Security:</span>
+          <span class="val">${port} (${secure ? 'SSL/TLS' : 'STARTTLS'})</span>
+        </div>
+        <div class="row">
+          <span class="label">Authenticated User:</span>
+          <span class="val">${user}</span>
+        </div>
+        <div class="row">
+          <span class="label">Sender Address:</span>
+          <span class="val">${fromName} &lt;${fromEmail}&gt;</span>
+        </div>
+        <div class="row">
+          <span class="label">Delivered To:</span>
+          <span class="val">${recipient}</span>
+        </div>
+        <div class="row">
+          <span class="label">Timestamp (Sydney):</span>
+          <span class="val">${formattedDate}</span>
+        </div>
+      </div>
+
+      <div class="status-box">
+        <strong>All Outbound Emails Active:</strong> Expiry reminders, login OTPs, leave notices, and onboarding invite tokens will now route seamlessly through this SMTP gateway.
+      </div>
+    </div>
+    <div class="footer">
+      © 2026 HsCreations Pty Ltd • Sydney NSW<br>
+      Automated Mail Transport Verification Service
+    </div>
+  </div>
+</body>
+</html>
+  `;
+
+  const info = await transporter.sendMail({
+    from: `"${fromName}" <${fromEmail}>`,
+    to: recipient,
+    subject: `[SMTP Test] HsCreations Email Gateway Verification Successful`,
+    text: `Your SMTP configuration (${host}:${port}) has been verified and successfully delivered a test email to ${recipient} at ${formattedDate}.`,
+    html: htmlContent,
+  });
+
+  await logEmail({
+    recipientEmail: recipient,
+    recipientName: 'Admin / Test Recipient',
+    subject: `[SMTP Test] HsCreations Email Gateway Verification Successful`,
+    category: 'GENERAL',
+    status: 'SENT',
+    deliveryMode: 'REAL_SMTP',
+    messageId: info.messageId,
+    previewSnippet: `SMTP verification test email sent to ${recipient} via ${host}:${port}.`,
+    htmlContent: htmlContent,
+    details: `SMTP verified and test email delivered to ${recipient} via ${host}:${port}.`,
+    actorId: 'admin',
+    actorName: 'Admin User',
+    meta: {
+      host,
+      port,
+      secure,
+      user,
+      fromEmail,
+      fromName,
+    },
+  });
+
+  return {
+    success: true,
+    messageId: info.messageId,
+    mode: 'REAL_SMTP',
+    message: `Test email successfully sent to ${recipient} via ${host}:${port}`,
+  };
 }
 
 

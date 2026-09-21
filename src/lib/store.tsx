@@ -22,7 +22,8 @@ import {
   TimecardStatus,
   ExpiryReminderSettings,
   LockedIpRecord,
-  IpLockSettings
+  IpLockSettings,
+  SmtpSettings
 } from '@/types';
 import { 
   INITIAL_EMPLOYEES, 
@@ -34,7 +35,8 @@ import {
   INITIAL_DOCUMENT_TYPES,
   INITIAL_ANNOUNCEMENTS,
   INITIAL_USERS,
-  INITIAL_EXPIRY_SETTINGS
+  INITIAL_EXPIRY_SETTINGS,
+  INITIAL_SMTP_SETTINGS
 } from './initialData';
 import { encryptAES256, maskSensitive } from './crypto';
 import { getOnboardingProgress } from './onboarding';
@@ -196,6 +198,10 @@ interface AppContextType {
   deleteLockedIp: (id: string) => Promise<void> | void;
   toggleLockedIp: (id: string) => Promise<void> | void;
   detectAndLockCurrentIp: (label?: string) => Promise<{ success: boolean; ip: string; message: string }>;
+
+  // SMTP Settings & Gateway
+  smtpSettings: SmtpSettings;
+  updateSmtpSettings: (settings: Partial<SmtpSettings>) => Promise<void> | void;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -276,6 +282,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [expirySettings, setExpirySettings] = useState<ExpiryReminderSettings>(INITIAL_EXPIRY_SETTINGS);
   const [auditRetentionDays, setAuditRetentionDays] = useState<number>(90);
   const [ipLockSettings, setIpLockSettings] = useState<IpLockSettings>(INITIAL_IP_LOCK_SETTINGS);
+  const [smtpSettings, setSmtpSettings] = useState<SmtpSettings>(INITIAL_SMTP_SETTINGS);
   const [passwordResetTokens, setPasswordResetTokens] = useState<PasswordResetToken[]>([]);
   const [showForgotPasswordModal, setShowForgotPasswordModal] = useState(false);
   const [showChangePasswordModal, setShowChangePasswordModal] = useState(false);
@@ -414,6 +421,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         } catch (e) {}
       }
 
+      const savedSmtp = localStorage.getItem('ems_smtp_settings_v1');
+      if (savedSmtp) {
+        try {
+          setSmtpSettings({ ...INITIAL_SMTP_SETTINGS, ...JSON.parse(savedSmtp) });
+        } catch (e) {}
+      }
+
       const savedAuth = localStorage.getItem('ems_auth_user_v1');
       if (savedAuth) {
         const parsedAuth = JSON.parse(savedAuth);
@@ -499,6 +513,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           }
           if (setRes.value.settings.ipLockSettings) {
             setIpLockSettings(prev => ({ ...prev, ...setRes.value.settings.ipLockSettings }));
+          }
+          if (setRes.value.settings.smtpSettings) {
+            setSmtpSettings(prev => ({ ...prev, ...setRes.value.settings.smtpSettings }));
           }
         }
       } catch (err) {
@@ -4738,6 +4755,34 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  const updateSmtpSettings = async (settings: Partial<SmtpSettings>) => {
+    const merged: SmtpSettings = { ...smtpSettings, ...settings };
+    setSmtpSettings(merged);
+    try {
+      localStorage.setItem('ems_smtp_settings_v1', JSON.stringify(merged));
+      const res = await fetch('/api/settings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ smtpSettings: merged }),
+      });
+      if (res.ok) {
+        addToast('SMTP Settings Saved', 'Mail gateway credentials stored and active.', 'success');
+        addAudit(
+          'SMTP_SETTINGS_UPDATED',
+          'Settings',
+          'smtp',
+          `Updated SMTP email gateway settings (Host: ${merged.host || 'None'}, Port: ${merged.port}, User: ${merged.user || 'None'})`,
+          currentUser?.name || 'Admin',
+          currentUser?.role || 'SuperAdmin'
+        );
+      } else {
+        addToast('Database Warning', 'SMTP settings saved locally; server sync pending.', 'warning');
+      }
+    } catch (e) {
+      addToast('Sync Warning', 'SMTP saved locally, server unreachable.', 'warning');
+    }
+  };
+
   return (
     <AppContext.Provider value={{
       currentUser,
@@ -4839,6 +4884,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       deleteLockedIp,
       toggleLockedIp,
       detectAndLockCurrentIp,
+      smtpSettings,
+      updateSmtpSettings,
     }}>
       {children}
     </AppContext.Provider>

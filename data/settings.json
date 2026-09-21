@@ -64,5 +64,15 @@
         "notes": "Auto-detected & locked from Admin Hub"
       }
     ]
+  },
+  "smtpSettings": {
+    "host": "",
+    "port": 587,
+    "secure": false,
+    "user": "",
+    "pass": "",
+    "fromEmail": "",
+    "fromName": "HsCreations Sydney",
+    "enableSmtp": true
   }
 }

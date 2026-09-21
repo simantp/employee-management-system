@@ -1,5 +1,15 @@
 [
   {
+    "id": "notif-exp-1790002450637-xwta",
+    "recipient": "STAFF",
+    "recipientId": "emp-42",
+    "title": "CRITICAL: Temporary Skill Shortage (Subclass 482) Expiry Action Required",
+    "message": "Your Temporary Skill Shortage (Subclass 482) (Ref: Pending Verification) is scheduled to expire on 30/08/2026 (-22 days remaining). Please submit updated renewal documentation.",
+    "type": "VISA_EXPIRY",
+    "timestamp": "Just now",
+    "read": true
+  },
+  {
     "id": "notif-adj-1789177773392",
     "recipient": "STAFF",
     "recipientId": "emp-9",

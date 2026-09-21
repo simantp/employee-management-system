@@ -359,11 +359,23 @@ export interface IpLockSettings {
   lockedIps: LockedIpRecord[];
 }
 
+export interface SmtpSettings {
+  host: string;
+  port: number;
+  secure: boolean;
+  user: string;
+  pass: string;
+  fromEmail?: string;
+  fromName?: string;
+  enableSmtp?: boolean;
+}
+
 export interface SystemSettingsConfig {
   expirySettings: ExpiryReminderSettings;
   auditRetentionDays: number;
   autoPruneAuditLogs: boolean;
   ipLockSettings?: IpLockSettings;
+  smtpSettings?: SmtpSettings;
 }
 
 

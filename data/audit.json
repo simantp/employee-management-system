@@ -1,5 +1,65 @@
 [
   {
+    "id": "aud-1790002853985",
+    "action": "USER_LOGIN",
+    "targetType": "User",
+    "targetId": "usr-1",
+    "details": "User logged in with role SUPER_ADMIN",
+    "actorId": "usr-1",
+    "actorName": "Admin User",
+    "actorRole": "SUPER_ADMIN",
+    "timestamp": "22/09/2026, 1:00:53 am AEST",
+    "ipAddress": "127.0.0.1 (Localhost)"
+  },
+  {
+    "id": "aud-1790002851437",
+    "action": "USER_LOGOUT",
+    "targetType": "User",
+    "targetId": "usr-2",
+    "details": "User Suman Thapa logged out",
+    "actorId": "usr-1",
+    "actorName": "Suman Thapa",
+    "actorRole": "STAFF",
+    "timestamp": "22/09/2026, 1:00:51 am AEST",
+    "ipAddress": "127.0.0.1 (Localhost)"
+  },
+  {
+    "id": "aud-1790002479823",
+    "action": "USER_LOGIN",
+    "targetType": "User",
+    "targetId": "usr-2",
+    "details": "User logged in with role STAFF",
+    "actorId": "usr-1",
+    "actorName": "Suman Thapa",
+    "actorRole": "STAFF",
+    "timestamp": "22/09/2026, 12:54:39 am AEST",
+    "ipAddress": "127.0.0.1 (Localhost)"
+  },
+  {
+    "id": "aud-1790002477357",
+    "action": "USER_LOGOUT",
+    "targetType": "User",
+    "targetId": "usr-1",
+    "details": "User Admin User logged out",
+    "actorId": "usr-1",
+    "actorName": "Admin User",
+    "actorRole": "SUPER_ADMIN",
+    "timestamp": "22/09/2026, 12:54:37 am AEST",
+    "ipAddress": "127.0.0.1 (Localhost)"
+  },
+  {
+    "id": "aud-1790002450720",
+    "action": "EXPIRY_ALERT_DISPATCHED",
+    "targetType": "Compliance Alerts",
+    "targetId": "emp-42",
+    "details": "Dispatched instant CRITICAL reminder email & portal alert to Suman Thapa for Temporary Skill Shortage (Subclass 482) (-22d remaining)",
+    "actorId": "usr-1",
+    "actorName": "Admin User",
+    "actorRole": "SUPER_ADMIN",
+    "timestamp": "22/09/2026, 12:54:10 am AEST",
+    "ipAddress": "127.0.0.1 (Localhost)"
+  },
+  {
     "id": "aud-1790001189673",
     "action": "EXPIRY_ALERT_DISPATCHED",
     "targetType": "Compliance Alerts",

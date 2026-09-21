@@ -1,5 +1,43 @@
 [
   {
+    "id": "eml-1790002455166-euhhf",
+    "timestamp": "22/09/2026, 12:54:15 am",
+    "recipientEmail": "suman.thapa@company.com",
+    "recipientName": "Suman Thapa",
+    "subject": "[CRITICAL] Visa Expiry Reminder: Suman Thapa (-22 days remaining)",
+    "category": "EXPIRY_REMINDER",
+    "status": "SENT",
+    "deliveryMode": "REAL_SMTP",
+    "messageId": "<a5e72b3c-2f66-a22b-0465-96e415896f15@gmail.com>",
+    "previewSnippet": "Your Temporary Skill Shortage (Subclass 482) is due to expire on 30/08/2026 (-22 days remaining).",
+    "htmlContent": "\n<!DOCTYPE html>\n<html>\n<head>\n  <meta charset=\"utf-8\">\n  <style>\n    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background-color: #f8fafc; margin: 0; padding: 20px; color: #1e293b; }\n    .container { max-width: 540px; margin: 0 auto; background: #ffffff; border-radius: 20px; border: 1px solid #e2e8f0; overflow: hidden; box-shadow: 0 10px 25px rgba(0,0,0,0.05); }\n    .header { background: #0f172a; padding: 28px 24px; text-align: center; color: #ffffff; }\n    .brand-title { font-size: 15px; font-weight: 900; letter-spacing: 1px; margin: 0; color: #ffffff; }\n    .brand-sub { font-size: 11px; color: #94a3b8; font-weight: 600; text-transform: uppercase; margin-top: 4px; }\n    .badge { display: inline-block; background: #e11d48; color: #ffffff; font-size: 10px; font-weight: 800; text-transform: uppercase; padding: 4px 10px; border-radius: 999px; margin-top: 12px; }\n    .content { padding: 28px 24px; }\n    .title { font-size: 17px; font-weight: 800; color: #0f172a; margin-top: 0; margin-bottom: 8px; }\n    .desc { font-size: 13px; color: #64748b; line-height: 1.5; margin-bottom: 20px; }\n    .card { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 14px; padding: 16px; margin-bottom: 20px; }\n    .row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #f1f5f9; font-size: 12px; }\n    .row:last-child { border-bottom: none; }\n    .label { color: #64748b; font-weight: 600; }\n    .val { color: #0f172a; font-weight: 700; }\n    .alert-box { background: #fff1f2; border: 1px solid #fecdd3; border-radius: 10px; padding: 12px; font-size: 12px; color: #be123c; margin-top: 14px; font-weight: 600; }\n    .footer { background: #f8fafc; padding: 20px; text-align: center; border-top: 1px solid #e2e8f0; font-size: 11px; color: #94a3b8; line-height: 1.5; }\n  </style>\n</head>\n<body>\n  <div class=\"container\">\n    <div class=\"header\">\n      <div class=\"brand-title\">HSCREATIONS COMPLIANCE</div>\n      <div class=\"brand-sub\">Sydney Plant &amp; Logistics Operations</div>\n      <div class=\"badge\">CRITICAL EXPIRY NOTICE</div>\n    </div>\n    <div class=\"content\">\n      <h2 class=\"title\">Dear Suman Thapa,</h2>\n      <p class=\"desc\">\n        This is an automated compliance notice regarding your <strong>Temporary Skill Shortage (Subclass 482)</strong> on file with HsCreations.\n      </p>\n      \n      <div class=\"card\">\n        <div class=\"row\">\n          <span class=\"label\">Document:</span>\n          <span class=\"val\">Temporary Skill Shortage (Subclass 482)</span>\n        </div>\n        \n        <div class=\"row\">\n          <span class=\"label\">Document Ref:</span>\n          <span class=\"val\">Pending Verification</span>\n        </div>\n        <div class=\"row\">\n          <span class=\"label\">Expiry Date:</span>\n          <span class=\"val\" style=\"color: #e11d48; font-weight: 800;\">30/08/2026</span>\n        </div>\n        <div class=\"row\">\n          <span class=\"label\">Time Remaining:</span>\n          <span class=\"val\" style=\"color: #e11d48; font-weight: 800;\">-22 Day(s)</span>\n        </div>\n        <div class=\"row\">\n          <span class=\"label\">Compliance Status:</span>\n          <span class=\"val\">CRITICAL</span>\n        </div>\n      </div>\n      \n      <div class=\"alert-box\">\n        URGENT: Please provide updated documentation or proof of renewal application to HR immediately to prevent suspension of shifts and compliance escalation.\n      </div>\n\n      <p style=\"font-size: 12px; color: #64748b; text-align: center; margin-top: 20px; margin-bottom: 0;\">\n        Log into the <strong>Staff Portal</strong> to upload your renewed documents or contact your HR Manager.\n      </p>\n    </div>\n    <div class=\"footer\">\n      © 2026 HsCreations Sydney NSW • All Rights Reserved<br>\n      Automated Australian Fair Work &amp; Immigration Compliance Monitor\n    </div>\n  </div>\n</body>\n</html>\n  ",
+    "details": "Automated Visa & License Expiry Reminder dispatched to Suman Thapa (suman.thapa@company.com).",
+    "actorId": "system",
+    "actorName": "Automated Compliance Engine",
+    "meta": {
+      "documentType": "VISA",
+      "documentName": "Temporary Skill Shortage (Subclass 482)",
+      "expiryDate": "30/08/2026",
+      "daysRemaining": -22,
+      "severity": "CRITICAL"
+    }
+  },
+  {
+    "id": "eml-1790002450720-flgir",
+    "timestamp": "22/09/2026, 12:54:10 am",
+    "recipientEmail": "suman.thapa@company.com",
+    "recipientName": "Suman Thapa",
+    "subject": "ACTION REQUIRED: Temporary Skill Shortage (Subclass 482) Expiry Reminder (-22 Days Remaining)",
+    "category": "VISA_EXPIRY",
+    "status": "SENT",
+    "deliveryMode": "MOCK_SMTP",
+    "messageId": "msg-1790002450720",
+    "previewSnippet": "Dear Suman, your Temporary Skill Shortage (Subclass 482) expires on 30/08/2026. Please submit renewal proof.",
+    "details": "Dispatched instant CRITICAL alert for Temporary Skill Shortage (Subclass 482).",
+    "actorId": "usr-1",
+    "actorName": "Admin User"
+  },
+  {
     "id": "eml-1790001194731-9sbru",
     "timestamp": "22/09/2026, 12:33:14 am",
     "recipientEmail": "suman.thapa@company.com",
