@@ -5,8 +5,8 @@
     "visaCriticalDays": 30,
     "licenseWarningDays": 60,
     "licenseCriticalDays": 30,
-    "warningFrequencyDays": 5,
-    "criticalFrequencyDays": 3
+    "warningFrequencyDays": 4,
+    "criticalFrequencyDays": 2
   },
   "auditRetentionDays": 365,
   "autoPruneAuditLogs": true,
@@ -55,7 +55,7 @@
     "enabled": true,
     "lockedIps": [
       {
-        "id": "iplock-1789998748301",
+        "id": "iplock-1789999005686",
         "ip": "27.34.73.159",
         "label": "Workstation (27.34.73.159)",
         "addedAt": "21 Sept 2026",

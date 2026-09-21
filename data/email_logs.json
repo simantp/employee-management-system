@@ -1,0 +1,76 @@
+[
+  {
+    "id": "eml-1789981200000-v1",
+    "timestamp": "21/09/2026, 09:00:00 am",
+    "recipientEmail": "suman.thapa@company.com",
+    "recipientName": "Suman Thapa",
+    "subject": "?? Urgent Compliance Reminder: Temporary Skill Shortage (Subclass 482) Expiry Notice",
+    "category": "EXPIRY_REMINDER",
+    "status": "SENT",
+    "deliveryMode": "REAL_SMTP",
+    "messageId": "msg-visa-482-suman-01",
+    "previewSnippet": "Your Australian Temporary Skill Shortage (Subclass 482) is scheduled to expire in 101 days (31/12/2026). Please upload renewed grant notice.",
+    "details": "Automated Visa Compliance Engine reminder sent to Suman Thapa. Threshold: 60 days warning rule.",
+    "actorId": "system",
+    "actorName": "Automated Compliance Bot",
+    "meta": {
+      "documentType": "VISA",
+      "documentName": "Temporary Skill Shortage (Subclass 482)",
+      "expiryDate": "2026-12-31",
+      "daysRemaining": 101,
+      "severity": "WARNING"
+    }
+  },
+  {
+    "id": "eml-1789980000000-d1",
+    "timestamp": "21/09/2026, 08:30:15 am",
+    "recipientEmail": "suman.thapa@company.com",
+    "recipientName": "Suman Thapa",
+    "subject": "?? NSW Driver Licence Renewal Reminder - HsCreations WHS Compliance",
+    "category": "EXPIRY_REMINDER",
+    "status": "SENT",
+    "deliveryMode": "REAL_SMTP",
+    "messageId": "msg-dl-suman-02",
+    "previewSnippet": "Your NSW Driver Licence DL-9948210 is due for annual verification. Please submit copy in your staff portal.",
+    "details": "Automated License Compliance Engine check.",
+    "actorId": "system",
+    "actorName": "Automated Compliance Bot",
+    "meta": {
+      "documentType": "LICENSE",
+      "documentName": "Driver Licence (NSW)",
+      "expiryDate": "2027-10-12",
+      "daysRemaining": 386,
+      "severity": "INFO"
+    }
+  },
+  {
+    "id": "eml-1789975200000-o1",
+    "timestamp": "20/09/2026, 04:15:30 pm",
+    "recipientEmail": "anita.kc@company.com",
+    "recipientName": "Anita KC",
+    "subject": "?? Welcome to HsCreations! Set Up Your Staff Portal Password",
+    "category": "ONBOARDING_INVITE",
+    "status": "SENT",
+    "deliveryMode": "REAL_SMTP",
+    "messageId": "msg-invite-anita-01",
+    "previewSnippet": "You have been invited to join HsCreations Operations Portal. Click the link to set your secure password and access your shifts.",
+    "details": "Staff onboarding invitation dispatched by Administrator.",
+    "actorId": "usr-1",
+    "actorName": "Administrator"
+  },
+  {
+    "id": "eml-1789970000000-l1",
+    "timestamp": "19/09/2026, 02:20:00 pm",
+    "recipientEmail": "admin@hscreations.com.au",
+    "recipientName": "HR Operations",
+    "subject": "?? Leave Application Submitted: Suman Thapa (Annual Leave)",
+    "category": "LEAVE_NOTIFICATION",
+    "status": "SENT",
+    "deliveryMode": "REAL_SMTP",
+    "messageId": "msg-leave-suman-01",
+    "previewSnippet": "Suman Thapa has submitted an Annual Leave request for 2 days (28/09/2026 - 29/09/2026). Reason: Family commitment.",
+    "details": "Leave notification sent to management team.",
+    "actorId": "emp-1",
+    "actorName": "Suman Thapa"
+  }
+]

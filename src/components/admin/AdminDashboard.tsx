@@ -5,6 +5,7 @@ import KPICard from './KPICard';
 import PendingLeaveApprovals from './PendingLeaveApprovals';
 import PendingDocumentApprovals from './PendingDocumentApprovals';
 import AuditLogViewer from './AuditLogViewer';
+import EmailLogViewer from './EmailLogViewer';
 import EmployeeDetailModal from './EmployeeDetailModal';
 import EmployeeManagementView from './EmployeeManagementView';
 import AdminTimecardManagement from './AdminTimecardManagement';
@@ -97,6 +98,8 @@ export default function AdminDashboard({
         <AdminSettingsHub defaultTab="ROLES" />
       ) : (activeTab === 'documents' || activeTab === 'doc-types') ? (
         <AdminSettingsHub defaultTab="DOCUMENTS" />
+      ) : activeTab === 'email-logs' ? (
+        <EmailLogViewer />
       ) : activeTab === 'audit-log' ? (
         <AuditLogViewer />
       ) : (

@@ -271,6 +271,24 @@ export interface AuditLog {
   ipAddress: string;
 }
 
+export interface EmailLog {
+  id: string;
+  timestamp: string;
+  recipientEmail: string;
+  recipientName: string;
+  subject: string;
+  category: 'EXPIRY_REMINDER' | 'ONBOARDING_INVITE' | 'PROFILE_REMINDER' | 'LEAVE_NOTIFICATION' | 'TIMECARD_ALERT' | 'PASSWORD_RESET' | 'OTP_SECURITY' | 'GENERAL';
+  status: 'SENT' | 'SIMULATED' | 'FAILED';
+  deliveryMode?: 'REAL_SMTP' | 'SIMULATED' | 'ETHEREAL';
+  messageId?: string;
+  previewSnippet?: string;
+  htmlContent?: string;
+  details?: string;
+  actorId?: string;
+  actorName?: string;
+  meta?: Record<string, any>;
+}
+
 
 export interface DocumentTypeConfig {
   id: string;

@@ -10,7 +10,7 @@ export default function AdminSidebar({
   activeTab?: string; 
   onSelectTab?: (tab: string) => void;
 }) {
-  const { alerts, leaveRequests, employees, activeWorkingStaffCount, announcements, logout } = useApp();
+  const { alerts, leaveRequests, employees, activeWorkingStaffCount, announcements, logout, emailLogs } = useApp();
 
   const pendingApprovals = leaveRequests.filter(r => r.status === 'PENDING').length;
 
@@ -120,6 +120,29 @@ export default function AdminSidebar({
                   : 'bg-amber-400/20 text-amber-300 border border-amber-400/30 animate-pulse'
               }`}>
                 {pendingApprovals}
+              </span>
+            )}
+          </button>
+        </div>
+
+        <div className="relative pl-3">
+          <button
+            onClick={() => handleNav('email-logs')}
+            className={`w-full flex items-center justify-between px-4 py-2.5 text-xs transition-all duration-150 cursor-pointer ${
+              activeTab === 'email-logs'
+                ? 'curved-active-tab font-bold text-[#453a6a]'
+                : 'rounded-2xl text-purple-200/75 hover:text-white hover:bg-white/10 font-medium pr-4'
+            }`}
+          >
+            <div className="flex items-center gap-3">
+              {activeTab === 'email-logs' && <span className="w-2 h-2 rounded-full bg-[#453a6a] animate-pulse" />}
+              <span>Email Logs</span>
+            </div>
+            {emailLogs && emailLogs.length > 0 && (
+              <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold ${
+                activeTab === 'email-logs' ? 'bg-purple-100 text-purple-800' : 'bg-purple-400/20 text-purple-200 border border-purple-400/30'
+              }`}>
+                {emailLogs.length}
               </span>
             )}
           </button>

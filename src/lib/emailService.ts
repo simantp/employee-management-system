@@ -1,4 +1,6 @@
 import nodemailer from 'nodemailer';
+import { appendStoredEmailLog } from './serverData';
+import { EmailLog } from '@/types';
 
 export interface SendOTPParams {
   email: string;
@@ -12,6 +14,19 @@ export interface SendEmailResult {
   previewUrl?: string;
   mode: 'REAL_SMTP' | 'SIMULATED' | 'ETHEREAL';
   message: string;
+}
+
+async function logEmail(entry: Omit<EmailLog, 'id' | 'timestamp'>) {
+  try {
+    const newLog: EmailLog = {
+      id: `eml-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
+      timestamp: new Date().toLocaleString('en-AU', { timeZone: 'Australia/Sydney' }),
+      ...entry,
+    };
+    await appendStoredEmailLog(newLog);
+  } catch (e) {
+    console.error('Failed to log email in emailService:', e);
+  }
 }
 
 export async function sendOTPEmail({ email, firstName, code }: SendOTPParams): Promise<SendEmailResult> {
@@ -447,6 +462,28 @@ export async function sendExpiryReminderEmail(params: SendExpiryEmailParams): Pr
       });
 
       console.log(`[EXPIRY EMAIL SUCCESS] Real email sent to: ${params.employeeEmail} (Id: ${info.messageId})`);
+      await logEmail({
+        recipientEmail: params.employeeEmail,
+        recipientName: params.employeeName,
+        subject: `[${params.severity}] ${docLabel} Expiry Reminder: ${params.employeeName} (${params.daysRemaining} days remaining)`,
+        category: 'EXPIRY_REMINDER',
+        status: 'SENT',
+        deliveryMode: 'REAL_SMTP',
+        messageId: info.messageId,
+        previewSnippet: `Your ${params.documentName || docLabel} is due to expire on ${params.expiryDate} (${params.daysRemaining} days remaining).`,
+        htmlContent: htmlContent,
+        details: `Automated Visa & License Expiry Reminder dispatched to ${params.employeeName} (${params.employeeEmail}).`,
+        actorId: 'system',
+        actorName: 'Automated Compliance Engine',
+        meta: {
+          documentType: params.documentType,
+          documentName: params.documentName || docLabel,
+          expiryDate: params.expiryDate,
+          daysRemaining: params.daysRemaining,
+          severity: params.severity,
+        },
+      });
+
       return {
         success: true,
         messageId: info.messageId,
@@ -455,6 +492,18 @@ export async function sendExpiryReminderEmail(params: SendExpiryEmailParams): Pr
       };
     } catch (err: any) {
       console.error('[EXPIRY EMAIL ERROR] Real SMTP failed:', err);
+      await logEmail({
+        recipientEmail: params.employeeEmail,
+        recipientName: params.employeeName,
+        subject: `[${params.severity}] ${docLabel} Expiry Reminder: ${params.employeeName} (${params.daysRemaining} days remaining)`,
+        category: 'EXPIRY_REMINDER',
+        status: 'FAILED',
+        deliveryMode: 'REAL_SMTP',
+        previewSnippet: `SMTP Error (${err.message}) when sending expiry reminder.`,
+        details: `Failed to deliver via SMTP: ${err.message}`,
+        actorId: 'system',
+        actorName: 'Automated Compliance Engine',
+      });
       return {
         success: true,
         mode: 'SIMULATED',
@@ -483,6 +532,28 @@ export async function sendExpiryReminderEmail(params: SendExpiryEmailParams): Pr
     const previewUrl = nodemailer.getTestMessageUrl(info) || undefined;
     console.log(`[ETHEREAL EXPIRY EMAIL PREVIEW URL]: ${previewUrl}`);
 
+    await logEmail({
+      recipientEmail: params.employeeEmail,
+      recipientName: params.employeeName,
+      subject: `[${params.severity}] ${docLabel} Expiry Reminder: ${params.employeeName} (${params.daysRemaining} days remaining)`,
+      category: 'EXPIRY_REMINDER',
+      status: 'SIMULATED',
+      deliveryMode: 'ETHEREAL',
+      messageId: info.messageId,
+      previewSnippet: `Your ${params.documentName || docLabel} expires on ${params.expiryDate} (${params.daysRemaining} days remaining).`,
+      htmlContent: htmlContent,
+      details: `Dispatched test email via Ethereal: ${previewUrl}`,
+      actorId: 'system',
+      actorName: 'Automated Compliance Engine',
+      meta: {
+        documentType: params.documentType,
+        documentName: params.documentName || docLabel,
+        expiryDate: params.expiryDate,
+        daysRemaining: params.daysRemaining,
+        severity: params.severity,
+      },
+    });
+
     return {
       success: true,
       previewUrl,
@@ -490,6 +561,18 @@ export async function sendExpiryReminderEmail(params: SendExpiryEmailParams): Pr
       message: `Expiry alert test email dispatched to ${params.employeeEmail}`,
     };
   } catch (e) {
+    await logEmail({
+      recipientEmail: params.employeeEmail,
+      recipientName: params.employeeName,
+      subject: `[${params.severity}] ${docLabel} Expiry Reminder: ${params.employeeName} (${params.daysRemaining} days remaining)`,
+      category: 'EXPIRY_REMINDER',
+      status: 'SIMULATED',
+      deliveryMode: 'SIMULATED',
+      previewSnippet: `Simulated notification for ${params.documentName || docLabel} expiry.`,
+      details: `Logged simulated expiry reminder notification.`,
+      actorId: 'system',
+      actorName: 'Automated Compliance Engine',
+    });
     return {
       success: true,
       mode: 'SIMULATED',

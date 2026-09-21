@@ -5,15 +5,13 @@ import {
   INITIAL_LEAVE_REQUESTS, 
   INITIAL_AUDIT_LOGS, 
   INITIAL_TIMECARDS,
-  INITIAL_NOTIFICATIONS
-} from './initialData';
-import {
+  INITIAL_NOTIFICATIONS,
   INITIAL_DOCUMENT_TYPES,
   INITIAL_ANNOUNCEMENTS,
   INITIAL_USERS,
   INITIAL_EXPIRY_SETTINGS
-} from './store';
-import { Employee, TimecardRecord, LeaveRequest, EmployeeDocument, DocumentTypeConfig, Announcement, AuditLog, AuthUser, ExpiryReminderSettings, NotificationItem } from '@/types';
+} from './initialData';
+import { Employee, TimecardRecord, LeaveRequest, EmployeeDocument, DocumentTypeConfig, Announcement, AuditLog, EmailLog, AuthUser, ExpiryReminderSettings, NotificationItem } from '@/types';
 
 const DATA_DIR = path.join(process.cwd(), 'data');
 
@@ -95,6 +93,23 @@ export async function getStoredAuditLogs(): Promise<AuditLog[]> {
 
 export async function saveStoredAuditLogs(auditLogs: AuditLog[]): Promise<void> {
   await writeJsonFile('audit.json', auditLogs);
+}
+
+export async function getStoredEmailLogs(): Promise<EmailLog[]> {
+  return readJsonFile<EmailLog[]>('email_logs.json', []);
+}
+
+export async function saveStoredEmailLogs(emailLogs: EmailLog[]): Promise<void> {
+  await writeJsonFile('email_logs.json', emailLogs);
+}
+
+export async function appendStoredEmailLog(log: EmailLog): Promise<void> {
+  try {
+    const current = await getStoredEmailLogs();
+    await saveStoredEmailLogs([log, ...current]);
+  } catch (e) {
+    console.error('Failed to append email log:', e);
+  }
 }
 
 export async function getStoredUsers(): Promise<AuthUser[]> {

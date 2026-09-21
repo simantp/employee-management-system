@@ -8,6 +8,7 @@ import {
   ComplianceAlert, 
   NotificationItem, 
   AuditLog, 
+  EmailLog,
   LeaveType, 
   LeaveStatus,
   AuthUser,
@@ -29,7 +30,11 @@ import {
   INITIAL_ALERTS, 
   INITIAL_NOTIFICATIONS, 
   INITIAL_AUDIT_LOGS,
-  INITIAL_TIMECARDS
+  INITIAL_TIMECARDS,
+  INITIAL_DOCUMENT_TYPES,
+  INITIAL_ANNOUNCEMENTS,
+  INITIAL_USERS,
+  INITIAL_EXPIRY_SETTINGS
 } from './initialData';
 import { encryptAES256, maskSensitive } from './crypto';
 import { getOnboardingProgress } from './onboarding';
@@ -40,6 +45,13 @@ import {
   getDeviceDescription 
 } from './ipUtils';
 
+export {
+  INITIAL_DOCUMENT_TYPES,
+  INITIAL_ANNOUNCEMENTS,
+  INITIAL_USERS,
+  INITIAL_EXPIRY_SETTINGS
+};
+
 interface ToastMessage {
   id: string;
   title: string;
@@ -47,174 +59,6 @@ interface ToastMessage {
   type: 'success' | 'warning' | 'info' | 'error';
   timestamp: string;
 }
-
-export const INITIAL_EXPIRY_SETTINGS: ExpiryReminderSettings = {
-  autoReminderEnabled: true,
-  visaWarningDays: 60,
-  visaCriticalDays: 30,
-  licenseWarningDays: 60,
-  licenseCriticalDays: 30,
-  warningFrequencyDays: 5,
-  criticalFrequencyDays: 3,
-};
-
-export const INITIAL_DOCUMENT_TYPES = [
-  { id: 'dt-1', name: 'Passport Copy (Australian / International)', category: 'Identification', hasExpiry: true },
-  { id: 'dt-2', name: 'Visa Grant Notice / VEVO Verification', category: 'Visa & Immigration', hasExpiry: true },
-  { id: 'dt-3', name: 'Driver\'s License (NSW / State)', category: 'Licenses', hasExpiry: true },
-  { id: 'dt-4', name: 'Tax File Number (TFN) Declaration', category: 'Tax & Compliance', hasExpiry: false },
-  { id: 'dt-5', name: 'Medical / Sick Leave Certificate', category: 'Medical', hasExpiry: false },
-  { id: 'dt-6', name: 'Forklift / White Card / RSA License', category: 'Workplace Licenses', hasExpiry: true },
-  { id: 'dt-7', name: 'Bank Statement / Direct Debit Proof', category: 'Payroll', hasExpiry: false },
-  { id: 'dt-8', name: 'Superannuation Choice Form', category: 'Payroll', hasExpiry: false },
-  { id: 'dt-9', name: 'Signed Employment Contract', category: 'HR Onboarding', hasExpiry: false },
-];
-
-export const INITIAL_ANNOUNCEMENTS: Announcement[] = [
-  {
-    id: 'ann-1',
-    title: 'Sydney Plant Annual Team Building & WHS Safety Workshop',
-    content: 'All Sydney NSW staff members are invited to our annual safety presentation and company celebration lunch on Friday 28 August 2026. Shifts and production schedules will operate on modified hours.',
-    author: 'Super Admin (HsCreations Executive)',
-    authorRole: 'SUPER_ADMIN',
-    date: '20 Aug 2026',
-    category: 'Operations & Safety',
-    isPinned: true
-  },
-  {
-    id: 'ann-2',
-    title: 'Fair Work Australia 2026/2027 Award & Pay Updates',
-    content: 'The 2026 annual Fair Work Commission wage review adjustments have been fully integrated into the HsCreations payroll schedule. Review your employment specifications in My Profile.',
-    author: 'Human Resources Director',
-    authorRole: 'ADMIN',
-    date: '15 Aug 2026',
-    category: 'Fair Work NSW',
-    isPinned: true
-  },
-  {
-    id: 'ann-3',
-    title: 'NSW Public Holiday Operating Hours & Shift Rates',
-    content: 'Upcoming bank holiday and state public holiday operations schedule is now published. Staff rostered on public holidays will receive applicable statutory penalty rates as per modern award regulations.',
-    author: 'Operations Director',
-    authorRole: 'ADMIN',
-    date: '10 Aug 2026',
-    category: 'Operations & Safety'
-  },
-  {
-    id: 'ann-4',
-    title: 'Quarterly Fire Evacuation Drill & First Aid Officer Nominations',
-    content: 'The mandatory Q3 fire drill will take place on Wednesday at 10:30 AM across the Riverwood & Sydney distribution facilities. Staff interested in becoming certified First Aid Officers please contact HR.',
-    author: 'WHS Safety Committee',
-    authorRole: 'ADMIN',
-    date: '01 Aug 2026',
-    category: 'Operations & Safety'
-  },
-  {
-    id: 'ann-5',
-    title: 'Forklift & Heavy Machinery Pre-Start Check Protocol',
-    content: 'All certified operators must complete the digital daily pre-shift inspection log before operating forklifts or pallet wrappers. Report any hydraulic or safety defects immediately to your shift supervisor.',
-    author: 'Warehouse Safety Supervisor',
-    authorRole: 'SUPER_ADMIN',
-    date: '25 Jul 2026',
-    category: 'Operations & Safety'
-  },
-  {
-    id: 'ann-6',
-    title: 'Superannuation Guarantee Increase & Super Choice Form Notice',
-    content: 'The statutory superannuation contribution rate has increased. If you wish to nominate an alternate approved super fund or self-managed fund, submit an updated Superannuation Standard Choice form in the Documents tab.',
-    author: 'Payroll & Compliance Dept',
-    authorRole: 'ADMIN',
-    date: '18 Jul 2026',
-    category: 'HR & Compliance'
-  },
-  {
-    id: 'ann-7',
-    title: 'Annual Winter Flu Vaccination Clinic & Health Subsidy',
-    content: 'Complimentary on-site influenza vaccination sessions will be available for all team members next Tuesday. Booking slots are open on the staff portal or through your department coordinator.',
-    author: 'Employee Wellbeing Officer',
-    authorRole: 'ADMIN',
-    date: '10 Jul 2026',
-    category: 'Company Event'
-  },
-  {
-    id: 'ann-8',
-    title: 'PPE Standards & High-Visibility Vest Renewal Drive',
-    content: 'Steel-capped safety boots and current-spec hi-vis apparel are mandatory inside all active production and loading dock zones. Damaged or worn PPE can be exchanged for free at the plant store.',
-    author: 'WHS Compliance Officer',
-    authorRole: 'ADMIN',
-    date: '02 Jul 2026',
-    category: 'Operations & Safety'
-  },
-  {
-    id: 'ann-9',
-    title: 'Quarterly Team Recognition & Excellence Awards',
-    content: 'Congratulations to our Riverwood Production and Dispatch teams for achieving zero lost-time injuries (LTI) this quarter! Monthly recognition award certificates and gift cards have been awarded.',
-    author: 'Managing Director',
-    authorRole: 'SUPER_ADMIN',
-    date: '20 Jun 2026',
-    category: 'Company Event'
-  },
-  {
-    id: 'ann-10',
-    title: 'Updated Emergency Contact & Next-of-Kin Records Verification',
-    content: 'In accordance with NSW WHS regulations, all employees are requested to review and verify their nominated emergency contact numbers and residential details in the Emergency Contacts tab.',
-    author: 'Human Resources Director',
-    authorRole: 'ADMIN',
-    date: '10 Jun 2026',
-    category: 'HR & Compliance'
-  }
-];
-
-export const INITIAL_USERS: AuthUser[] = [
-  {
-    id: 'usr-1',
-    name: 'Super Admin',
-    username: 'admin',
-    email: 'admin@company.com.au',
-    password: 'password123',
-    role: 'SUPER_ADMIN',
-    isEmailVerified: true,
-    avatarUrl: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150',
-    createdAt: '10/01/2024',
-  },
-  {
-    id: 'usr-2',
-    name: 'Suman Thapa',
-    username: 'suman.thapa',
-    email: 'suman.thapa@company.com',
-    password: 'password123',
-    role: 'STAFF',
-    isEmailVerified: true,
-    staffId: 'emp-42',
-    department: 'Production (Riverwood)',
-    avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150',
-    createdAt: '15/05/2025',
-  },
-  {
-    id: 'usr-3',
-    name: 'Anita KC',
-    username: 'anita.kc',
-    email: 'anita.kc@company.com',
-    password: 'password123',
-    role: 'STAFF',
-    isEmailVerified: true,
-    staffId: 'emp-41',
-    department: 'Design',
-    avatarUrl: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=150',
-    createdAt: '12/05/2025',
-  },
-  {
-    id: 'usr-4',
-    name: 'Operations Admin',
-    username: 'ops.admin',
-    email: 'hr@company.com.au',
-    password: 'password123',
-    role: 'ADMIN',
-    isEmailVerified: true,
-    avatarUrl: 'https://images.unsplash.com/photo-1580489944761-15a19d654956?w=150',
-    createdAt: '01/02/2024',
-  }
-];
 
 interface AppContextType {
   // Auth state
@@ -240,6 +84,9 @@ interface AppContextType {
   alerts: ComplianceAlert[];
   notifications: NotificationItem[];
   auditLogs: AuditLog[];
+  emailLogs: EmailLog[];
+  addEmailLog: (log: Omit<EmailLog, 'id' | 'timestamp'>) => void;
+  clearEmailLogs: () => Promise<void>;
   toasts: ToastMessage[];
   announcements: Announcement[];
   postAnnouncement: (data: { title: string; content: string; category?: string; isPinned?: boolean }) => void;
@@ -422,6 +269,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [alerts, setAlerts] = useState<ComplianceAlert[]>(INITIAL_ALERTS);
   const [notifications, setNotifications] = useState<NotificationItem[]>(INITIAL_NOTIFICATIONS);
   const [auditLogs, setAuditLogs] = useState<AuditLog[]>(INITIAL_AUDIT_LOGS);
+  const [emailLogs, setEmailLogs] = useState<EmailLog[]>([]);
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
   const [announcements, setAnnouncements] = useState<Announcement[]>(INITIAL_ANNOUNCEMENTS);
   const [timecards, setTimecards] = useState<TimecardRecord[]>(INITIAL_TIMECARDS);
@@ -543,6 +391,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       const savedAudit = localStorage.getItem('ems_audit_v1');
       if (savedAudit) setAuditLogs(JSON.parse(savedAudit));
 
+      const savedEmails = localStorage.getItem('ems_emails_v1');
+      if (savedEmails) setEmailLogs(JSON.parse(savedEmails));
+
       const savedRetention = localStorage.getItem('ems_audit_retention_days_v1');
       if (savedRetention) setAuditRetentionDays(Number(savedRetention) || 90);
 
@@ -583,7 +434,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     // ==========================================
     async function hydrateFromBackendDb() {
       try {
-        const [empRes, tcRes, lrRes, dtRes, annRes, audRes, usrRes, setRes, notifRes] = await Promise.allSettled([
+        const [empRes, tcRes, lrRes, dtRes, annRes, audRes, usrRes, setRes, notifRes, emlRes] = await Promise.allSettled([
           fetch('/api/employees').then(r => r.json()),
           fetch('/api/timecards').then(r => r.json()),
           fetch('/api/leave').then(r => r.json()),
@@ -593,6 +444,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           fetch('/api/users').then(r => r.json()),
           fetch('/api/settings').then(r => r.json()),
           fetch('/api/notifications').then(r => r.json()),
+          fetch('/api/emails').then(r => r.json()),
         ]);
 
         let backendTimecards: TimecardRecord[] = INITIAL_TIMECARDS;
@@ -628,6 +480,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         }
         if (audRes.status === 'fulfilled' && audRes.value?.success && Array.isArray(audRes.value.auditLogs)) {
           setAuditLogs(audRes.value.auditLogs);
+        }
+        if (emlRes.status === 'fulfilled' && emlRes.value?.success && Array.isArray(emlRes.value.emailLogs)) {
+          setEmailLogs(emlRes.value.emailLogs);
         }
         if (usrRes.status === 'fulfilled' && usrRes.value?.success && Array.isArray(usrRes.value.users) && usrRes.value.users.length > 0) {
           setUsers(usrRes.value.users);
@@ -701,6 +556,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       localStorage.setItem('ems_audit_v1', JSON.stringify(auditLogs));
     } catch (e) {}
   }, [auditLogs]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('ems_emails_v1', JSON.stringify(emailLogs));
+    } catch (e) {}
+  }, [emailLogs]);
 
   useEffect(() => {
     try {
@@ -1085,6 +946,32 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       addToast('Audit Logs Cleaned', `Pruned records older than ${targetDays} days.`, 'info');
       return { success: true, prunedCount: 0, message: 'Local logs pruned.' };
     }
+  };
+
+  const addEmailLog = (logData: Omit<EmailLog, 'id' | 'timestamp'>) => {
+    const newLog: EmailLog = {
+      id: `eml-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
+      timestamp: new Date().toLocaleString('en-AU', { timeZone: 'Australia/Sydney' }),
+      ...logData,
+    };
+    setEmailLogs(prev => [newLog, ...prev]);
+    try {
+      fetch('/api/emails', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newLog),
+      }).catch(() => {});
+    } catch (e) {}
+  };
+
+  const clearEmailLogs = async () => {
+    setEmailLogs([]);
+    try {
+      localStorage.removeItem('ems_emails_v1');
+      await fetch('/api/emails', { method: 'DELETE' });
+      addToast('Email Logs Cleared', 'All email communication records have been reset.', 'info');
+      addAudit('EMAIL_LOGS_CLEARED', 'EmailLog', 'all', 'Cleared automated email communications log', currentUser?.name || 'Admin', currentUser?.role || 'SuperAdmin');
+    } catch (e) {}
   };
 
   const addAudit = (action: string, targetType: string, targetId: string, details: string, actorName?: string, actorRole?: string) => {
@@ -4857,6 +4744,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       alerts,
       notifications,
       auditLogs,
+      emailLogs,
+      addEmailLog,
+      clearEmailLogs,
       toasts,
       announcements,
       postAnnouncement,
