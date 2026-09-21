@@ -271,15 +271,31 @@ export interface AuditLog {
   ipAddress: string;
 }
 
+export type EmailCategory =
+  | 'VISA_EXPIRY'
+  | 'LICENSE_EXPIRY'
+  | 'EXPIRY_REMINDER'
+  | 'STAFF_INVITE'
+  | 'ONBOARDING_INVITE'
+  | 'PROFILE_REMINDER'
+  | 'LEAVE_NOTIFICATION'
+  | 'LEAVE_NOTICE'
+  | 'TIMECARD_ALERT'
+  | 'PASSWORD_RESET'
+  | 'OTP_SECURITY'
+  | 'GENERAL';
+
+export type EmailDeliveryStatus = 'SENT' | 'QUEUED' | 'FAILED' | 'SIMULATED';
+
 export interface EmailLog {
   id: string;
   timestamp: string;
   recipientEmail: string;
   recipientName: string;
   subject: string;
-  category: 'EXPIRY_REMINDER' | 'ONBOARDING_INVITE' | 'PROFILE_REMINDER' | 'LEAVE_NOTIFICATION' | 'TIMECARD_ALERT' | 'PASSWORD_RESET' | 'OTP_SECURITY' | 'GENERAL';
-  status: 'SENT' | 'SIMULATED' | 'FAILED';
-  deliveryMode?: 'REAL_SMTP' | 'SIMULATED' | 'ETHEREAL';
+  category: EmailCategory;
+  status: EmailDeliveryStatus;
+  deliveryMode?: 'REAL_SMTP' | 'SIMULATED' | 'ETHEREAL' | 'MOCK_SMTP' | 'RESEND' | 'SENDGRID' | 'DIRECT';
   messageId?: string;
   previewSnippet?: string;
   htmlContent?: string;
@@ -288,6 +304,7 @@ export interface EmailLog {
   actorName?: string;
   meta?: Record<string, any>;
 }
+
 
 
 export interface DocumentTypeConfig {
@@ -346,4 +363,6 @@ export interface SystemSettingsConfig {
   autoPruneAuditLogs: boolean;
   ipLockSettings?: IpLockSettings;
 }
+
+
 

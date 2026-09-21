@@ -1,52 +1,59 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { getStoredEmailLogs, saveStoredEmailLogs, appendStoredEmailLog } from '@/lib/serverData';
 import { EmailLog } from '@/types';
 
-export async function GET(req: NextRequest) {
+export async function GET() {
   try {
     const logs = await getStoredEmailLogs();
-    return NextResponse.json({ success: true, emailLogs: logs }, { status: 200 });
-  } catch (error: any) {
-    console.error('API /api/emails GET error:', error);
-    return NextResponse.json({ success: false, error: 'Failed to fetch email logs' }, { status: 500 });
+    return NextResponse.json(logs);
+  } catch (error) {
+    console.error('Failed to get email logs:', error);
+    return NextResponse.json({ error: 'Failed to read email logs' }, { status: 500 });
   }
 }
 
-export async function POST(req: NextRequest) {
+export async function POST(request: Request) {
   try {
-    const body = await req.json();
+    const logData = await request.json();
     const newLog: EmailLog = {
-      id: body.id || `eml-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
-      timestamp: body.timestamp || new Date().toLocaleString('en-AU', { timeZone: 'Australia/Sydney' }),
-      recipientEmail: body.recipientEmail || '',
-      recipientName: body.recipientName || 'Staff Member',
-      subject: body.subject || 'Automated System Notification',
-      category: body.category || 'EXPIRY_REMINDER',
-      status: body.status || 'SENT',
-      deliveryMode: body.deliveryMode || 'REAL_SMTP',
-      messageId: body.messageId || '',
-      previewSnippet: body.previewSnippet || '',
-      htmlContent: body.htmlContent || '',
-      details: body.details || '',
-      actorId: body.actorId || 'system',
-      actorName: body.actorName || 'Automated Compliance Bot',
-      meta: body.meta || {},
+      id: logData.id || `eml-${Date.now()}`,
+      timestamp: logData.timestamp || new Date().toLocaleString('en-AU', {
+        day: '2-digit',
+        month: 'short',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: true
+      }),
+      recipientEmail: logData.recipientEmail,
+      recipientName: logData.recipientName,
+      subject: logData.subject,
+      category: logData.category || 'GENERAL',
+      status: logData.status || 'SENT',
+      deliveryMode: logData.deliveryMode || 'MOCK_SMTP',
+      messageId: logData.messageId || `msg-${Date.now()}`,
+      previewSnippet: logData.previewSnippet || '',
+      htmlContent: logData.htmlContent,
+      details: logData.details,
+      actorId: logData.actorId,
+      actorName: logData.actorName,
+      meta: logData.meta
     };
 
     await appendStoredEmailLog(newLog);
-    return NextResponse.json({ success: true, emailLog: newLog }, { status: 201 });
-  } catch (error: any) {
-    console.error('API /api/emails POST error:', error);
-    return NextResponse.json({ success: false, error: 'Failed to save email log' }, { status: 500 });
+    return NextResponse.json({ success: true, log: newLog });
+  } catch (error) {
+    console.error('Failed to append email log:', error);
+    return NextResponse.json({ error: 'Failed to record email log' }, { status: 500 });
   }
 }
 
-export async function DELETE(req: NextRequest) {
+export async function DELETE() {
   try {
     await saveStoredEmailLogs([]);
-    return NextResponse.json({ success: true, message: 'Email logs cleared successfully' }, { status: 200 });
-  } catch (error: any) {
-    console.error('API /api/emails DELETE error:', error);
-    return NextResponse.json({ success: false, error: 'Failed to clear email logs' }, { status: 500 });
+    return NextResponse.json({ success: true, message: 'All email logs cleared' });
+  } catch (error) {
+    console.error('Failed to clear email logs:', error);
+    return NextResponse.json({ error: 'Failed to clear email logs' }, { status: 500 });
   }
 }
