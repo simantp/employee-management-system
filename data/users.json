@@ -31,16 +31,5 @@
     "avatarUrl": "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150",
     "createdAt": "15/05/2025",
     "password": "Password123!"
-  },
-  {
-    "id": "usr-3",
-    "name": "Anita KC",
-    "email": "anita.kc@company.com",
-    "role": "STAFF",
-    "isEmailVerified": true,
-    "staffId": "emp-41",
-    "department": "Design",
-    "avatarUrl": "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=150",
-    "createdAt": "12/05/2025"
   }
 ]

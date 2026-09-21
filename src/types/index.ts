@@ -67,6 +67,7 @@ export interface EmployeeDocument {
   fileSize?: string;
   previewUrl?: string;
   fileType?: 'image' | 'pdf' | 'doc';
+  rejectionReason?: string | null;
 }
 
 export interface Payslip {
@@ -130,6 +131,7 @@ export interface Employee {
   
   hasDriverLicense: boolean;
   licenseCountry?: string;
+  licenseState?: string;
   licenseNumber?: string;
   licenseExpiryDate?: string;
 
