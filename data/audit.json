@@ -1,5 +1,53 @@
 [
   {
+    "id": "aud-1789993532820",
+    "action": "USER_LOGIN",
+    "targetType": "User",
+    "targetId": "usr-1",
+    "details": "User logged in with role SUPER_ADMIN",
+    "actorId": "usr-1",
+    "actorName": "Admin User",
+    "actorRole": "SUPER_ADMIN",
+    "timestamp": "21/09/2026, 10:25:32 pm AEST",
+    "ipAddress": "127.0.0.1 (Localhost)"
+  },
+  {
+    "id": "aud-1789993526499",
+    "action": "CLOCK_IN_BLOCKED_UNAUTHORIZED_IP",
+    "targetType": "Employee",
+    "targetId": "emp-9",
+    "details": "simant testing attempted clock-in from unauthorized workstation IP (27.34.73.159). Punch rejected by Workstation IP Lock policy.",
+    "actorId": "usr-1",
+    "actorName": "simant testing",
+    "actorRole": "Staff",
+    "timestamp": "21/09/2026, 10:25:26 pm AEST",
+    "ipAddress": "127.0.0.1 (Localhost)"
+  },
+  {
+    "id": "aud-1789992072470",
+    "action": "USER_LOGOUT",
+    "targetType": "User",
+    "targetId": "usr-1",
+    "details": "User Admin User logged out",
+    "actorId": "usr-1",
+    "actorName": "Admin User",
+    "actorRole": "SUPER_ADMIN",
+    "timestamp": "21/09/2026, 10:01:12 pm AEST",
+    "ipAddress": "127.0.0.1 (Localhost)"
+  },
+  {
+    "id": "aud-1789992067912",
+    "action": "USER_LOGIN",
+    "targetType": "User",
+    "targetId": "usr-1",
+    "details": "User logged in with role SUPER_ADMIN",
+    "actorId": "usr-1",
+    "actorName": "Admin User",
+    "actorRole": "SUPER_ADMIN",
+    "timestamp": "21/09/2026, 10:01:07 pm AEST",
+    "ipAddress": "127.0.0.1 (Localhost)"
+  },
+  {
     "id": "aud-1789303430828",
     "action": "USER_LOGOUT",
     "targetType": "User",

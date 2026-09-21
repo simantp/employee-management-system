@@ -7,7 +7,7 @@ import RolesManagement from './RolesManagement';
 import { LockedIpRecord } from '@/types';
 import { detectWorkstationIp } from '@/lib/ipUtils';
 
-export type SettingsTab = 'COMPANY' | 'SHIFTS' | 'LEAVE' | 'DOCUMENTS' | 'ROLES' | 'EXPIRY' | 'IP_LOCK' | 'SECURITY' | 'RETENTION' | 'NOTIFS' | 'BACKUP';
+export type SettingsTab = 'COMPANY' | 'SHIFTS' | 'DOCUMENTS' | 'ROLES' | 'EXPIRY' | 'IP_LOCK' | 'SECURITY' | 'RETENTION' | 'NOTIFS' | 'BACKUP';
 
 export default function AdminSettingsHub({
   defaultTab = 'COMPANY'
@@ -417,17 +417,6 @@ export default function AdminSettingsHub({
           </button>
 
           <button
-            onClick={() => setActiveTab('LEAVE')}
-            className={`w-full text-left p-2.5 rounded-xl text-xs font-bold transition cursor-pointer ${
-              activeTab === 'LEAVE' 
-                ? 'bg-slate-900 text-white font-bold' 
-                : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
-            }`}
-          >
-            Leave &amp; Accrual Policy
-          </button>
-
-          <button
             onClick={() => setActiveTab('DOCUMENTS')}
             className={`w-full text-left p-2.5 rounded-xl text-xs font-bold transition cursor-pointer ${
               activeTab === 'DOCUMENTS' 
@@ -680,61 +669,7 @@ export default function AdminSettingsHub({
             </div>
           )}
 
-          {/* TAB 3: LEAVE POLICY */}
-          {activeTab === 'LEAVE' && (
-            <div className="space-y-5">
-              <div className="border-b border-slate-100 pb-3">
-                <h3 className="font-black text-sm text-slate-900">National Employment Standards (NES) Leave Framework</h3>
-                <p className="text-slate-500 text-[11px]">Fair Work statutory leave entitlements for permanent and fixed-term staff</p>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                <div className="p-3.5 rounded-2xl bg-emerald-50/50 border border-emerald-100">
-                  <label className="font-bold text-emerald-950 block mb-1">Annual Leave Accrual</label>
-                  <div className="flex items-center gap-2">
-                    <input
-                      type="number"
-                      value={leavePolicy.annualLeaveDaysPerYear}
-                      onChange={e => setLeavePolicy({...leavePolicy, annualLeaveDaysPerYear: Number(e.target.value)})}
-                      className="w-20 p-2 border border-emerald-300 rounded-xl bg-white font-black text-emerald-900"
-                    />
-                    <span className="font-bold text-emerald-800 text-[11px]">Days / Year</span>
-                  </div>
-                  <span className="text-[10px] text-emerald-700 mt-1 block">4 weeks statutory minimum</span>
-                </div>
-
-                <div className="p-3.5 rounded-2xl bg-blue-50/50 border border-blue-100">
-                  <label className="font-bold text-blue-950 block mb-1">Sick &amp; Carer's Leave</label>
-                  <div className="flex items-center gap-2">
-                    <input
-                      type="number"
-                      value={leavePolicy.sickLeaveDaysPerYear}
-                      onChange={e => setLeavePolicy({...leavePolicy, sickLeaveDaysPerYear: Number(e.target.value)})}
-                      className="w-20 p-2 border border-blue-300 rounded-xl bg-white font-black text-blue-900"
-                    />
-                    <span className="font-bold text-blue-800 text-[11px]">Days / Year</span>
-                  </div>
-                  <span className="text-[10px] text-blue-700 mt-1 block">10 days paid personal leave</span>
-                </div>
-
-                <div className="p-3.5 rounded-2xl bg-purple-50/50 border border-purple-100">
-                  <label className="font-bold text-purple-950 block mb-1">Mandatory Notice</label>
-                  <div className="flex items-center gap-2">
-                    <input
-                      type="number"
-                      value={leavePolicy.mandatoryNoticeWeeks}
-                      onChange={e => setLeavePolicy({...leavePolicy, mandatoryNoticeWeeks: Number(e.target.value)})}
-                      className="w-20 p-2 border border-purple-300 rounded-xl bg-white font-black text-purple-900"
-                    />
-                    <span className="font-bold text-purple-800 text-[11px]">Weeks</span>
-                  </div>
-                  <span className="text-[10px] text-purple-700 mt-1 block">Standard contract departure notice</span>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* TAB 4: REQUIRED DOCUMENTS */}
+          {/* TAB 3: REQUIRED DOCUMENTS */}
           {activeTab === 'DOCUMENTS' && (
             <DocumentTypesManager />
           )}
