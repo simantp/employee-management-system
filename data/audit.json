@@ -1,5 +1,41 @@
 [
   {
+    "id": "aud-1789998748314",
+    "action": "WORKSTATION_IP_LOCKED",
+    "targetType": "LockedIpRecord",
+    "targetId": "iplock-1789998748301",
+    "details": "Locked workstation IP 27.34.73.159 (Workstation (27.34.73.159))",
+    "actorId": "usr-1",
+    "actorName": "Admin User",
+    "actorRole": "SUPER_ADMIN",
+    "timestamp": "21/09/2026, 11:52:28 pm AEST",
+    "ipAddress": "127.0.0.1 (Localhost)"
+  },
+  {
+    "id": "aud-1789998743215",
+    "action": "WORKSTATION_IP_DELETED",
+    "targetType": "LockedIpRecord",
+    "targetId": "iplock-1789998737623",
+    "details": "Unlocked/deleted workstation Workstation (27.34.73.159) (27.34.73.159)",
+    "actorId": "usr-1",
+    "actorName": "Admin User",
+    "actorRole": "SUPER_ADMIN",
+    "timestamp": "21/09/2026, 11:52:23 pm AEST",
+    "ipAddress": "127.0.0.1 (Localhost)"
+  },
+  {
+    "id": "aud-1789998737685",
+    "action": "WORKSTATION_IP_LOCKED",
+    "targetType": "LockedIpRecord",
+    "targetId": "iplock-1789998737623",
+    "details": "Locked workstation IP 27.34.73.159 (Workstation (27.34.73.159))",
+    "actorId": "usr-1",
+    "actorName": "Admin User",
+    "actorRole": "SUPER_ADMIN",
+    "timestamp": "21/09/2026, 11:52:17 pm AEST",
+    "ipAddress": "127.0.0.1 (Localhost)"
+  },
+  {
     "id": "aud-1789993532820",
     "action": "USER_LOGIN",
     "targetType": "User",

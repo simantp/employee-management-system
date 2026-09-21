@@ -1370,7 +1370,6 @@ export default function AdminSettingsHub({
                     type="button"
                     onClick={() => {
                       deleteLockedIp(releasingLock.id);
-                      addToast('Workstation Lock Released', `Unlocked and removed IP ${releasingLock.ip} (${releasingLock.label}).`, 'info');
                       setReleasingLock(null);
                     }}
                     className="px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs shadow-xs transition cursor-pointer"

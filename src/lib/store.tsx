@@ -776,10 +776,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setToasts(prev => [newToast, ...prev.slice(0, 3)]);
     playSoundChime(type === 'success' ? 'success' : 'alert');
 
-    // Automatically dismiss toast after exactly 2 seconds
+    // Automatically dismiss toast after 4 seconds
     setTimeout(() => {
       setToasts(prev => prev.filter(t => t.id !== toastId));
-    }, 2000);
+    }, 4000);
   };
 
   const removeToast = (id: string) => {

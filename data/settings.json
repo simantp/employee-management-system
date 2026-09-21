@@ -53,6 +53,16 @@
   },
   "ipLockSettings": {
     "enabled": true,
-    "lockedIps": []
+    "lockedIps": [
+      {
+        "id": "iplock-1789998748301",
+        "ip": "27.34.73.159",
+        "label": "Workstation (27.34.73.159)",
+        "addedAt": "21 Sept 2026",
+        "addedBy": "Admin User",
+        "isActive": true,
+        "notes": "Auto-detected & locked from Admin Hub"
+      }
+    ]
   }
 }

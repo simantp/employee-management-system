@@ -63,7 +63,7 @@ export default function NotificationToast() {
                   isSuccess ? 'bg-emerald-500' : isError ? 'bg-rose-500' : isWarning ? 'bg-amber-500' : 'bg-blue-500'
                 }`}
                 style={{
-                  animation: 'progressBar 2.5s linear forwards'
+                  animation: 'progressBar 4s linear forwards'
                 }}
               />
             </div>
