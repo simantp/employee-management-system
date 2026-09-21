@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { Employee } from '@/types';
 import { useApp } from '@/lib/store';
+import StaffEmailLogsModal from './StaffEmailLogsModal';
 
 interface VisaLicenseAlertsModalProps {
   isOpen: boolean;
@@ -47,6 +48,7 @@ export default function VisaLicenseAlertsModal({
   const [categoryFilter, setCategoryFilter] = useState<'ALL' | 'VISA' | 'LICENSE'>('ALL');
   const [severityFilter, setSeverityFilter] = useState<'ALL' | 'CRITICAL' | 'WARNING'>('ALL');
   const [sendingId, setSendingId] = useState<string | null>(null);
+  const [selectedStaffForLogs, setSelectedStaffForLogs] = useState<Employee | null>(null);
 
   if (!isOpen) return null;
 
@@ -359,42 +361,56 @@ export default function VisaLicenseAlertsModal({
                       )}
                     </div>
 
-                    <button
-                      type="button"
-                      disabled={sendingId === item.id}
-                      onClick={async () => {
-                        setSendingId(item.id);
-                        try {
-                          await sendInstantExpiryNotification({
-                            employeeId: item.employee.id,
-                            documentType: item.documentType === 'VISA' ? 'VISA' : 'LICENSE',
-                            documentName: item.documentTitle,
-                            documentNumber: item.documentNumber,
-                            expiryDate: item.expiryDateStr,
-                            daysRemaining: item.daysRemaining,
-                            severity: item.severity,
-                          });
-                        } finally {
-                          setTimeout(() => setSendingId(null), 500);
-                        }
-                      }}
-                      className="px-2.5 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-[10px] shadow-sm shadow-blue-500/20 transition cursor-pointer inline-flex items-center gap-1 disabled:opacity-50"
-                      title="Send instant in-app notification & reminder email to staff"
-                    >
-                      {sendingId === item.id ? (
-                        <>
-                          <span className="w-2.5 h-2.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                          <span>Sending...</span>
-                        </>
-                      ) : (
-                        <>
-                          <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
-                          </svg>
-                          <span>Send Alert</span>
-                        </>
-                      )}
-                    </button>
+                    <div className="flex items-center gap-1.5">
+                      <button
+                        type="button"
+                        onClick={() => setSelectedStaffForLogs(item.employee)}
+                        className="px-2.5 py-1.5 rounded-xl bg-purple-50 hover:bg-purple-100 text-purple-700 border border-purple-200/80 font-bold text-[10px] transition cursor-pointer inline-flex items-center gap-1 shadow-2xs"
+                        title={`View email communication logs for ${item.employee.firstName}`}
+                      >
+                        <svg className="w-3 h-3 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                        </svg>
+                        <span>Email Logs</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        disabled={sendingId === item.id}
+                        onClick={async () => {
+                          setSendingId(item.id);
+                          try {
+                            await sendInstantExpiryNotification({
+                              employeeId: item.employee.id,
+                              documentType: item.documentType === 'VISA' ? 'VISA' : 'LICENSE',
+                              documentName: item.documentTitle,
+                              documentNumber: item.documentNumber,
+                              expiryDate: item.expiryDateStr,
+                              daysRemaining: item.daysRemaining,
+                              severity: item.severity,
+                            });
+                          } finally {
+                            setTimeout(() => setSendingId(null), 500);
+                          }
+                        }}
+                        className="px-2.5 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-[10px] shadow-sm shadow-blue-500/20 transition cursor-pointer inline-flex items-center gap-1 disabled:opacity-50"
+                        title="Send instant in-app notification & reminder email to staff"
+                      >
+                        {sendingId === item.id ? (
+                          <>
+                            <span className="w-2.5 h-2.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                            <span>Sending...</span>
+                          </>
+                        ) : (
+                          <>
+                            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+                            </svg>
+                            <span>Send Alert</span>
+                          </>
+                        )}
+                      </button>
+                    </div>
                   </div>
                 </div>
               );
@@ -417,6 +433,14 @@ export default function VisaLicenseAlertsModal({
         </div>
 
       </div>
+
+      {/* Staff Email Logs Modal */}
+      <StaffEmailLogsModal
+        isOpen={!!selectedStaffForLogs}
+        employee={selectedStaffForLogs}
+        onClose={() => setSelectedStaffForLogs(null)}
+      />
+
     </div>
   );
 }

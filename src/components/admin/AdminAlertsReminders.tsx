@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { useApp } from '@/lib/store';
 import { Employee } from '@/types';
+import StaffEmailLogsModal from './StaffEmailLogsModal';
 
 interface ExpiringRecord {
   id: string;
@@ -56,6 +57,7 @@ export default function AdminAlertsReminders({
   const [search, setSearch] = useState('');
   const [selectedSeverity, setSelectedSeverity] = useState<string>('ALL');
   const [sendingId, setSendingId] = useState<string | null>(null);
+  const [selectedStaffForLogs, setSelectedStaffForLogs] = useState<Employee | null>(null);
 
   // 1. Compile Visa Expiring Records (ONLY Warning & Critical)
   const visaExpiring: ExpiringRecord[] = [];
@@ -370,7 +372,7 @@ export default function AdminAlertsReminders({
                 <th className="py-3.5 px-5">Expiry Date</th>
                 <th className="py-3.5 px-5">Status &amp; Urgency</th>
                 <th className="py-3.5 px-5">Work Rights / Notes</th>
-                <th className="py-3.5 px-5 text-right">Instant Action</th>
+                <th className="py-3.5 px-5 text-right">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
@@ -443,26 +445,41 @@ export default function AdminAlertsReminders({
                       </td>
 
                       <td className="py-3.5 px-5 text-right">
-                        <button
-                          onClick={() => handleSendInstant(record)}
-                          disabled={isSending}
-                          className="px-3 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-[11px] shadow-sm shadow-blue-500/20 transition cursor-pointer inline-flex items-center gap-1.5 disabled:opacity-50"
-                          title="Sends reminder email to employee and notification to Staff Portal"
-                        >
-                          {isSending ? (
-                            <>
-                              <span className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                              <span>Sending...</span>
-                            </>
-                          ) : (
-                            <>
-                              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
-                              </svg>
-                              <span>Send Instant Alert</span>
-                            </>
-                          )}
-                        </button>
+                        <div className="flex items-center justify-end gap-2">
+                          <button
+                            type="button"
+                            onClick={() => setSelectedStaffForLogs(record.emp)}
+                            className="px-2.5 py-1.5 rounded-xl bg-purple-50 hover:bg-purple-100 text-purple-700 border border-purple-200/80 font-bold text-[11px] transition cursor-pointer inline-flex items-center gap-1 shadow-2xs"
+                            title={`View email communication logs for ${record.employeeName}`}
+                          >
+                            <svg className="w-3.5 h-3.5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                            </svg>
+                            <span>Email Logs</span>
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => handleSendInstant(record)}
+                            disabled={isSending}
+                            className="px-3 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-[11px] shadow-sm shadow-blue-500/20 transition cursor-pointer inline-flex items-center gap-1.5 disabled:opacity-50"
+                            title="Sends reminder email to employee and notification to Staff Portal"
+                          >
+                            {isSending ? (
+                              <>
+                                <span className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                                <span>Sending...</span>
+                              </>
+                            ) : (
+                              <>
+                                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+                                </svg>
+                                <span>Send Instant Alert</span>
+                              </>
+                            )}
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   );
@@ -472,6 +489,13 @@ export default function AdminAlertsReminders({
           </table>
         </div>
       </div>
+
+      {/* Staff Email Logs Modal */}
+      <StaffEmailLogsModal
+        isOpen={!!selectedStaffForLogs}
+        employee={selectedStaffForLogs}
+        onClose={() => setSelectedStaffForLogs(null)}
+      />
 
     </div>
   );
