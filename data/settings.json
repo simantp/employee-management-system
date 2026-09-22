@@ -55,13 +55,40 @@
     "enabled": true,
     "lockedIps": [
       {
-        "id": "iplock-1790085903923",
-        "ip": "27.34.73.159",
-        "label": "Workstation (27.34.73.159)",
-        "addedAt": "22 Sept 2026",
-        "addedBy": "Admin User",
+        "id": "ip-riverwood-kiosk",
+        "ip": "192.168.1.100",
+        "label": "Sydney Riverwood Plant Kiosk (Terminal 1)",
+        "addedAt": "17 Aug 2026",
+        "addedBy": "Super Admin",
         "isActive": true,
-        "notes": "Auto-detected & locked from Admin Hub"
+        "notes": "Main floor shift punch terminal"
+      },
+      {
+        "id": "ip-office-reception",
+        "ip": "203.0.113.50",
+        "label": "Head Office Reception Workstation",
+        "addedAt": "17 Aug 2026",
+        "addedBy": "Super Admin",
+        "isActive": true,
+        "notes": "Front reception management desk"
+      },
+      {
+        "id": "ip-rockdale-hub",
+        "ip": "192.168.2.105",
+        "label": "Rockdale Production Hub Terminal",
+        "addedAt": "17 Aug 2026",
+        "addedBy": "Super Admin",
+        "isActive": true,
+        "notes": "Rockdale dispatch station"
+      },
+      {
+        "id": "ip-local-kiosk",
+        "ip": "127.0.0.1",
+        "label": "Sydney Riverwood Plant Kiosk (Terminal 1)",
+        "addedAt": "17 Aug 2026",
+        "addedBy": "Super Admin",
+        "isActive": true,
+        "notes": "Direct plant kiosk terminal"
       }
     ]
   },

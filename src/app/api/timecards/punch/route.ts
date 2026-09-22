@@ -21,29 +21,28 @@ function evaluateServerIpAccess(
   requestedIp?: string
 ): { isAllowed: boolean; status: 'LOCKED_IP_AUTHORIZED' | 'UNAUTHORIZED_IP' | 'UNRESTRICTED'; workstationLabel: string; effectiveIp: string; message: string } {
   const activeLocks = (settings?.lockedIps || []).filter(ip => ip.isActive);
-  const defaultLocked = activeLocks[0] || { label: 'Sydney Riverwood Plant Kiosk (Terminal 1)', ip: '192.168.1.100' };
 
   if (!settings || !settings.enabled) {
     return {
       isAllowed: true,
       status: 'UNRESTRICTED',
-      workstationLabel: defaultLocked.label || 'Standard Terminal',
-      effectiveIp: requestedIp || (clientIp === '::1' || clientIp === '127.0.0.1' ? defaultLocked.ip : clientIp),
+      workstationLabel: requestedWorkstation || 'Standard Terminal',
+      effectiveIp: requestedIp || clientIp,
       message: 'Open access terminal.'
     };
   }
 
   if (activeLocks.length === 0) {
     return {
-      isAllowed: true,
-      status: 'UNRESTRICTED',
-      workstationLabel: 'Standard Terminal',
-      effectiveIp: requestedIp || (clientIp === '::1' || clientIp === '127.0.0.1' ? '192.168.1.100' : clientIp),
-      message: 'Open access terminal (no restrictions configured).'
+      isAllowed: false,
+      status: 'UNAUTHORIZED_IP',
+      workstationLabel: 'Unregistered Terminal',
+      effectiveIp: requestedIp || clientIp,
+      message: 'Access denied: No workstation IPs are currently authorized in IP lock settings.'
     };
   }
 
-  const cleanClient = clientIp.trim().toLowerCase();
+  const cleanClient = (clientIp || '').trim().toLowerCase();
   const cleanReqIp = (requestedIp || '').trim().toLowerCase();
   const cleanReqLabel = (requestedWorkstation || '').trim().toLowerCase();
 
@@ -51,8 +50,9 @@ function evaluateServerIpAccess(
   const matchedReq = activeLocks.find(rec => {
     const recIp = (rec.ip || '').trim().toLowerCase();
     const recLabel = (rec.label || '').trim().toLowerCase();
-    return (cleanReqIp && (recIp === cleanReqIp || cleanReqIp.includes(recIp))) ||
-           (cleanReqLabel && (recLabel === cleanReqLabel || recLabel.includes(cleanReqLabel)));
+    const isIpMatch = cleanReqIp && (recIp === cleanReqIp || (cleanReqIp === '127.0.0.1' && (recIp === '127.0.0.1' || recIp === '::1')));
+    const isLabelMatch = cleanReqLabel && (recLabel === cleanReqLabel || recLabel.includes(cleanReqLabel));
+    return isIpMatch || isLabelMatch;
   });
 
   if (matchedReq) {
@@ -68,7 +68,7 @@ function evaluateServerIpAccess(
   // 2. Check if client HTTP IP matches an active lock
   const matched = activeLocks.find(rec => {
     const recIp = (rec.ip || '').trim().toLowerCase();
-    return recIp === cleanClient || cleanClient.includes(recIp) || recIp.includes(cleanClient);
+    return recIp === cleanClient || (cleanClient === '::1' && recIp === '127.0.0.1') || (cleanClient === '127.0.0.1' && recIp === '127.0.0.1');
   });
 
   if (matched) {
@@ -81,23 +81,12 @@ function evaluateServerIpAccess(
     };
   }
 
-  // 3. Localhost loopbacks in local dev/testing -> map to primary active locked workstation
-  if (cleanClient === '::1' || cleanClient === '127.0.0.1' || cleanClient === 'localhost') {
-    return {
-      isAllowed: true,
-      status: 'LOCKED_IP_AUTHORIZED',
-      workstationLabel: defaultLocked.label,
-      effectiveIp: defaultLocked.ip,
-      message: `Verified authorized terminal: ${defaultLocked.label}`
-    };
-  }
-
   return {
     isAllowed: false,
     status: 'UNAUTHORIZED_IP',
     workstationLabel: 'Unregistered Terminal',
-    effectiveIp: clientIp,
-    message: `Access denied. Workstation IP (${clientIp}) is not registered in authorized workstation locks.`
+    effectiveIp: requestedIp || clientIp,
+    message: `Access denied. Workstation IP (${requestedIp || clientIp}) is not registered in authorized workstation locks.`
   };
 }
 
@@ -111,7 +100,7 @@ export async function POST(req: Request) {
 
   try {
     const body = await req.json().catch(() => ({}));
-    const { username, pin, action: requestedAction, breakMinutes, device, employeeId, clientIp: bodyClientIp, workstationLabel: bodyWorkstationLabel } = body;
+    const { username, pin, action: requestedAction, breakMinutes, device, employeeId, clientIp: bodyClientIp, workstationLabel: bodyWorkstationLabel, notifId: bodyNotifId } = body;
 
     // 1. IP Lock Policy Evaluation
     const settings = await getStoredSettings();
@@ -333,7 +322,7 @@ export async function POST(req: Request) {
 
       // Notification
       const notifItem: NotificationItem = {
-        id: 'notif-' + nowMs,
+        id: bodyNotifId || ('notif-' + nowMs),
         recipient: 'ADMIN',
         title: `${emp.firstName} ${emp.lastName} Clocked In`,
         message: `${emp.firstName} ${emp.lastName} clocked IN at ${timeStr} (${emp.department || 'Production'}) from ${ipEval.workstationLabel} (${effectiveIp}).`,
@@ -508,7 +497,7 @@ export async function POST(req: Request) {
 
       // SuperAdmin Notification
       const notifItem: NotificationItem = {
-        id: 'notif-' + nowMs,
+        id: bodyNotifId || ('notif-' + nowMs),
         recipient: 'ADMIN',
         title: `${emp.firstName} ${emp.lastName} Clocked Out`,
         message: `${emp.firstName} ${emp.lastName} clocked OUT at ${timeStr} (Duration: ${hmsFormatted}) from ${ipEval.workstationLabel} (${effectiveIp}).`,

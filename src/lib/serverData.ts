@@ -188,12 +188,19 @@ export async function appendStoredNotification(notif: NotificationItem): Promise
   }
 }
 
+import { INITIAL_IP_LOCK_SETTINGS } from './ipUtils';
+
 export async function getStoredSettings(): Promise<any> {
-  return readJsonFile<any>('settings.json', {
+  const settings = await readJsonFile<any>('settings.json', {
     expirySettings: INITIAL_EXPIRY_SETTINGS,
     auditRetentionDays: 7,
     autoPruneAuditLogs: true,
+    ipLockSettings: INITIAL_IP_LOCK_SETTINGS,
   });
+  if (!settings.ipLockSettings) {
+    settings.ipLockSettings = INITIAL_IP_LOCK_SETTINGS;
+  }
+  return settings;
 }
 
 export async function saveStoredSettings(settings: any): Promise<void> {

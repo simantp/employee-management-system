@@ -1,5 +1,33 @@
 [
   {
+    "id": "notif-test-123",
+    "recipient": "ADMIN",
+    "title": "Suman Thapa Clocked In",
+    "message": "Suman Thapa clocked IN at 01:00:15 am (Production (Riverwood)) from Sydney Riverwood Plant Kiosk (Terminal 1) (192.168.1.100).",
+    "type": "TIMECARD_CLOCK_IN",
+    "timestamp": "Just now",
+    "read": false
+  },
+  {
+    "id": "notif-admin-clockout-1790088845111",
+    "recipient": "STAFF",
+    "recipientId": "emp-42",
+    "title": "Shift Clocked Out by Administration",
+    "message": "Your shift was administratively concluded by SuperAdmin (0.01 hrs net worked). Reason: \"Administrative Clock-Out via Active Floor Staff Modal\".",
+    "type": "TIMECARD_CLOCK_OUT",
+    "timestamp": "Just now",
+    "read": false
+  },
+  {
+    "id": "notif-1790088792755",
+    "recipient": "ADMIN",
+    "title": "Suman Thapa Clocked In",
+    "message": "Suman Thapa clocked IN at 12:53:12 am (Production (Riverwood)) from Standard Terminal (27.34.73.159).",
+    "type": "TIMECARD_CLOCK_IN",
+    "timestamp": "Just now",
+    "read": true
+  },
+  {
     "id": "notif-admin-clockout-1790088347979",
     "recipient": "STAFF",
     "recipientId": "emp-42",

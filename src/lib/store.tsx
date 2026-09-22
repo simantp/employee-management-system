@@ -3667,7 +3667,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     }
 
     // Workstation IP Verification
-    const clientIp = options?.ip || '192.168.1.100';
+    const clientIp = options?.ip || '127.0.0.1';
     const device = options?.device || getDeviceDescription();
     const ipEval = evaluateIpAccess(clientIp, ipLockSettings);
 
@@ -3689,6 +3689,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     const timeStr = now.toLocaleTimeString('en-AU', { timeZone: 'Australia/Sydney', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true });
     const dateStr = now.toLocaleDateString('en-AU', { day: '2-digit', month: 'short', year: 'numeric' });
     const shiftId = 'tc-' + nowMs;
+    const notifId = 'notif-' + nowMs;
 
     const newTimecard: TimecardRecord = {
       id: shiftId,
@@ -3699,15 +3700,15 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       date: dateStr,
       clockIn: timeStr,
       clockInTimestamp: nowMs,
-      clockInIp: clientIp,
+      clockInIp: ipEval.clientIp,
       clockInWorkstation: ipEval.workstationLabel,
       breakMinutes: 0,
       totalHours: 0,
       durationSeconds: 0,
       overtimeHours: 0,
       status: 'CLOCKED_IN',
-      notes: `Clocked in via ${ipEval.workstationLabel} (IP: ${clientIp})`,
-      ipAddress: clientIp,
+      notes: `Clocked in via ${ipEval.workstationLabel} (IP: ${ipEval.clientIp})`,
+      ipAddress: ipEval.clientIp,
       workstationLabel: ipEval.workstationLabel,
       deviceInfo: device,
       ipStatus: ipEval.status,
@@ -3724,6 +3725,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     };
     setEmployees(prev => prev.map(e => e.id === emp.id ? updatedEmp : e));
 
+    // Register local toast suppression before server call
+    toastedNotifIdsRef.current.add(notifId);
+    localActionAlertsRef.current.add(notifId);
+
     // Verified Server Shift Punch Sync (MySQL + Audit + Notifications)
     try {
       fetch('/api/timecards/punch', {
@@ -3734,24 +3739,23 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           username: cleanUser,
           pin: cleanPin,
           device,
-          clientIp,
+          clientIp: ipEval.clientIp,
           workstationLabel: ipEval.workstationLabel,
+          notifId,
         }),
       }).catch(err => console.warn('Verified punch server sync warning:', err));
     } catch (e) {}
 
     // Instant SuperAdmin Notification
     const newNotif: NotificationItem = {
-      id: 'notif-' + nowMs,
+      id: notifId,
       recipient: 'ADMIN',
       title: `${emp.firstName} ${emp.lastName} Clocked In`,
-      message: `${emp.firstName} ${emp.lastName} clocked IN at ${timeStr} (${emp.department || 'Production'}) from ${ipEval.workstationLabel} (${clientIp}).`,
+      message: `${emp.firstName} ${emp.lastName} clocked IN at ${timeStr} (${emp.department || 'Production'}) from ${ipEval.workstationLabel} (${ipEval.clientIp}).`,
       type: 'TIMECARD_CLOCK_IN',
       timestamp: 'Just now',
       read: false
     };
-    toastedNotifIdsRef.current.add(newNotif.id);
-    localActionAlertsRef.current.add(newNotif.id);
     setNotifications(prev => [newNotif, ...prev]);
 
     addToast('Clock-In Successful', `Welcome ${emp.firstName}! Clocked in from ${ipEval.workstationLabel}.`, 'success');
@@ -3816,7 +3820,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     }
 
     // Workstation IP Verification
-    const clientIp = options?.ip || '192.168.1.100';
+    const clientIp = options?.ip || '127.0.0.1';
     const device = options?.device || getDeviceDescription();
     const ipEval = evaluateIpAccess(clientIp, ipLockSettings);
 
@@ -3836,6 +3840,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     const now = new Date();
     const nowMs = now.getTime();
     const timeStr = now.toLocaleTimeString('en-AU', { timeZone: 'Australia/Sydney', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true });
+    const notifId = 'notif-' + nowMs;
     
     let clockInTime = emp.clockInTimestamp;
     if (!clockInTime && emp.lastClockIn) {
@@ -3880,8 +3885,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           ...updated[existingIdx],
           clockOut: timeStr,
           clockOutTimestamp: nowMs,
-          clockInIp: updated[existingIdx].clockInIp || updated[existingIdx].ipAddress || clientIp,
-          clockOutIp: clientIp,
+          clockInIp: updated[existingIdx].clockInIp || updated[existingIdx].ipAddress || ipEval.clientIp,
+          clockOutIp: ipEval.clientIp,
           clockInWorkstation: updated[existingIdx].clockInWorkstation || updated[existingIdx].workstationLabel || ipEval.workstationLabel,
           clockOutWorkstation: ipEval.workstationLabel,
           durationSeconds: netSec,
@@ -3890,7 +3895,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           totalHours,
           overtimeHours: 0,
           status: 'COMPLETED',
-          ipAddress: clientIp,
+          ipAddress: ipEval.clientIp,
           workstationLabel: ipEval.workstationLabel,
           deviceInfo: device,
           ipStatus: ipEval.status,
@@ -3910,8 +3915,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           clockOut: timeStr,
           clockInTimestamp: clockInTime,
           clockOutTimestamp: nowMs,
-          clockInIp: clientIp,
-          clockOutIp: clientIp,
+          clockInIp: ipEval.clientIp,
+          clockOutIp: ipEval.clientIp,
           clockInWorkstation: ipEval.workstationLabel,
           clockOutWorkstation: ipEval.workstationLabel,
           durationSeconds: netSec,
@@ -3920,7 +3925,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           totalHours,
           overtimeHours: 0,
           status: 'COMPLETED',
-          ipAddress: clientIp,
+          ipAddress: ipEval.clientIp,
           workstationLabel: ipEval.workstationLabel,
           deviceInfo: device,
           ipStatus: ipEval.status,
@@ -3939,6 +3944,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     };
     setEmployees(prev => prev.map(e => e.id === emp.id ? updatedEmp : e));
 
+    // Register local toast suppression before server call
+    toastedNotifIdsRef.current.add(notifId);
+    localActionAlertsRef.current.add(notifId);
+
     // Verified Server Shift Punch Sync (MySQL + Audit + Notifications)
     try {
       fetch('/api/timecards/punch', {
@@ -3950,24 +3959,23 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           pin: cleanPin,
           breakMinutes: effectiveBreak,
           device,
-          clientIp,
+          clientIp: ipEval.clientIp,
           workstationLabel: ipEval.workstationLabel,
+          notifId,
         }),
       }).catch(err => console.warn('Verified punch server sync warning:', err));
     } catch (e) {}
 
     // Instant SuperAdmin Notification
     const newNotif: NotificationItem = {
-      id: 'notif-' + nowMs,
+      id: notifId,
       recipient: 'ADMIN',
       title: `${emp.firstName} ${emp.lastName} Clocked Out`,
-      message: `${emp.firstName} ${emp.lastName} clocked OUT at ${timeStr} (Duration: ${hmsFormatted}) from ${ipEval.workstationLabel} (${clientIp}).`,
+      message: `${emp.firstName} ${emp.lastName} clocked OUT at ${timeStr} (Duration: ${hmsFormatted}) from ${ipEval.workstationLabel} (${ipEval.clientIp}).`,
       type: 'TIMECARD_CLOCK_OUT',
       timestamp: 'Just now',
       read: false
     };
-    toastedNotifIdsRef.current.add(newNotif.id);
-    localActionAlertsRef.current.add(newNotif.id);
     setNotifications(prev => [newNotif, ...prev]);
 
     addToast('Clock-Out Successful', `Goodbye ${emp.firstName}! Shift recorded: ${hmsFormatted} (${totalHours.toFixed(2)} hrs).`, 'success');

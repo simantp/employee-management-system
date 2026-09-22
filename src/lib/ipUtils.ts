@@ -32,6 +32,15 @@ export const INITIAL_LOCKED_IPS: LockedIpRecord[] = [
     isActive: true,
     notes: 'Rockdale dispatch station',
   },
+  {
+    id: 'ip-local-kiosk',
+    ip: '127.0.0.1',
+    label: 'Sydney Riverwood Plant Kiosk (Terminal 1)',
+    addedAt: '17 Aug 2026',
+    addedBy: 'Super Admin',
+    isActive: true,
+    notes: 'Direct plant kiosk terminal',
+  },
 ];
 
 export const INITIAL_IP_LOCK_SETTINGS: IpLockSettings = {
@@ -163,25 +172,13 @@ export function evaluateIpAccess(
     };
   }
 
-  // If running locally, map to the active locked workstation
-  if (normalized === '127.0.0.1' || normalized === 'localhost') {
-    return {
-      isAllowed: true,
-      status: 'LOCKED_IP_AUTHORIZED',
-      matchedRecord: defaultLocked,
-      workstationLabel: defaultLocked.label,
-      clientIp: defaultLocked.ip,
-      message: `Workstation authorized: ${defaultLocked.label} (${defaultLocked.ip}).`,
-    };
-  }
-
   // Unauthorized IP
   return {
     isAllowed: false,
     status: 'UNAUTHORIZED_IP',
     workstationLabel: 'Unregistered Workstation',
     clientIp: normalized,
-    message: `Punch blocked: Current workstation IP (${normalized}) is not registered in the authorized workstation whitelist. Shift punches must be performed from an authorized plant or office workstation.`,
+    message: `Punch blocked: Current workstation IP (${normalized}) is not registered in authorized workstation locks. Shift punches must be performed from an authorized plant or office workstation.`,
   };
 }
 
