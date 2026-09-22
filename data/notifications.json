@@ -1,12 +1,21 @@
 [
   {
+    "id": "notif-real-ip-test",
+    "recipient": "ADMIN",
+    "title": "Suman Thapa Clocked In",
+    "message": "Suman Thapa clocked IN at 01:13:35 am (Production (Riverwood)) from Main Office Plant Workstation (27.34.73.159) (27.34.73.159).",
+    "type": "TIMECARD_CLOCK_IN",
+    "timestamp": "Just now",
+    "read": false
+  },
+  {
     "id": "notif-1790089695732",
     "recipient": "ADMIN",
     "title": "Suman Thapa Clocked Out",
     "message": "Suman Thapa clocked OUT at 01:08:15 am (Duration: 00:00:08) from Admin Workstation (Locked) (127.0.0.1).",
     "type": "TIMECARD_CLOCK_OUT",
     "timestamp": "Just now",
-    "read": false
+    "read": true
   },
   {
     "id": "notif-test-authorized",
@@ -15,7 +24,7 @@
     "message": "Suman Thapa clocked IN at 01:08:07 am (Production (Riverwood)) from Sydney Riverwood Plant Kiosk (Terminal 1) (192.168.1.100).",
     "type": "TIMECARD_CLOCK_IN",
     "timestamp": "Just now",
-    "read": false
+    "read": true
   },
   {
     "id": "notif-admin-clockout-1790089375635",

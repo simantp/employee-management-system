@@ -14,6 +14,21 @@ export async function GET(req: NextRequest) {
       detectedIp = '127.0.0.1';
     }
 
+    // If request arrived from localhost, attempt to fetch the machine's real public network IP
+    if (detectedIp === '127.0.0.1') {
+      try {
+        const pubRes = await fetch('https://api.ipify.org?format=json', { signal: AbortSignal.timeout(2000) });
+        if (pubRes.ok) {
+          const pubData = await pubRes.json();
+          if (pubData?.ip) {
+            detectedIp = pubData.ip;
+          }
+        }
+      } catch (e) {
+        // keep 127.0.0.1 if offline
+      }
+    }
+
     return NextResponse.json({
       success: true,
       ip: detectedIp,

@@ -178,12 +178,39 @@ export function evaluateIpAccess(
 // =========================================================================
 
 export async function detectWorkstationIp(): Promise<string> {
+  // 1. First attempt to discover the real public network IP from client network
   try {
-    // 1. Query local Next.js server route
+    const pubRes = await fetch('https://api.ipify.org?format=json', { signal: AbortSignal.timeout(2500) });
+    if (pubRes.ok) {
+      const pubData = await pubRes.json();
+      if (pubData?.ip) {
+        return normalizeIp(pubData.ip);
+      }
+    }
+  } catch (e) {
+    // ignore
+  }
+
+  // 2. Secondary public IP fallback
+  try {
+    const altRes = await fetch('https://httpbin.org/ip', { signal: AbortSignal.timeout(2500) });
+    if (altRes.ok) {
+      const altData = await altRes.json();
+      if (altData?.origin) {
+        const ip = altData.origin.split(',')[0].trim();
+        if (ip) return normalizeIp(ip);
+      }
+    }
+  } catch (e) {
+    // ignore
+  }
+
+  // 3. Fallback to local server endpoint
+  try {
     const res = await fetch('/api/ip', { cache: 'no-store' });
     if (res.ok) {
       const data = await res.json();
-      if (data.ip) {
+      if (data?.ip) {
         return normalizeIp(data.ip);
       }
     }
@@ -191,20 +218,7 @@ export async function detectWorkstationIp(): Promise<string> {
     // ignore
   }
 
-  try {
-    // 2. Fallback attempt to public IP service
-    const externalRes = await fetch('https://api.ipify.org?format=json', { signal: AbortSignal.timeout(3000) });
-    if (externalRes.ok) {
-      const externalData = await externalRes.json();
-      if (externalData.ip) {
-        return normalizeIp(externalData.ip);
-      }
-    }
-  } catch (e) {
-    // ignore
-  }
-
-  // 3. Default to localhost
+  // 4. Default fallback
   return '127.0.0.1';
 }
 
