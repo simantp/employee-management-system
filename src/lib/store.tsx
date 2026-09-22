@@ -3734,6 +3734,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           username: cleanUser,
           pin: cleanPin,
           device,
+          clientIp,
+          workstationLabel: ipEval.workstationLabel,
         }),
       }).catch(err => console.warn('Verified punch server sync warning:', err));
     } catch (e) {}
@@ -3948,6 +3950,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           pin: cleanPin,
           breakMinutes: effectiveBreak,
           device,
+          clientIp,
+          workstationLabel: ipEval.workstationLabel,
         }),
       }).catch(err => console.warn('Verified punch server sync warning:', err));
     } catch (e) {}

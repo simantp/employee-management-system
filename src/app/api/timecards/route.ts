@@ -92,8 +92,9 @@ export async function POST(req: Request) {
             id, employee_id, employee_name, employee_avatar, department,
             date, clock_in, clock_out, clock_in_timestamp, clock_out_timestamp,
             duration_seconds, break_minutes, total_hours, overtime_hours,
-            status, notes, adjusted_by
-          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            status, notes, adjusted_by, clock_in_ip, clock_out_ip,
+            clock_in_workstation, clock_out_workstation, workstation_label, ip_address, device_info, ip_status
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
           ON DUPLICATE KEY UPDATE
             clock_out = VALUES(clock_out),
             clock_out_timestamp = VALUES(clock_out_timestamp),
@@ -103,13 +104,28 @@ export async function POST(req: Request) {
             overtime_hours = VALUES(overtime_hours),
             status = VALUES(status),
             notes = VALUES(notes),
-            adjusted_by = VALUES(adjusted_by)
+            adjusted_by = VALUES(adjusted_by),
+            clock_in_ip = VALUES(clock_in_ip),
+            clock_out_ip = VALUES(clock_out_ip),
+            clock_in_workstation = VALUES(clock_in_workstation),
+            clock_out_workstation = VALUES(clock_out_workstation),
+            workstation_label = VALUES(workstation_label),
+            ip_address = VALUES(ip_address),
+            device_info = VALUES(device_info),
+            ip_status = VALUES(ip_status)
         `;
         await query(sql, [
           id, t.employeeId, t.employeeName, t.employeeAvatar || null, t.department || 'General Operations',
           t.date, t.clockIn, t.clockOut || null, t.clockInTimestamp || Date.now(), t.clockOutTimestamp || null,
           t.durationSeconds || 0, t.breakMinutes || 0, t.totalHours || 0, t.overtimeHours || 0,
-          t.status || 'CLOCKED_IN', t.notes || null, t.adjustedBy || null
+          t.status || 'CLOCKED_IN', t.notes || null, t.adjustedBy || null,
+          t.clockInIp || t.ipAddress || '192.168.1.100', t.clockOutIp || t.clockInIp || t.ipAddress || '192.168.1.100',
+          t.clockInWorkstation || t.workstationLabel || 'Sydney Riverwood Plant Kiosk (Terminal 1)',
+          t.clockOutWorkstation || t.clockInWorkstation || t.workstationLabel || 'Sydney Riverwood Plant Kiosk (Terminal 1)',
+          t.workstationLabel || t.clockInWorkstation || 'Sydney Riverwood Plant Kiosk (Terminal 1)',
+          t.ipAddress || t.clockInIp || '192.168.1.100',
+          t.deviceInfo || null,
+          t.ipStatus || 'LOCKED_IP_AUTHORIZED'
         ]);
       } catch (err: any) {
         console.warn('MySQL timecard save skipped:', err.message);

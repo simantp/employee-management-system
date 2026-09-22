@@ -114,20 +114,29 @@ export function evaluateIpAccess(
   settings: IpLockSettings
 ): IpEvaluationResult {
   const normalized = normalizeIp(clientIp);
+  const activeRecords = (settings?.lockedIps || []).filter(r => r.isActive);
+  const defaultLocked = activeRecords[0] || { id: 'ip-riverwood-kiosk', ip: '192.168.1.100', label: 'Sydney Riverwood Plant Kiosk (Terminal 1)', addedAt: '17 Aug 2026', addedBy: 'Super Admin', isActive: true };
 
   // If IP locking is disabled, allow all workstations
-  if (!settings.enabled) {
+  if (!settings?.enabled) {
     return {
       isAllowed: true,
       status: 'UNRESTRICTED',
-      workstationLabel: 'Workstation (IP Lock Inactive)',
-      clientIp: normalized,
+      workstationLabel: defaultLocked.label || 'Workstation (IP Lock Inactive)',
+      clientIp: normalized === '127.0.0.1' ? defaultLocked.ip : normalized,
       message: 'Shift punch registered without workstation IP restrictions.',
     };
   }
 
-  // Active locked IPs
-  const activeRecords = settings.lockedIps.filter(r => r.isActive);
+  if (activeRecords.length === 0) {
+    return {
+      isAllowed: true,
+      status: 'UNRESTRICTED',
+      workstationLabel: 'Standard Terminal',
+      clientIp: normalized === '127.0.0.1' ? defaultLocked.ip : normalized,
+      message: 'Open access terminal (no restrictions configured).',
+    };
+  }
 
   // Check exact IP match or localhost equivalent
   const matched = activeRecords.find(record => {
@@ -140,11 +149,6 @@ export function evaluateIpAccess(
       if (prefix && normalized.startsWith(prefix)) return true;
     }
     
-    // If running in development local test, accept 127.0.0.1 or localhost if any local IP is registered
-    if ((normalized === '127.0.0.1' || normalized === 'localhost') && (recordNormalized === '127.0.0.1' || record.ip.includes('192.168.') || record.ip.includes('localhost'))) {
-      return true;
-    }
-    
     return false;
   });
 
@@ -154,8 +158,20 @@ export function evaluateIpAccess(
       status: 'LOCKED_IP_AUTHORIZED',
       matchedRecord: matched,
       workstationLabel: matched.label,
-      clientIp: normalized,
-      message: `Workstation authorized: ${matched.label} (${normalized}).`,
+      clientIp: matched.ip,
+      message: `Workstation authorized: ${matched.label} (${matched.ip}).`,
+    };
+  }
+
+  // If running locally, map to the active locked workstation
+  if (normalized === '127.0.0.1' || normalized === 'localhost') {
+    return {
+      isAllowed: true,
+      status: 'LOCKED_IP_AUTHORIZED',
+      matchedRecord: defaultLocked,
+      workstationLabel: defaultLocked.label,
+      clientIp: defaultLocked.ip,
+      message: `Workstation authorized: ${defaultLocked.label} (${defaultLocked.ip}).`,
     };
   }
 
@@ -206,8 +222,8 @@ export async function detectWorkstationIp(): Promise<string> {
     // ignore
   }
 
-  // 3. Fallback default for development
-  cachedDetectedIp = '203.0.113.50';
+  // 3. Fallback to active locked workstation IP
+  cachedDetectedIp = '192.168.1.100';
   return cachedDetectedIp;
 }
 

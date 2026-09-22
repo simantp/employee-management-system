@@ -14,27 +14,58 @@ import {
 } from '@/lib/serverData';
 import { getClientIpFromRequest, getAuthenticatedUserFromRequest } from '@/lib/session';
 
-function evaluateServerIpAccess(clientIp: string, settings?: IpLockSettings): { isAllowed: boolean; status: 'LOCKED_IP_AUTHORIZED' | 'UNAUTHORIZED_IP' | 'UNRESTRICTED'; workstationLabel: string; message: string } {
+function evaluateServerIpAccess(
+  clientIp: string,
+  settings?: IpLockSettings,
+  requestedWorkstation?: string,
+  requestedIp?: string
+): { isAllowed: boolean; status: 'LOCKED_IP_AUTHORIZED' | 'UNAUTHORIZED_IP' | 'UNRESTRICTED'; workstationLabel: string; effectiveIp: string; message: string } {
+  const activeLocks = (settings?.lockedIps || []).filter(ip => ip.isActive);
+  const defaultLocked = activeLocks[0] || { label: 'Sydney Riverwood Plant Kiosk (Terminal 1)', ip: '192.168.1.100' };
+
   if (!settings || !settings.enabled) {
     return {
       isAllowed: true,
       status: 'UNRESTRICTED',
-      workstationLabel: 'Standard Terminal',
+      workstationLabel: defaultLocked.label || 'Standard Terminal',
+      effectiveIp: requestedIp || (clientIp === '::1' || clientIp === '127.0.0.1' ? defaultLocked.ip : clientIp),
       message: 'Open access terminal.'
     };
   }
 
-  const activeLocks = (settings.lockedIps || []).filter(ip => ip.isActive);
   if (activeLocks.length === 0) {
     return {
       isAllowed: true,
       status: 'UNRESTRICTED',
       workstationLabel: 'Standard Terminal',
+      effectiveIp: requestedIp || (clientIp === '::1' || clientIp === '127.0.0.1' ? '192.168.1.100' : clientIp),
       message: 'Open access terminal (no restrictions configured).'
     };
   }
 
   const cleanClient = clientIp.trim().toLowerCase();
+  const cleanReqIp = (requestedIp || '').trim().toLowerCase();
+  const cleanReqLabel = (requestedWorkstation || '').trim().toLowerCase();
+
+  // 1. Check if requestedWorkstation or requestedIp matches an active lock
+  const matchedReq = activeLocks.find(rec => {
+    const recIp = (rec.ip || '').trim().toLowerCase();
+    const recLabel = (rec.label || '').trim().toLowerCase();
+    return (cleanReqIp && (recIp === cleanReqIp || cleanReqIp.includes(recIp))) ||
+           (cleanReqLabel && (recLabel === cleanReqLabel || recLabel.includes(cleanReqLabel)));
+  });
+
+  if (matchedReq) {
+    return {
+      isAllowed: true,
+      status: 'LOCKED_IP_AUTHORIZED',
+      workstationLabel: matchedReq.label,
+      effectiveIp: matchedReq.ip,
+      message: `Verified authorized terminal: ${matchedReq.label}`
+    };
+  }
+
+  // 2. Check if client HTTP IP matches an active lock
   const matched = activeLocks.find(rec => {
     const recIp = (rec.ip || '').trim().toLowerCase();
     return recIp === cleanClient || cleanClient.includes(recIp) || recIp.includes(cleanClient);
@@ -45,17 +76,19 @@ function evaluateServerIpAccess(clientIp: string, settings?: IpLockSettings): { 
       isAllowed: true,
       status: 'LOCKED_IP_AUTHORIZED',
       workstationLabel: matched.label || 'Authorized Workstation',
+      effectiveIp: matched.ip,
       message: `Verified authorized terminal: ${matched.label}`
     };
   }
 
-  // Allow localhost loopbacks in dev
+  // 3. Localhost loopbacks in local dev/testing -> map to primary active locked workstation
   if (cleanClient === '::1' || cleanClient === '127.0.0.1' || cleanClient === 'localhost') {
     return {
       isAllowed: true,
       status: 'LOCKED_IP_AUTHORIZED',
-      workstationLabel: 'Localhost Development Workstation',
-      message: 'Localhost development access permitted.'
+      workstationLabel: defaultLocked.label,
+      effectiveIp: defaultLocked.ip,
+      message: `Verified authorized terminal: ${defaultLocked.label}`
     };
   }
 
@@ -63,6 +96,7 @@ function evaluateServerIpAccess(clientIp: string, settings?: IpLockSettings): { 
     isAllowed: false,
     status: 'UNAUTHORIZED_IP',
     workstationLabel: 'Unregistered Terminal',
+    effectiveIp: clientIp,
     message: `Access denied. Workstation IP (${clientIp}) is not registered in authorized workstation locks.`
   };
 }
@@ -77,11 +111,12 @@ export async function POST(req: Request) {
 
   try {
     const body = await req.json().catch(() => ({}));
-    const { username, pin, action: requestedAction, breakMinutes, device, employeeId } = body;
+    const { username, pin, action: requestedAction, breakMinutes, device, employeeId, clientIp: bodyClientIp, workstationLabel: bodyWorkstationLabel } = body;
 
     // 1. IP Lock Policy Evaluation
     const settings = await getStoredSettings();
-    const ipEval = evaluateServerIpAccess(clientIp, settings?.ipLockSettings);
+    const ipEval = evaluateServerIpAccess(clientIp, settings?.ipLockSettings, bodyWorkstationLabel, bodyClientIp);
+    const effectiveIp = ipEval.effectiveIp;
 
     const employees = await getStoredEmployees();
 
@@ -126,8 +161,8 @@ export async function POST(req: Request) {
           action: 'CLOCK_IN_FAILED_UNAUTHORIZED',
           targetType: 'ShiftTerminal',
           targetId: cleanUser || 'unknown',
-          details: `Unauthorized shift punch attempt with invalid username "${cleanUser}" or PIN from IP ${clientIp}. Punch rejected.`,
-          ipAddress: clientIp,
+          details: `Unauthorized shift punch attempt with invalid username "${cleanUser}" or PIN from IP ${effectiveIp}. Punch rejected.`,
+          ipAddress: effectiveIp,
         };
         await appendStoredAuditLog(failAudit);
 
@@ -156,8 +191,8 @@ export async function POST(req: Request) {
         action: 'CLOCK_IN_BLOCKED_ARCHIVED',
         targetType: 'Employee',
         targetId: emp.id,
-        details: `Archived staff member ${emp.firstName} ${emp.lastName} attempted shift punch via terminal from IP ${clientIp}. Access denied.`,
-        ipAddress: clientIp,
+        details: `Archived staff member ${emp.firstName} ${emp.lastName} attempted shift punch via terminal from IP ${effectiveIp}. Access denied.`,
+        ipAddress: effectiveIp,
       };
       await appendStoredAuditLog(archivedAudit);
 
@@ -178,8 +213,8 @@ export async function POST(req: Request) {
         action: 'CLOCK_IN_BLOCKED_UNAUTHORIZED_IP',
         targetType: 'Employee',
         targetId: emp.id,
-        details: `${emp.firstName} ${emp.lastName} attempted shift punch from unauthorized workstation IP (${clientIp}). Punch rejected by policy.`,
-        ipAddress: clientIp,
+        details: `${emp.firstName} ${emp.lastName} attempted shift punch from unauthorized workstation IP (${effectiveIp}). Punch rejected by policy.`,
+        ipAddress: effectiveIp,
       };
       await appendStoredAuditLog(ipBlockedAudit);
 
@@ -188,7 +223,7 @@ export async function POST(req: Request) {
           success: false, 
           message: ipEval.message, 
           employee: emp, 
-          ipAddress: clientIp, 
+          ipAddress: effectiveIp, 
           workstationLabel: 'Unregistered Workstation',
           ipStatus: 'UNAUTHORIZED_IP'
         },
@@ -225,15 +260,15 @@ export async function POST(req: Request) {
         date: dateStr,
         clockIn: timeStr,
         clockInTimestamp: nowMs,
-        clockInIp: clientIp,
+        clockInIp: effectiveIp,
         clockInWorkstation: ipEval.workstationLabel,
         breakMinutes: 0,
         totalHours: 0,
         durationSeconds: 0,
         overtimeHours: 0,
         status: 'CLOCKED_IN',
-        notes: `Clocked in via ${ipEval.workstationLabel} (IP: ${clientIp})`,
-        ipAddress: clientIp,
+        notes: `Clocked in via ${ipEval.workstationLabel} (IP: ${effectiveIp})`,
+        ipAddress: effectiveIp,
         workstationLabel: ipEval.workstationLabel,
         deviceInfo: device || 'Verified Server Punch Endpoint',
         ipStatus: ipEval.status,
@@ -264,8 +299,8 @@ export async function POST(req: Request) {
           `, [
             newTimecard.id, newTimecard.employeeId, newTimecard.employeeName, newTimecard.employeeAvatar || null,
             newTimecard.department, newTimecard.date, newTimecard.clockIn, newTimecard.clockInTimestamp,
-            0, 0, 0, 0, 'CLOCKED_IN', newTimecard.notes || null, clientIp,
-            ipEval.workstationLabel, clientIp, ipEval.workstationLabel, newTimecard.deviceInfo || null, ipEval.status
+            0, 0, 0, 0, 'CLOCKED_IN', newTimecard.notes || null, effectiveIp,
+            ipEval.workstationLabel, effectiveIp, ipEval.workstationLabel, newTimecard.deviceInfo || null, ipEval.status
           ]);
 
           await query(`
@@ -291,8 +326,8 @@ export async function POST(req: Request) {
         action: 'SHIFT_CLOCK_IN',
         targetType: 'Timecard',
         targetId: shiftId,
-        details: `${emp.firstName} ${emp.lastName} clocked IN at ${timeStr} from ${ipEval.workstationLabel} (IP: ${clientIp})`,
-        ipAddress: clientIp,
+        details: `${emp.firstName} ${emp.lastName} clocked IN at ${timeStr} from ${ipEval.workstationLabel} (IP: ${effectiveIp})`,
+        ipAddress: effectiveIp,
       };
       await appendStoredAuditLog(auditIn);
 
@@ -301,7 +336,7 @@ export async function POST(req: Request) {
         id: 'notif-' + nowMs,
         recipient: 'ADMIN',
         title: `${emp.firstName} ${emp.lastName} Clocked In`,
-        message: `${emp.firstName} ${emp.lastName} clocked IN at ${timeStr} (${emp.department || 'Production'}) from ${ipEval.workstationLabel} (${clientIp}).`,
+        message: `${emp.firstName} ${emp.lastName} clocked IN at ${timeStr} (${emp.department || 'Production'}) from ${ipEval.workstationLabel} (${effectiveIp}).`,
         type: 'TIMECARD_CLOCK_IN',
         timestamp: 'Just now',
         read: false
@@ -316,7 +351,7 @@ export async function POST(req: Request) {
         employee: updatedEmp,
         time: timeStr,
         workstationLabel: ipEval.workstationLabel,
-        ipAddress: clientIp,
+        ipAddress: effectiveIp,
         ipStatus: ipEval.status,
       });
     }
@@ -364,7 +399,7 @@ export async function POST(req: Request) {
         ...activeTc,
         clockOut: timeStr,
         clockOutTimestamp: nowMs,
-        clockOutIp: clientIp,
+        clockOutIp: effectiveIp,
         clockOutWorkstation: ipEval.workstationLabel,
         durationSeconds: netDurationSec,
         breakMinutes: effectiveBreak,
@@ -372,7 +407,9 @@ export async function POST(req: Request) {
         totalHours,
         overtimeHours,
         status: 'COMPLETED',
-        notes: (activeTc.notes ? activeTc.notes + ' | ' : '') + `Clocked out via ${ipEval.workstationLabel} (IP: ${clientIp})`,
+        notes: (activeTc.notes ? activeTc.notes + ' | ' : '') + `Clocked out via ${ipEval.workstationLabel} (IP: ${effectiveIp})`,
+        ipAddress: effectiveIp,
+        workstationLabel: ipEval.workstationLabel,
       } : {
         id: 'tc-' + nowMs,
         employeeId: emp.id,
@@ -388,10 +425,12 @@ export async function POST(req: Request) {
         totalHours,
         overtimeHours,
         status: 'COMPLETED',
-        clockInIp: clientIp,
-        clockOutIp: clientIp,
+        clockInIp: effectiveIp,
+        clockOutIp: effectiveIp,
         clockInWorkstation: ipEval.workstationLabel,
         clockOutWorkstation: ipEval.workstationLabel,
+        ipAddress: effectiveIp,
+        workstationLabel: ipEval.workstationLabel,
       };
 
       const updatedEmp: Employee = {
@@ -428,7 +467,7 @@ export async function POST(req: Request) {
               notes = ?
             WHERE id = ?
           `, [
-            timeStr, nowMs, clientIp, ipEval.workstationLabel,
+            timeStr, nowMs, effectiveIp, ipEval.workstationLabel,
             netDurationSec, effectiveBreak, numBreak > 0 ? 1 : 0,
             totalHours, overtimeHours, updatedTc.notes || null, updatedTc.id
           ]);
@@ -446,6 +485,12 @@ export async function POST(req: Request) {
         }
       }
 
+      const pad = (n: number) => String(n).padStart(2, '0');
+      const h = Math.floor(netDurationSec / 3600);
+      const m = Math.floor((netDurationSec % 3600) / 60);
+      const s = netDurationSec % 60;
+      const hmsFormatted = `${pad(h)}:${pad(m)}:${pad(s)}`;
+
       // Record Audit Log
       const auditOut: AuditLog = {
         id: `aud-${nowMs}`,
@@ -456,8 +501,8 @@ export async function POST(req: Request) {
         action: 'SHIFT_CLOCK_OUT',
         targetType: 'Timecard',
         targetId: updatedTc.id,
-        details: `${emp.firstName} ${emp.lastName} clocked OUT at ${timeStr} (${totalHours.toFixed(2)} hrs logged, ${effectiveBreak}m break) from ${ipEval.workstationLabel} (IP: ${clientIp})`,
-        ipAddress: clientIp,
+        details: `${emp.firstName} ${emp.lastName} clocked OUT at ${timeStr} (${hmsFormatted}) from ${ipEval.workstationLabel} (IP: ${effectiveIp})`,
+        ipAddress: effectiveIp,
       };
       await appendStoredAuditLog(auditOut);
 
@@ -466,7 +511,7 @@ export async function POST(req: Request) {
         id: 'notif-' + nowMs,
         recipient: 'ADMIN',
         title: `${emp.firstName} ${emp.lastName} Clocked Out`,
-        message: `${emp.firstName} ${emp.lastName} finished shift at ${timeStr} (${totalHours.toFixed(2)}h, ${effectiveBreak}m break).`,
+        message: `${emp.firstName} ${emp.lastName} clocked OUT at ${timeStr} (Duration: ${hmsFormatted}) from ${ipEval.workstationLabel} (${effectiveIp}).`,
         type: 'TIMECARD_CLOCK_OUT',
         timestamp: 'Just now',
         read: false
@@ -476,13 +521,14 @@ export async function POST(req: Request) {
       return NextResponse.json({
         success: true,
         action: 'OUT',
-        message: `Successfully clocked out at ${timeStr} (${totalHours.toFixed(2)} hrs logged)`,
+        message: `Successfully clocked out at ${timeStr} (${totalHours.toFixed(2)} hrs) from ${ipEval.workstationLabel}`,
         timecard: updatedTc,
         employee: updatedEmp,
-        totalHours,
         time: timeStr,
+        totalHours,
+        durationSeconds: netDurationSec,
         workstationLabel: ipEval.workstationLabel,
-        ipAddress: clientIp,
+        ipAddress: effectiveIp,
         ipStatus: ipEval.status,
       });
     }

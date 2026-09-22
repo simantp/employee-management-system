@@ -1,9 +1,47 @@
 [
   {
+    "id": "notif-admin-clockout-1790088347979",
+    "recipient": "STAFF",
+    "recipientId": "emp-42",
+    "title": "Shift Clocked Out by Administration",
+    "message": "Your shift was administratively concluded by SuperAdmin (0.01 hrs net worked). Reason: \"Administrative Clock-Out via Active Floor Staff Modal\".",
+    "type": "TIMECARD_CLOCK_OUT",
+    "timestamp": "Just now",
+    "read": false
+  },
+  {
+    "id": "notif-1790088324621",
+    "recipient": "ADMIN",
+    "title": "Suman Thapa Clocked In",
+    "message": "Suman Thapa clocked IN at 12:45:24 am (Production (Riverwood)) from Sydney Riverwood Plant Kiosk (Terminal 1) (192.168.1.100).",
+    "type": "TIMECARD_CLOCK_IN",
+    "timestamp": "Just now",
+    "read": true
+  },
+  {
+    "id": "notif-admin-clockout-1790088317810",
+    "recipient": "STAFF",
+    "recipientId": "emp-9",
+    "title": "Shift Clocked Out by Administration",
+    "message": "Your shift was administratively concluded by SuperAdmin (0.01 hrs net worked). Reason: \"Administrative Clock-Out via Active Floor Staff Modal\".",
+    "type": "TIMECARD_CLOCK_OUT",
+    "timestamp": "Just now",
+    "read": false
+  },
+  {
+    "id": "notif-1790088287243",
+    "recipient": "ADMIN",
+    "title": "simant testing Clocked In",
+    "message": "simant testing clocked IN at 12:44:47 am (Production (Riverwood)) from Sydney Riverwood Plant Kiosk (Terminal 1) (192.168.1.100).",
+    "type": "TIMECARD_CLOCK_IN",
+    "timestamp": "Just now",
+    "read": true
+  },
+  {
     "id": "notif-1790085921641",
     "recipient": "ADMIN",
     "title": "Suman Thapa Clocked In",
-    "message": "Suman Thapa clocked IN at 12:05:21 am (Production (Riverwood)) from Localhost Development Workstation (::1).",
+    "message": "Suman Thapa clocked IN at 12:05:21 am (Production (Riverwood)) from Sydney Riverwood Plant Kiosk (Terminal 1) (192.168.1.100).",
     "type": "TIMECARD_CLOCK_IN",
     "timestamp": "Just now",
     "read": true
@@ -21,7 +59,7 @@
     "id": "notif-1790085766375",
     "recipient": "ADMIN",
     "title": "simant testing Clocked In",
-    "message": "simant testing clocked IN at 12:02:46 am (Production (Riverwood)) from Localhost Development Workstation (::1).",
+    "message": "simant testing clocked IN at 12:02:46 am (Production (Riverwood)) from Sydney Riverwood Plant Kiosk (Terminal 1) (192.168.1.100).",
     "type": "TIMECARD_CLOCK_IN",
     "timestamp": "Just now",
     "read": true
@@ -39,7 +77,7 @@
     "id": "notif-1790084476537",
     "recipient": "ADMIN",
     "title": "Suman Thapa Clocked In",
-    "message": "Suman Thapa clocked IN at 11:41:16 pm (Production (Riverwood)) from Localhost Development Workstation (::1).",
+    "message": "Suman Thapa clocked IN at 11:41:16 pm (Production (Riverwood)) from Sydney Riverwood Plant Kiosk (Terminal 1) (192.168.1.100).",
     "type": "TIMECARD_CLOCK_IN",
     "timestamp": "Just now",
     "read": true

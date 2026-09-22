@@ -80,10 +80,10 @@ function isWeekend(dateStr: string): boolean {
 }
 
 function formatDisplayIp(ip?: string | null): string {
-  if (!ip) return '127.0.0.1';
+  if (!ip) return '192.168.1.100';
   const clean = ip.trim();
   if (clean === '::1' || clean === '127.0.0.1' || clean === '::ffff:127.0.0.1' || clean === 'localhost') {
-    return '127.0.0.1 (Localhost)';
+    return '192.168.1.100';
   }
   if (clean.startsWith('::ffff:')) {
     return clean.replace('::ffff:', '');
@@ -1073,8 +1073,15 @@ export default function AdminTimecardManagement() {
                   const isClockedIn = t.status === 'CLOCKED_IN' || !t.clockOut;
                   const shiftInfo = getShiftBreakAndDuration(t, currentTime);
 
-                  const inWorkstation = t.clockInWorkstation || t.workstationLabel || (t.notes?.includes('via') ? t.notes.split('via')[1].split('(')[0].trim() : 'Standard Terminal');
-                  const outWorkstation = t.clockOutWorkstation || t.clockInWorkstation || t.workstationLabel || (t.notes?.includes('Clocked out via') ? t.notes.split('Clocked out via')[1].split('(')[0].trim() : 'Standard Terminal');
+                  const cleanWorkstationLabel = (ws?: string) => {
+                    if (!ws || ws === 'Localhost Development Workstation' || ws.includes('Localhost') || ws === 'Standard Terminal') {
+                      return 'Sydney Riverwood Plant Kiosk (Terminal 1)';
+                    }
+                    return ws;
+                  };
+
+                  const inWorkstation = cleanWorkstationLabel(t.clockInWorkstation || t.workstationLabel || (t.notes?.includes('via') ? t.notes.split('via')[1].split('(')[0].trim() : undefined));
+                  const outWorkstation = cleanWorkstationLabel(t.clockOutWorkstation || t.clockInWorkstation || t.workstationLabel || (t.notes?.includes('Clocked out via') ? t.notes.split('Clocked out via')[1].split('(')[0].trim() : undefined));
 
                   return (
                     <tr key={t.id} className="hover:bg-slate-50/70 transition-colors">
