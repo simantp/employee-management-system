@@ -23,7 +23,8 @@ import {
   ExpiryReminderSettings,
   LockedIpRecord,
   IpLockSettings,
-  SmtpSettings
+  SmtpSettings,
+  SecuritySettings
 } from '@/types';
 import { 
   INITIAL_EMPLOYEES, 
@@ -36,7 +37,8 @@ import {
   INITIAL_ANNOUNCEMENTS,
   INITIAL_USERS,
   INITIAL_EXPIRY_SETTINGS,
-  INITIAL_SMTP_SETTINGS
+  INITIAL_SMTP_SETTINGS,
+  INITIAL_SECURITY_SETTINGS
 } from './initialData';
 import { encryptAES256, maskSensitive } from './crypto';
 import { getOnboardingProgress } from './onboarding';
@@ -202,6 +204,10 @@ interface AppContextType {
   // SMTP Settings & Gateway
   smtpSettings: SmtpSettings;
   updateSmtpSettings: (settings: Partial<SmtpSettings>) => Promise<void> | void;
+
+  // Security & Inactivity Session Settings
+  securitySettings: SecuritySettings;
+  updateSecuritySettings: (settings: Partial<SecuritySettings>) => Promise<void> | void;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -283,6 +289,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [auditRetentionDays, setAuditRetentionDays] = useState<number>(90);
   const [ipLockSettings, setIpLockSettings] = useState<IpLockSettings>(INITIAL_IP_LOCK_SETTINGS);
   const [smtpSettings, setSmtpSettings] = useState<SmtpSettings>(INITIAL_SMTP_SETTINGS);
+  const [securitySettings, setSecuritySettings] = useState<SecuritySettings>(INITIAL_SECURITY_SETTINGS);
   const [passwordResetTokens, setPasswordResetTokens] = useState<PasswordResetToken[]>([]);
   const [showForgotPasswordModal, setShowForgotPasswordModal] = useState(false);
   const [showChangePasswordModal, setShowChangePasswordModal] = useState(false);
@@ -428,6 +435,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         } catch (e) {}
       }
 
+      const savedSecurity = localStorage.getItem('ems_security_settings_v1');
+      if (savedSecurity) {
+        try {
+          setSecuritySettings({ ...INITIAL_SECURITY_SETTINGS, ...JSON.parse(savedSecurity) });
+        } catch (e) {}
+      }
+
       const savedAuth = localStorage.getItem('ems_auth_user_v1');
       if (savedAuth) {
         const parsedAuth = JSON.parse(savedAuth);
@@ -518,6 +532,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           }
           if (setRes.value.settings.smtpSettings) {
             setSmtpSettings(prev => ({ ...prev, ...setRes.value.settings.smtpSettings }));
+          }
+          if (setRes.value.settings.securitySettings) {
+            setSecuritySettings(prev => ({ ...prev, ...setRes.value.settings.securitySettings }));
           }
         }
 
@@ -4924,6 +4941,34 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  const updateSecuritySettings = async (settings: Partial<SecuritySettings>) => {
+    const merged: SecuritySettings = { ...securitySettings, ...settings };
+    setSecuritySettings(merged);
+    try {
+      localStorage.setItem('ems_security_settings_v1', JSON.stringify(merged));
+      const res = await fetch('/api/settings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ securitySettings: merged }),
+      });
+      if (res.ok) {
+        addToast('Security Settings Updated', 'Inactivity session timeout and security policies saved.', 'success');
+        addAudit(
+          'SECURITY_SETTINGS_UPDATED',
+          'Settings',
+          'security',
+          `Updated security settings (Inactivity Timeout: ${merged.sessionTimeoutMinutes} min, Auto-Logout: ${merged.autoLogoutOnInactivity ? 'Enabled' : 'Disabled'}, 2FA: ${merged.enforceEmailOtp2FA ? 'Enabled' : 'Disabled'})`,
+          currentUser?.name || 'Admin',
+          currentUser?.role || 'SuperAdmin'
+        );
+      } else {
+        addToast('Database Warning', 'Security settings saved locally; server sync pending.', 'warning');
+      }
+    } catch (e) {
+      addToast('Sync Warning', 'Security settings saved locally, server unreachable.', 'warning');
+    }
+  };
+
   return (
     <AppContext.Provider value={{
       currentUser,
@@ -5027,6 +5072,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       detectAndLockCurrentIp,
       smtpSettings,
       updateSmtpSettings,
+      securitySettings,
+      updateSecuritySettings,
     }}>
       {children}
     </AppContext.Provider>

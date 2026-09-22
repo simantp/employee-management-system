@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { useApp } from '@/lib/store';
 import DocumentTypesManager from './DocumentTypesManager';
 import RolesManagement from './RolesManagement';
-import { LockedIpRecord, SmtpSettings } from '@/types';
+import { LockedIpRecord, SmtpSettings, SecuritySettings } from '@/types';
 import { detectWorkstationIp } from '@/lib/ipUtils';
 
 export type SettingsTab = 'COMPANY' | 'SHIFTS' | 'DOCUMENTS' | 'ROLES' | 'EXPIRY' | 'IP_LOCK' | 'SECURITY' | 'RETENTION' | 'NOTIFS' | 'SMTP' | 'BACKUP';
@@ -36,6 +36,8 @@ export default function AdminSettingsHub({
     updateEmployee,
     smtpSettings,
     updateSmtpSettings,
+    securitySettings: globalSecuritySettings,
+    updateSecuritySettings,
   } = useApp();
 
   const [activeTab, setActiveTab] = useState<SettingsTab>(defaultTab);
@@ -98,13 +100,20 @@ export default function AdminSettingsHub({
   }, [expirySettings]);
 
   // 5. Security & Cryptography State
-  const [securitySettings, setSecuritySettings] = useState({
+  const [securitySettings, setSecuritySettings] = useState<SecuritySettings>({
     enforceEmailOtp2FA: true,
-    sessionTimeoutMinutes: 45,
+    sessionTimeoutMinutes: 30,
+    autoLogoutOnInactivity: true,
     aesVaultActive: true,
     maskSensitiveBankTFN: true,
     allowStaffPasswordResetSelfService: true,
   });
+
+  useEffect(() => {
+    if (globalSecuritySettings) {
+      setSecuritySettings(prev => ({ ...prev, ...globalSecuritySettings }));
+    }
+  }, [globalSecuritySettings]);
 
   // 6. Notification Preferences
   const [notifPreferences, setNotifPreferences] = useState({
@@ -231,6 +240,7 @@ export default function AdminSettingsHub({
         localStorage.setItem('ems_audit_retention_days_v1', JSON.stringify(retentionDaysInput));
         localStorage.setItem('ems_expiry_settings_v1', JSON.stringify(expiryForm));
         localStorage.setItem('ems_smtp_settings_v1', JSON.stringify(smtpForm));
+        localStorage.setItem('ems_security_settings_v1', JSON.stringify(securitySettings));
 
         const res = await fetch('/api/settings', {
           method: 'POST',
@@ -1500,48 +1510,217 @@ export default function AdminSettingsHub({
 
           {/* TAB 7: SECURITY & CRYPTOGRAPHY */}
           {activeTab === 'SECURITY' && (
-            <div className="space-y-5">
-              <div className="border-b border-slate-100 pb-3">
-                <h3 className="font-black text-sm text-slate-900">Security, Authentication &amp; AES-256 Vault</h3>
-                <p className="text-slate-500 text-[11px]">Protect sensitive staff records, TFN numbers, and bank credentials</p>
+            <div className="space-y-6">
+              <div className="border-b border-slate-100 pb-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                <div>
+                  <h3 className="font-bold text-sm text-slate-900">Security, Session Inactivity &amp; AES-256 Vault</h3>
+                  <p className="text-slate-500 text-[11px]">
+                    Configure automatic session inactivity termination, cryptographic vaulting, and authentication guardrails
+                  </p>
+                </div>
+                <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full font-mono text-[10px] font-bold border self-start sm:self-auto ${
+                  securitySettings.autoLogoutOnInactivity
+                    ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                    : 'bg-amber-50 text-amber-700 border-amber-200'
+                }`}>
+                  <span className={`w-1.5 h-1.5 rounded-full ${securitySettings.autoLogoutOnInactivity ? 'bg-emerald-500 animate-pulse' : 'bg-amber-500'}`} />
+                  {securitySettings.autoLogoutOnInactivity ? `Auto-Logout: ${securitySettings.sessionTimeoutMinutes} Min` : 'Auto-Logout Disabled'}
+                </span>
               </div>
 
-              <div className="space-y-3">
-                <div className="p-4 rounded-2xl bg-slate-900 text-white border border-slate-800 flex items-center justify-between">
-                  <div>
-                    <h4 className="font-bold text-xs text-white">AES-256-GCM Vault Status</h4>
-                    <p className="text-[11px] text-slate-400">All TFN and banking details are encrypted client-side before storage</p>
+              {/* Status Overview Cards */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
+                <div className="p-4 rounded-2xl bg-slate-900 text-white border border-slate-800 space-y-1">
+                  <span className="text-[10px] font-mono text-slate-400 uppercase tracking-wider block">AES-256-GCM Vault</span>
+                  <div className="text-sm font-black text-emerald-400 flex items-center gap-1.5 pt-1">
+                    <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                    <span>ENCRYPTION ACTIVE</span>
                   </div>
-                  <span className="px-2.5 py-1 rounded-full bg-emerald-500/20 text-emerald-400 font-mono text-[10px] font-bold border border-emerald-500/30">
-                    VAULT ACTIVE
-                  </span>
+                  <p className="text-[10px] text-slate-400">
+                    TFN, BSB &amp; banking records encrypted client-side prior to database storage
+                  </p>
                 </div>
 
-                <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 flex items-center justify-between">
+                <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-1">
+                  <span className="text-[10px] font-mono text-slate-500 uppercase tracking-wider block">Inactivity Protection</span>
+                  <div className="text-2xl font-black text-slate-900 flex items-baseline gap-1">
+                    <span>{securitySettings.autoLogoutOnInactivity ? securitySettings.sessionTimeoutMinutes : 'Off'}</span>
+                    {securitySettings.autoLogoutOnInactivity && <span className="text-xs font-bold text-slate-500">Mins Idle</span>}
+                  </div>
+                  <p className="text-[10px] text-slate-500">
+                    {securitySettings.autoLogoutOnInactivity ? 'Monitors mouse, keyboard & touch across tabs' : 'Sessions remain open indefinitely'}
+                  </p>
+                </div>
+
+                <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-1">
+                  <span className="text-[10px] font-mono text-slate-500 uppercase tracking-wider block">Portal Scope</span>
+                  <div className="text-sm font-black text-slate-900 pt-1">
+                    Admin &amp; Staff Logins
+                  </div>
+                  <p className="text-[10px] text-slate-500">
+                    Unified idle detection with 60-second warning countdown modal
+                  </p>
+                </div>
+              </div>
+
+              {/* SECTION 1: Session Inactivity & Auto-Logout Policy */}
+              <div className="p-5 rounded-2xl bg-white border border-slate-200 space-y-4 shadow-2xs">
+                <div className="flex items-start justify-between gap-4">
                   <div>
-                    <h4 className="font-bold text-slate-900">Enforce 6-Digit Email OTP on Staff Registration</h4>
-                    <p className="text-slate-500 text-[11px]">Validates Australian email ownership before portal activation</p>
+                    <h4 className="font-bold text-xs text-slate-900">1. Session Inactivity &amp; Automatic Logout Policy</h4>
+                    <p className="text-slate-500 text-[11px] mt-0.5">
+                      Automatically end active sessions when no interaction (mouse, typing, touch, scrolling) is detected.
+                    </p>
+                  </div>
+                  <label className="relative inline-flex items-center cursor-pointer shrink-0">
+                    <input
+                      type="checkbox"
+                      checked={securitySettings.autoLogoutOnInactivity}
+                      onChange={e => {
+                        const updated = { ...securitySettings, autoLogoutOnInactivity: e.target.checked };
+                        setSecuritySettings(updated);
+                        updateSecuritySettings(updated);
+                      }}
+                      className="sr-only peer"
+                    />
+                    <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-orange-500" />
+                  </label>
+                </div>
+
+                {securitySettings.autoLogoutOnInactivity && (
+                  <div className="space-y-3.5 pt-3 border-t border-slate-100 animate-in fade-in duration-200">
+                    <div>
+                      <label className="font-bold text-[11px] text-slate-800 block mb-1.5">
+                        Inactivity Timeout Threshold:
+                      </label>
+                      <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-7 gap-2">
+                        {[
+                          { label: '5 Mins', mins: 5, desc: 'Ultra High' },
+                          { label: '10 Mins', mins: 10, desc: 'Strict' },
+                          { label: '15 Mins', mins: 15, desc: 'High' },
+                          { label: '30 Mins', mins: 30, desc: 'Default' },
+                          { label: '45 Mins', mins: 45, desc: 'Standard' },
+                          { label: '60 Mins', mins: 60, desc: '1 Hour' },
+                          { label: '120 Mins', mins: 120, desc: '2 Hours' },
+                        ].map(preset => (
+                          <button
+                            key={preset.mins}
+                            type="button"
+                            onClick={() => {
+                              const updated = { ...securitySettings, sessionTimeoutMinutes: preset.mins };
+                              setSecuritySettings(updated);
+                              updateSecuritySettings(updated);
+                            }}
+                            className={`p-2.5 rounded-xl border text-center transition cursor-pointer ${
+                              securitySettings.sessionTimeoutMinutes === preset.mins
+                                ? 'bg-slate-900 border-slate-900 text-white shadow-xs'
+                                : 'bg-slate-50 hover:bg-slate-100 border-slate-200 text-slate-700'
+                            }`}
+                          >
+                            <div className="font-bold text-xs">{preset.label}</div>
+                            <div className={`text-[10px] ${securitySettings.sessionTimeoutMinutes === preset.mins ? 'text-orange-400' : 'text-slate-400'}`}>
+                              {preset.desc}
+                            </div>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Custom Minutes Input */}
+                    <div className="pt-2 border-t border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                      <div className="flex items-center gap-3">
+                        <label className="font-bold text-xs text-slate-800">
+                          Custom Idle Limit:
+                        </label>
+                        <div className="flex items-center gap-1.5">
+                          <input
+                            type="number"
+                            min="1"
+                            max="480"
+                            value={securitySettings.sessionTimeoutMinutes}
+                            onChange={e => {
+                              const val = Math.max(1, Math.min(480, parseInt(e.target.value) || 1));
+                              const updated = { ...securitySettings, sessionTimeoutMinutes: val };
+                              setSecuritySettings(updated);
+                              updateSecuritySettings(updated);
+                            }}
+                            className="w-20 px-3 py-1.5 text-xs font-bold border border-slate-200 rounded-xl bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 text-slate-900 text-center"
+                          />
+                          <span className="text-slate-500 font-bold text-xs">Minutes</span>
+                        </div>
+                      </div>
+
+                      <span className="text-[11px] text-slate-400">
+                        Applies immediately across all active browser windows &amp; tabs.
+                      </span>
+                    </div>
+
+                    <div className="p-3.5 rounded-xl bg-amber-50/60 border border-amber-200/80 text-amber-950 text-xs space-y-1">
+                      <div className="flex items-center gap-1.5 font-bold text-amber-900 text-[11px]">
+                        <span>60-Second Warning Notification Window</span>
+                      </div>
+                      <p className="text-[11px] text-amber-800/90 leading-relaxed">
+                        When idle time reaches 60 seconds before expiration, an interactive warning dialog will pop up with a countdown timer, allowing active operators to click <strong>&quot;Stay Logged In&quot;</strong> or choose to <strong>&quot;Log Out Now&quot;</strong>.
+                      </p>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* SECTION 2: Authentication & Access Hardening */}
+              <div className="p-5 rounded-2xl bg-white border border-slate-200 space-y-3.5 shadow-2xs">
+                <h4 className="font-bold text-xs text-slate-900">2. Authentication &amp; Multi-Factor Safeguards</h4>
+
+                <label className="p-3.5 rounded-xl bg-slate-50 hover:bg-slate-100/70 border border-slate-200 flex items-center justify-between cursor-pointer transition">
+                  <div className="pr-4">
+                    <span className="font-bold text-xs text-slate-900 block">Enforce 6-Digit Email OTP on Staff Registration</span>
+                    <span className="text-slate-500 text-[11px]">Validates Australian email ownership via one-time verification passcode before portal activation</span>
                   </div>
                   <input
                     type="checkbox"
                     checked={securitySettings.enforceEmailOtp2FA}
-                    onChange={e => setSecuritySettings({...securitySettings, enforceEmailOtp2FA: e.target.checked})}
-                    className="w-4 h-4 rounded text-orange-500 cursor-pointer"
+                    onChange={e => {
+                      const updated = { ...securitySettings, enforceEmailOtp2FA: e.target.checked };
+                      setSecuritySettings(updated);
+                      updateSecuritySettings(updated);
+                    }}
+                    className="w-4 h-4 rounded text-orange-500 cursor-pointer shrink-0"
                   />
-                </div>
+                </label>
 
-                <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 flex items-center justify-between">
-                  <div>
-                    <h4 className="font-bold text-slate-900">Mask Sensitive Records in Administrative Views</h4>
-                    <p className="text-slate-500 text-[11px]">Masks BSB, Account Numbers, and TFN digits by default</p>
+                <label className="p-3.5 rounded-xl bg-slate-50 hover:bg-slate-100/70 border border-slate-200 flex items-center justify-between cursor-pointer transition">
+                  <div className="pr-4">
+                    <span className="font-bold text-xs text-slate-900 block">Allow Staff Password Reset Self-Service</span>
+                    <span className="text-slate-500 text-[11px]">Enables staff to request secure 6-digit email reset codes directly from the login terminal</span>
+                  </div>
+                  <input
+                    type="checkbox"
+                    checked={securitySettings.allowStaffPasswordResetSelfService}
+                    onChange={e => {
+                      const updated = { ...securitySettings, allowStaffPasswordResetSelfService: e.target.checked };
+                      setSecuritySettings(updated);
+                      updateSecuritySettings(updated);
+                    }}
+                    className="w-4 h-4 rounded text-orange-500 cursor-pointer shrink-0"
+                  />
+                </label>
+
+                <label className="p-3.5 rounded-xl bg-slate-50 hover:bg-slate-100/70 border border-slate-200 flex items-center justify-between cursor-pointer transition">
+                  <div className="pr-4">
+                    <span className="font-bold text-xs text-slate-900 block">Mask Sensitive Records in Administrative Views</span>
+                    <span className="text-slate-500 text-[11px]">Masks BSB, Bank Account Numbers, and Tax File Numbers (TFN) by default across all screens</span>
                   </div>
                   <input
                     type="checkbox"
                     checked={securitySettings.maskSensitiveBankTFN}
-                    onChange={e => setSecuritySettings({...securitySettings, maskSensitiveBankTFN: e.target.checked})}
-                    className="w-4 h-4 rounded text-orange-500 cursor-pointer"
+                    onChange={e => {
+                      const updated = { ...securitySettings, maskSensitiveBankTFN: e.target.checked };
+                      setSecuritySettings(updated);
+                      updateSecuritySettings(updated);
+                    }}
+                    className="w-4 h-4 rounded text-orange-500 cursor-pointer shrink-0"
                   />
-                </div>
+                </label>
               </div>
             </div>
           )}

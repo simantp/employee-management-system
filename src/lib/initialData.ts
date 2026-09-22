@@ -1,4 +1,4 @@
-import { Employee, LeaveRequest, ComplianceAlert, NotificationItem, AuditLog, TimecardRecord, DocumentTypeConfig, Announcement, AuthUser, ExpiryReminderSettings, SmtpSettings } from '@/types';
+import { Employee, LeaveRequest, ComplianceAlert, NotificationItem, AuditLog, TimecardRecord, DocumentTypeConfig, Announcement, AuthUser, ExpiryReminderSettings, SmtpSettings, SecuritySettings } from '@/types';
 import { encryptAES256 } from './crypto';
 
 const getTodayFormatted = (): string => {
@@ -452,3 +452,12 @@ export const INITIAL_USERS: AuthUser[] = [
     createdAt: '01/02/2024',
   }
 ];
+
+export const INITIAL_SECURITY_SETTINGS: SecuritySettings = {
+  enforceEmailOtp2FA: true,
+  sessionTimeoutMinutes: 30,
+  autoLogoutOnInactivity: true,
+  aesVaultActive: true,
+  maskSensitiveBankTFN: true,
+  allowStaffPasswordResetSelfService: true,
+};

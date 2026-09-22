@@ -387,12 +387,22 @@ export interface SmtpSettings {
   enableSmtp?: boolean;
 }
 
+export interface SecuritySettings {
+  enforceEmailOtp2FA: boolean;
+  sessionTimeoutMinutes: number;
+  autoLogoutOnInactivity: boolean;
+  aesVaultActive: boolean;
+  maskSensitiveBankTFN: boolean;
+  allowStaffPasswordResetSelfService: boolean;
+}
+
 export interface SystemSettingsConfig {
   expirySettings: ExpiryReminderSettings;
   auditRetentionDays: number;
   autoPruneAuditLogs: boolean;
   ipLockSettings?: IpLockSettings;
   smtpSettings?: SmtpSettings;
+  securitySettings?: SecuritySettings;
 }
 
 

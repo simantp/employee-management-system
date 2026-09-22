@@ -1,6 +1,7 @@
 import './globals.css';
 import { AppProvider } from '@/lib/store';
 import NotificationToast from '@/components/common/NotificationToast';
+import InactivityHandler from '@/components/common/InactivityHandler';
 
 export const metadata = {
   title: 'HsCreations Employee Records Management',
@@ -23,6 +24,7 @@ export default function RootLayout({
         <AppProvider>
           {children}
           <NotificationToast />
+          <InactivityHandler />
         </AppProvider>
       </body>
     </html>
