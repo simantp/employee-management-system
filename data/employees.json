@@ -49,9 +49,9 @@
     "superFundName": "AustralianSuper",
     "superMemberNumber": "AUS-998241",
     "kioskPin": "4829",
-    "clockState": "CLOCKED_IN",
-    "lastClockIn": "2026-09-22T15:13:35.177Z",
-    "lastClockOut": "2026-09-22T15:08:15.732Z",
+    "clockState": "CLOCKED_OUT",
+    "lastClockIn": "2026-09-22T15:15:46.227Z",
+    "lastClockOut": "2026-09-22T15:17:26.077Z",
     "avatarUrl": "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80",
     "leaveBalance": {
       "annual": 8,
@@ -122,8 +122,8 @@
         "previewUrl": "/uploads/suman_thapa_emp_42/1789011812722_test.jpg"
       }
     ],
-    "clockInTimestamp": 1790090015177,
-    "currentShiftId": "tc-1790090015177"
+    "clockInTimestamp": null,
+    "currentShiftId": null
   },
   {
     "id": "emp-9",

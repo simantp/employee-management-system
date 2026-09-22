@@ -1,12 +1,41 @@
 [
   {
+    "id": "notif-admin-clockout-1790090246078",
+    "recipient": "STAFF",
+    "recipientId": "emp-42",
+    "title": "Shift Clocked Out by Administration",
+    "message": "Your shift was administratively concluded by SuperAdmin (0.03 hrs net worked). Reason: \"Administrative Clock-Out via Active Floor Staff Modal\".",
+    "type": "TIMECARD_CLOCK_OUT",
+    "timestamp": "Just now",
+    "read": false
+  },
+  {
+    "id": "notif-1790090145475",
+    "recipient": "ADMIN",
+    "title": "Suman Thapa Clocked In",
+    "message": "Suman Thapa clocked IN at 01:15:46 am (Production (Riverwood)) from Workstation (27.34.73.159) (27.34.73.159).",
+    "type": "TIMECARD_CLOCK_IN",
+    "timestamp": "Just now",
+    "read": true
+  },
+  {
+    "id": "notif-admin-clockout-1790090070013",
+    "recipient": "STAFF",
+    "recipientId": "emp-42",
+    "title": "Shift Clocked Out by Administration",
+    "message": "Your shift was administratively concluded by SuperAdmin (0.01 hrs net worked). Reason: \"Administrative Clock-Out via Active Floor Staff Modal\".",
+    "type": "TIMECARD_CLOCK_OUT",
+    "timestamp": "Just now",
+    "read": true
+  },
+  {
     "id": "notif-real-ip-test",
     "recipient": "ADMIN",
     "title": "Suman Thapa Clocked In",
     "message": "Suman Thapa clocked IN at 01:13:35 am (Production (Riverwood)) from Main Office Plant Workstation (27.34.73.159) (27.34.73.159).",
     "type": "TIMECARD_CLOCK_IN",
     "timestamp": "Just now",
-    "read": false
+    "read": true
   },
   {
     "id": "notif-1790089695732",
@@ -34,7 +63,7 @@
     "message": "Your shift was administratively concluded by SuperAdmin (0.02 hrs net worked). Reason: \"Administrative Clock-Out via Active Floor Staff Modal\".",
     "type": "TIMECARD_CLOCK_OUT",
     "timestamp": "Just now",
-    "read": false
+    "read": true
   },
   {
     "id": "notif-1790089297148",
@@ -53,7 +82,7 @@
     "message": "Your shift was administratively concluded by SuperAdmin (0.01 hrs net worked). Reason: \"Administrative Clock-Out via Active Floor Staff Modal\".",
     "type": "TIMECARD_CLOCK_OUT",
     "timestamp": "Just now",
-    "read": false
+    "read": true
   },
   {
     "id": "notif-test-123",
@@ -72,7 +101,7 @@
     "message": "Your shift was administratively concluded by SuperAdmin (0.01 hrs net worked). Reason: \"Administrative Clock-Out via Active Floor Staff Modal\".",
     "type": "TIMECARD_CLOCK_OUT",
     "timestamp": "Just now",
-    "read": false
+    "read": true
   },
   {
     "id": "notif-1790088792755",
@@ -91,7 +120,7 @@
     "message": "Your shift was administratively concluded by SuperAdmin (0.01 hrs net worked). Reason: \"Administrative Clock-Out via Active Floor Staff Modal\".",
     "type": "TIMECARD_CLOCK_OUT",
     "timestamp": "Just now",
-    "read": false
+    "read": true
   },
   {
     "id": "notif-1790088324621",

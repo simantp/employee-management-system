@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useApp } from '@/lib/store';
 import { TimecardRecord, Employee, Department } from '@/types';
 import ConfirmDeleteModal from '@/components/common/ConfirmDeleteModal';
@@ -496,6 +496,7 @@ export default function AdminTimecardManagement() {
   const [selectedYear, setSelectedYear] = useState<number>(() => new Date().getFullYear());
   const [selectedMonthIndex, setSelectedMonthIndex] = useState<number>(() => new Date().getMonth());
   const [selectedDateString, setSelectedDateString] = useState<string>(() => formatDateDisplay(new Date()));
+  const dateSliderRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const today = new Date();
@@ -503,6 +504,31 @@ export default function AdminTimecardManagement() {
     setSelectedMonthIndex(today.getMonth());
     setSelectedDateString(formatDateDisplay(today));
   }, []);
+
+  // Automatically scroll the date slider to bring the selected / current date into view
+  useEffect(() => {
+    if (selectedDateString && selectedDateString !== 'ALL') {
+      const timer = setTimeout(() => {
+        if (dateSliderRef.current) {
+          const selectedEl = dateSliderRef.current.querySelector('[data-selected="true"]') as HTMLElement;
+          if (selectedEl) {
+            const container = dateSliderRef.current;
+            const containerWidth = container.clientWidth;
+            const elLeft = selectedEl.offsetLeft;
+            const elWidth = selectedEl.clientWidth;
+            const targetScrollLeft = elLeft - (containerWidth / 2) + (elWidth / 2);
+            container.scrollTo({
+              left: Math.max(0, targetScrollLeft),
+              behavior: 'smooth'
+            });
+          }
+        }
+      }, 60);
+      return () => clearTimeout(timer);
+    } else if (selectedDateString === 'ALL' && dateSliderRef.current) {
+      dateSliderRef.current.scrollTo({ left: 0, behavior: 'smooth' });
+    }
+  }, [selectedDateString, selectedMonthIndex, selectedYear]);
   
   // Search & Filter state
   const [staffFilter, setStaffFilter] = useState('ALL');
@@ -875,11 +901,15 @@ export default function AdminTimecardManagement() {
         </div>
 
         {/* Date Selector Strip (Day 1 to Last Day + "All Month" Pill) */}
-        <div className="p-4 bg-slate-50/70 border-b border-slate-200/80">
-          <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-thin">
+        <div className="p-4 bg-slate-50/70 border-b border-slate-200/80 relative">
+          <div 
+            ref={dateSliderRef}
+            className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-thin scroll-smooth"
+          >
             {/* "All Days in Month" Button */}
             <button
               onClick={() => setSelectedDateString('ALL')}
+              data-selected={selectedDateString === 'ALL'}
               className={`px-4 py-2.5 rounded-2xl font-bold text-xs whitespace-nowrap transition cursor-pointer shrink-0 flex flex-col items-center justify-center border shadow-2xs ${
                 selectedDateString === 'ALL'
                   ? 'bg-slate-900 text-white border-slate-900 ring-2 ring-slate-900/30'
@@ -900,6 +930,7 @@ export default function AdminTimecardManagement() {
               return (
                 <button
                   key={day.dayNumber}
+                  data-selected={isSelected}
                   onClick={() => setSelectedDateString(day.dateKey)}
                   className={`px-3 py-2 rounded-2xl text-center transition cursor-pointer shrink-0 min-w-[58px] flex flex-col items-center justify-center border relative ${
                     isSelected

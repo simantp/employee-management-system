@@ -55,22 +55,13 @@
     "enabled": true,
     "lockedIps": [
       {
-        "id": "ip-riverwood-kiosk",
-        "ip": "192.168.1.100",
-        "label": "Sydney Riverwood Plant Kiosk (Terminal 1)",
-        "isActive": true
-      },
-      {
-        "id": "ip-office-reception",
-        "ip": "203.0.113.50",
-        "label": "Head Office Reception Workstation",
-        "isActive": true
-      },
-      {
-        "id": "ip-rockdale-hub",
-        "ip": "192.168.2.105",
-        "label": "Rockdale Production Hub Terminal",
-        "isActive": true
+        "id": "iplock-1790090132455",
+        "ip": "27.34.73.159",
+        "label": "Workstation (27.34.73.159)",
+        "addedAt": "22 Sept 2026",
+        "addedBy": "Admin User",
+        "isActive": true,
+        "notes": "Auto-detected & locked from Admin Hub"
       }
     ]
   },
