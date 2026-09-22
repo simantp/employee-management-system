@@ -11,7 +11,7 @@ import {
   INITIAL_USERS,
   INITIAL_EXPIRY_SETTINGS
 } from './initialData';
-import { Employee, TimecardRecord, LeaveRequest, EmployeeDocument, DocumentTypeConfig, Announcement, AuditLog, EmailLog, AuthUser, ExpiryReminderSettings, NotificationItem } from '@/types';
+import { Employee, TimecardRecord, LeaveRequest, EmployeeDocument, DocumentTypeConfig, Announcement, AuditLog, EmailLog, AuthUser, UserSession, ExpiryReminderSettings, NotificationItem } from '@/types';
 
 const DATA_DIR = path.join(process.cwd(), 'data');
 
@@ -93,6 +93,26 @@ export async function getStoredAuditLogs(): Promise<AuditLog[]> {
 
 export async function saveStoredAuditLogs(auditLogs: AuditLog[]): Promise<void> {
   await writeJsonFile('audit.json', auditLogs);
+}
+
+export async function appendStoredAuditLog(log: AuditLog): Promise<void> {
+  try {
+    const logs = await getStoredAuditLogs();
+    const settings = await getStoredSettings();
+    const retentionDays = settings?.auditRetentionDays || 7;
+    const { kept } = pruneLogsByDays([log, ...logs], retentionDays);
+    await saveStoredAuditLogs(kept);
+  } catch (e) {
+    console.error('Failed to append audit log:', e);
+  }
+}
+
+export async function getStoredSessions(): Promise<UserSession[]> {
+  return readJsonFile<UserSession[]>('sessions.json', []);
+}
+
+export async function saveStoredSessions(sessions: UserSession[]): Promise<void> {
+  await writeJsonFile('sessions.json', sessions);
 }
 
 export async function getStoredEmailLogs(): Promise<EmailLog[]> {

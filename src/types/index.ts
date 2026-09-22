@@ -31,6 +31,21 @@ export interface AuthUser {
   createdAt: string;
 }
 
+export interface UserSession {
+  id: string;
+  token: string;
+  userId: string;
+  userEmail: string;
+  userName: string;
+  role: UserRole;
+  staffId?: string;
+  createdAt: number;
+  expiresAt: number;
+  ipAddress?: string;
+  userAgent?: string;
+  lastActiveAt: number;
+}
+
 export interface OTPVerification {
   email: string;
   code: string;

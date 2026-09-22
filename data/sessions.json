@@ -1,0 +1,15 @@
+[
+  {
+    "id": "sess-1790081286697-f7d1bba0",
+    "token": "0ebeed1181a5e84cfd346c9db445d47354c614ca56bca0bc24b749a61d14c1ae",
+    "userId": "usr-1",
+    "userEmail": "admin@company.com.au",
+    "userName": "Admin User",
+    "role": "SUPER_ADMIN",
+    "createdAt": 1790081286697,
+    "expiresAt": 1790686086697,
+    "ipAddress": "::1",
+    "userAgent": "node",
+    "lastActiveAt": 1790081286697
+  }
+]

@@ -227,10 +227,10 @@ export default function AuthPortal() {
   });
 
   const handleClockIn = () => {
-    if (!clockUsername || !clockPin || !matchedStaff) return;
+    if (!clockUsername.trim() || !clockPin.trim()) return;
     setPunchError(null);
-    const user = clockUsername;
-    const pin = clockPin;
+    const user = clockUsername.trim();
+    const pin = clockPin.trim();
     // Clear the input fields immediately once used
     setClockUsername('');
     setClockPin('');
@@ -259,10 +259,10 @@ export default function AuthPortal() {
   };
 
   const handleClockOut = () => {
-    if (!clockUsername || !clockPin || !matchedStaff) return;
+    if (!clockUsername.trim() || !clockPin.trim()) return;
     setPunchError(null);
-    const user = clockUsername;
-    const pin = clockPin;
+    const user = clockUsername.trim();
+    const pin = clockPin.trim();
     // Clear the input fields immediately once used
     setClockUsername('');
     setClockPin('');
@@ -745,10 +745,10 @@ export default function AuthPortal() {
                   {/* Clock In Button */}
                   <button
                     type="button"
-                    disabled={!matchedStaff || matchedStaff.clockState === 'CLOCKED_IN' || matchedStaff.status === 'Archived'}
+                    disabled={!clockUsername.trim() || clockPin.trim().length !== 4 || matchedStaff?.clockState === 'CLOCKED_IN' || matchedStaff?.status === 'Archived'}
                     onClick={handleClockIn}
                     className={`py-3.5 px-4 rounded-xl font-bold text-xs flex flex-col items-center justify-center gap-1 transition-all ${
-                      matchedStaff && matchedStaff.clockState !== 'CLOCKED_IN' && matchedStaff.status !== 'Archived'
+                      clockUsername.trim() && clockPin.trim().length === 4 && matchedStaff?.clockState !== 'CLOCKED_IN' && matchedStaff?.status !== 'Archived'
                         ? 'bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-slate-950 shadow-lg shadow-emerald-500/25 hover:scale-[1.02] cursor-pointer'
                         : 'bg-slate-100 border border-slate-200 text-slate-400 opacity-60 cursor-not-allowed'
                     }`}
@@ -764,10 +764,10 @@ export default function AuthPortal() {
                   {/* Clock Out Button */}
                   <button
                     type="button"
-                    disabled={!matchedStaff || matchedStaff.clockState !== 'CLOCKED_IN' || matchedStaff.status === 'Archived'}
+                    disabled={!clockUsername.trim() || clockPin.trim().length !== 4 || (matchedStaff && matchedStaff.clockState !== 'CLOCKED_IN') || matchedStaff?.status === 'Archived'}
                     onClick={handleClockOut}
                     className={`py-3.5 px-4 rounded-xl font-bold text-xs flex flex-col items-center justify-center gap-1 transition-all ${
-                      matchedStaff && matchedStaff.clockState === 'CLOCKED_IN' && matchedStaff.status !== 'Archived'
+                      clockUsername.trim() && clockPin.trim().length === 4 && (!matchedStaff || matchedStaff.clockState === 'CLOCKED_IN') && matchedStaff?.status !== 'Archived'
                         ? 'bg-gradient-to-r from-rose-500 to-red-500 hover:from-rose-400 hover:to-red-400 text-white shadow-lg shadow-rose-500/25 hover:scale-[1.02] cursor-pointer'
                         : 'bg-slate-100 border border-slate-200 text-slate-400 opacity-60 cursor-not-allowed'
                     }`}
@@ -776,7 +776,7 @@ export default function AuthPortal() {
                       Clock OUT
                     </span>
                     <span className="text-[10px] font-semibold opacity-80">
-                      {matchedStaff?.status === 'Archived' ? 'Account Archived' : matchedStaff?.clockState !== 'CLOCKED_IN' ? 'Not clocked in' : 'End Shift'}
+                      {matchedStaff?.status === 'Archived' ? 'Account Archived' : (matchedStaff && matchedStaff.clockState !== 'CLOCKED_IN') ? 'Not clocked in' : 'End Shift'}
                     </span>
                   </button>
                 </div>

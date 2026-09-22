@@ -518,6 +518,23 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
             setSmtpSettings(prev => ({ ...prev, ...setRes.value.settings.smtpSettings }));
           }
         }
+
+        // Check active server session
+        try {
+          const sessRes = await fetch('/api/auth/session');
+          if (sessRes.ok) {
+            const sessData = await sessRes.json();
+            if (sessData.authenticated && sessData.user) {
+              setCurrentUser(sessData.user);
+              if (sessData.user.staffId) setCurrentStaffId(sessData.user.staffId);
+              if (sessData.user.role === 'SUPER_ADMIN' || sessData.user.role === 'ADMIN' || sessData.user.role === 'HR_MANAGER') {
+                setActivePortal('ADMIN');
+              } else {
+                setActivePortal('STAFF');
+              }
+            }
+          }
+        } catch (e) {}
       } catch (err) {
         console.warn('Backend database synchronization fallback to cached state:', err);
       }
@@ -1087,6 +1104,14 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
     if (!user) {
       addToast('Login Failed', 'No account found with this username or email address.', 'error');
+      addAudit(
+        'USER_LOGIN_FAILED',
+        'User',
+        cleanInput || 'unknown',
+        `Failed login attempt: Account "${cleanInput}" not found in directory.`,
+        cleanInput || 'Anonymous',
+        'Unknown'
+      );
       return false;
     }
 
@@ -1119,6 +1144,14 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       // Allow demo standard fallbacks if default, else enforce password match
       if (password !== 'password123' && password !== 'admin123') {
         addToast('Invalid Password', 'The password entered for this account is incorrect.', 'error');
+        addAudit(
+          'USER_LOGIN_FAILED_CREDENTIALS',
+          'User',
+          user.id,
+          `Failed login attempt for ${user.name} (${cleanInput}): Invalid password provided.`,
+          user.name,
+          user.role
+        );
         return false;
       }
     }
@@ -1130,6 +1163,18 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     }
 
     setCurrentUser(user);
+
+    // Backend Session & Cookie Management
+    try {
+      fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          usernameOrEmail: cleanInput,
+          password: password || 'password123',
+        }),
+      }).catch(err => console.warn('Auth session sync error:', err));
+    } catch (e) {}
 
     // Auto-detect role and direct route!
     if (user.role === 'SUPER_ADMIN' || user.role === 'ADMIN' || user.role === 'HR_MANAGER') {
@@ -1146,7 +1191,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       addToast('Welcome Back', `Logged in as ${user.name} (Staff Portal).`, 'success');
     }
 
-    addAudit('USER_LOGIN', 'User', user.id, `User logged in with role ${user.role}`, user.name, user.role);
+    addAudit('USER_LOGIN_SUCCESS', 'User', user.id, `User ${user.name} successfully authenticated with role ${user.role}.`, user.name, user.role);
     setShowAuthModal(false);
     return true;
   };
@@ -1365,6 +1410,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     if (currentUser) {
       addAudit('USER_LOGOUT', 'User', currentUser.id, `User ${currentUser.name} logged out`);
     }
+    // Call backend /api/auth/logout to invalidate session cookie
+    try {
+      fetch('/api/auth/logout', { method: 'POST' }).catch(() => {});
+    } catch (e) {}
+
     setCurrentUser(null);
     setShowAuthModal(true);
     addToast('Logged Out', 'You have been safely logged out.', 'info');
@@ -3516,6 +3566,14 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
     if (!emp) {
       addToast('Invalid Credentials', 'No employee found matching this Username and 4-digit PIN combination.', 'error');
+      addAudit(
+        'CLOCK_IN_FAILED_UNAUTHORIZED',
+        'ShiftTerminal',
+        cleanUser || 'unknown',
+        `Unauthorized shift clock-in attempt with invalid username "${cleanUser}" or PIN from IP ${options?.ip || '192.168.1.100'}. Punch rejected.`,
+        cleanUser || 'Anonymous',
+        'Unknown'
+      );
       return { success: false, message: 'Invalid Username or 4-digit PIN.' };
     }
 
@@ -3668,6 +3726,14 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
     if (!emp) {
       addToast('Invalid Credentials', 'No employee found matching this Username and 4-digit PIN combination.', 'error');
+      addAudit(
+        'CLOCK_OUT_FAILED_UNAUTHORIZED',
+        'ShiftTerminal',
+        cleanUser || 'unknown',
+        `Unauthorized shift clock-out attempt with invalid username "${cleanUser}" or PIN from IP ${options?.ip || '192.168.1.100'}. Punch rejected.`,
+        cleanUser || 'Anonymous',
+        'Unknown'
+      );
       return { success: false, message: 'Invalid Username or 4-digit PIN.' };
     }
 
