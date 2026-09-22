@@ -32,15 +32,6 @@ export const INITIAL_LOCKED_IPS: LockedIpRecord[] = [
     isActive: true,
     notes: 'Rockdale dispatch station',
   },
-  {
-    id: 'ip-local-kiosk',
-    ip: '127.0.0.1',
-    label: 'Sydney Riverwood Plant Kiosk (Terminal 1)',
-    addedAt: '17 Aug 2026',
-    addedBy: 'Super Admin',
-    isActive: true,
-    notes: 'Direct plant kiosk terminal',
-  },
 ];
 
 export const INITIAL_IP_LOCK_SETTINGS: IpLockSettings = {
@@ -124,30 +115,30 @@ export function evaluateIpAccess(
 ): IpEvaluationResult {
   const normalized = normalizeIp(clientIp);
   const activeRecords = (settings?.lockedIps || []).filter(r => r.isActive);
-  const defaultLocked = activeRecords[0] || { id: 'ip-riverwood-kiosk', ip: '192.168.1.100', label: 'Sydney Riverwood Plant Kiosk (Terminal 1)', addedAt: '17 Aug 2026', addedBy: 'Super Admin', isActive: true };
 
   // If IP locking is disabled, allow all workstations
   if (!settings?.enabled) {
     return {
       isAllowed: true,
       status: 'UNRESTRICTED',
-      workstationLabel: defaultLocked.label || 'Workstation (IP Lock Inactive)',
-      clientIp: normalized === '127.0.0.1' ? defaultLocked.ip : normalized,
+      workstationLabel: 'Standard Workstation (IP Lock Inactive)',
+      clientIp: normalized,
       message: 'Shift punch registered without workstation IP restrictions.',
     };
   }
 
+  // If IP lock is active but no workstations are authorized
   if (activeRecords.length === 0) {
     return {
-      isAllowed: true,
-      status: 'UNRESTRICTED',
-      workstationLabel: 'Standard Terminal',
-      clientIp: normalized === '127.0.0.1' ? defaultLocked.ip : normalized,
-      message: 'Open access terminal (no restrictions configured).',
+      isAllowed: false,
+      status: 'UNAUTHORIZED_IP',
+      workstationLabel: 'Unregistered Terminal',
+      clientIp: normalized,
+      message: 'Punch blocked: No workstation IPs are currently authorized in IP lock settings.',
     };
   }
 
-  // Check exact IP match or localhost equivalent
+  // Check exact IP match or CIDR subnet match
   const matched = activeRecords.find(record => {
     const recordNormalized = normalizeIp(record.ip);
     if (recordNormalized === normalized) return true;
@@ -186,19 +177,14 @@ export function evaluateIpAccess(
 // BROWSER & CLIENT IP DETECTION UTILITY
 // =========================================================================
 
-let cachedDetectedIp: string | null = null;
-
 export async function detectWorkstationIp(): Promise<string> {
-  if (cachedDetectedIp) return cachedDetectedIp;
-
   try {
-    // 1. First attempt to call local Next.js server route
+    // 1. Query local Next.js server route
     const res = await fetch('/api/ip', { cache: 'no-store' });
     if (res.ok) {
       const data = await res.json();
-      if (data.ip && data.ip !== '127.0.0.1' && data.ip !== '::1') {
-        cachedDetectedIp = data.ip;
-        return data.ip;
+      if (data.ip) {
+        return normalizeIp(data.ip);
       }
     }
   } catch (e) {
@@ -211,17 +197,15 @@ export async function detectWorkstationIp(): Promise<string> {
     if (externalRes.ok) {
       const externalData = await externalRes.json();
       if (externalData.ip) {
-        cachedDetectedIp = externalData.ip;
-        return externalData.ip;
+        return normalizeIp(externalData.ip);
       }
     }
   } catch (e) {
     // ignore
   }
 
-  // 3. Fallback to active locked workstation IP
-  cachedDetectedIp = '192.168.1.100';
-  return cachedDetectedIp;
+  // 3. Default to localhost
+  return '127.0.0.1';
 }
 
 export function getDeviceDescription(customUserAgent?: string): string {

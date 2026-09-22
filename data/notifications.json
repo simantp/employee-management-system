@@ -1,12 +1,59 @@
 [
   {
+    "id": "notif-1790089695732",
+    "recipient": "ADMIN",
+    "title": "Suman Thapa Clocked Out",
+    "message": "Suman Thapa clocked OUT at 01:08:15 am (Duration: 00:00:08) from Admin Workstation (Locked) (127.0.0.1).",
+    "type": "TIMECARD_CLOCK_OUT",
+    "timestamp": "Just now",
+    "read": false
+  },
+  {
+    "id": "notif-test-authorized",
+    "recipient": "ADMIN",
+    "title": "Suman Thapa Clocked In",
+    "message": "Suman Thapa clocked IN at 01:08:07 am (Production (Riverwood)) from Sydney Riverwood Plant Kiosk (Terminal 1) (192.168.1.100).",
+    "type": "TIMECARD_CLOCK_IN",
+    "timestamp": "Just now",
+    "read": false
+  },
+  {
+    "id": "notif-admin-clockout-1790089375635",
+    "recipient": "STAFF",
+    "recipientId": "emp-42",
+    "title": "Shift Clocked Out by Administration",
+    "message": "Your shift was administratively concluded by SuperAdmin (0.02 hrs net worked). Reason: \"Administrative Clock-Out via Active Floor Staff Modal\".",
+    "type": "TIMECARD_CLOCK_OUT",
+    "timestamp": "Just now",
+    "read": false
+  },
+  {
+    "id": "notif-1790089297148",
+    "recipient": "ADMIN",
+    "title": "Suman Thapa Clocked In",
+    "message": "Suman Thapa clocked IN at 01:01:37 am (Production (Riverwood)) from Sydney Riverwood Plant Kiosk (Terminal 1) (127.0.0.1).",
+    "type": "TIMECARD_CLOCK_IN",
+    "timestamp": "Just now",
+    "read": true
+  },
+  {
+    "id": "notif-admin-clockout-1790089260588",
+    "recipient": "STAFF",
+    "recipientId": "emp-42",
+    "title": "Shift Clocked Out by Administration",
+    "message": "Your shift was administratively concluded by SuperAdmin (0.01 hrs net worked). Reason: \"Administrative Clock-Out via Active Floor Staff Modal\".",
+    "type": "TIMECARD_CLOCK_OUT",
+    "timestamp": "Just now",
+    "read": false
+  },
+  {
     "id": "notif-test-123",
     "recipient": "ADMIN",
     "title": "Suman Thapa Clocked In",
     "message": "Suman Thapa clocked IN at 01:00:15 am (Production (Riverwood)) from Sydney Riverwood Plant Kiosk (Terminal 1) (192.168.1.100).",
     "type": "TIMECARD_CLOCK_IN",
     "timestamp": "Just now",
-    "read": false
+    "read": true
   },
   {
     "id": "notif-admin-clockout-1790088845111",

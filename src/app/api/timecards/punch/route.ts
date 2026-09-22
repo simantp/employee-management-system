@@ -44,31 +44,21 @@ function evaluateServerIpAccess(
 
   const cleanClient = (clientIp || '').trim().toLowerCase();
   const cleanReqIp = (requestedIp || '').trim().toLowerCase();
-  const cleanReqLabel = (requestedWorkstation || '').trim().toLowerCase();
+  const candidateIps = [cleanReqIp, cleanClient].filter(Boolean);
 
-  // 1. Check if requestedWorkstation or requestedIp matches an active lock
-  const matchedReq = activeLocks.find(rec => {
-    const recIp = (rec.ip || '').trim().toLowerCase();
-    const recLabel = (rec.label || '').trim().toLowerCase();
-    const isIpMatch = cleanReqIp && (recIp === cleanReqIp || (cleanReqIp === '127.0.0.1' && (recIp === '127.0.0.1' || recIp === '::1')));
-    const isLabelMatch = cleanReqLabel && (recLabel === cleanReqLabel || recLabel.includes(cleanReqLabel));
-    return isIpMatch || isLabelMatch;
-  });
-
-  if (matchedReq) {
-    return {
-      isAllowed: true,
-      status: 'LOCKED_IP_AUTHORIZED',
-      workstationLabel: matchedReq.label,
-      effectiveIp: matchedReq.ip,
-      message: `Verified authorized terminal: ${matchedReq.label}`
-    };
-  }
-
-  // 2. Check if client HTTP IP matches an active lock
+  // Match candidate IPs against active locked IP records (strict IP/CIDR matching only)
   const matched = activeLocks.find(rec => {
     const recIp = (rec.ip || '').trim().toLowerCase();
-    return recIp === cleanClient || (cleanClient === '::1' && recIp === '127.0.0.1') || (cleanClient === '127.0.0.1' && recIp === '127.0.0.1');
+    for (const cand of candidateIps) {
+      if (recIp === cand) return true;
+      if (cand === '::1' && recIp === '127.0.0.1') return true;
+      if (cand === '127.0.0.1' && (recIp === '127.0.0.1' || recIp === '::1')) return true;
+      if (rec.ip.includes('/') || rec.ip.includes('*')) {
+        const prefix = rec.ip.split('/')[0].replace('.0', '').replace('*', '').trim().toLowerCase();
+        if (prefix && cand.startsWith(prefix)) return true;
+      }
+    }
+    return false;
   });
 
   if (matched) {
