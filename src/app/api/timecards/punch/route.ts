@@ -9,7 +9,8 @@ import {
   getStoredSettings, 
   appendStoredAuditLog,
   getStoredNotifications,
-  saveStoredNotifications
+  saveStoredNotifications,
+  appendStoredNotification
 } from '@/lib/serverData';
 import { getClientIpFromRequest, getAuthenticatedUserFromRequest } from '@/lib/session';
 
@@ -296,7 +297,6 @@ export async function POST(req: Request) {
       await appendStoredAuditLog(auditIn);
 
       // Notification
-      const notifs = await getStoredNotifications();
       const notifItem: NotificationItem = {
         id: 'notif-' + nowMs,
         recipient: 'ADMIN',
@@ -306,7 +306,7 @@ export async function POST(req: Request) {
         timestamp: 'Just now',
         read: false
       };
-      await saveStoredNotifications([notifItem, ...notifs]);
+      await appendStoredNotification(notifItem);
 
       return NextResponse.json({
         success: true,
@@ -462,7 +462,6 @@ export async function POST(req: Request) {
       await appendStoredAuditLog(auditOut);
 
       // SuperAdmin Notification
-      const notifs = await getStoredNotifications();
       const notifItem: NotificationItem = {
         id: 'notif-' + nowMs,
         recipient: 'ADMIN',
@@ -472,7 +471,7 @@ export async function POST(req: Request) {
         timestamp: 'Just now',
         read: false
       };
-      await saveStoredNotifications([notifItem, ...notifs]);
+      await appendStoredNotification(notifItem);
 
       return NextResponse.json({
         success: true,

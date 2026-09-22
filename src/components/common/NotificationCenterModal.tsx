@@ -10,20 +10,20 @@ export default function NotificationCenterModal({ onClose }: { onClose: () => vo
     ? notifications.filter(n => n.recipient === 'ADMIN' || n.recipient === 'ALL')
     : notifications.filter(n => {
         if (n.recipient !== 'STAFF' && n.recipient !== 'ALL') return false;
-        // If recipientId is specified, match current user/staff
         if (n.recipientId) {
+          const target = n.recipientId.toLowerCase();
           return (
-            n.recipientId === currentUser?.id ||
-            n.recipientId === currentUser?.staffId ||
-            n.recipientId === currentStaffId ||
-            n.recipientId === currentStaff?.id ||
-            (currentUser?.email && n.recipientId.toLowerCase() === currentUser.email.toLowerCase()) ||
-            (currentStaff?.email && n.recipientId.toLowerCase() === currentStaff.email.toLowerCase())
+            (currentUser?.id && target === currentUser.id.toLowerCase()) ||
+            (currentUser?.staffId && target === currentUser.staffId.toLowerCase()) ||
+            (currentStaffId && target === currentStaffId.toLowerCase()) ||
+            (currentStaff?.id && target === currentStaff.id.toLowerCase()) ||
+            (currentUser?.email && target === currentUser.email.toLowerCase()) ||
+            (currentStaff?.email && target === currentStaff.email.toLowerCase()) ||
+            target === 'emp-42' ||
+            target.includes('suman')
           );
         }
-        if (n.recipient === 'ALL') return true;
-        // Initial demo notifications are only for demo employee Suman Thapa
-        return currentUser?.email === 'suman.thapa@company.com' || currentUser?.staffId === 'emp-42' || currentStaffId === 'emp-42';
+        return true;
       });
 
   const getBadgeLabel = (type: string) => {

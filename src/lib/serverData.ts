@@ -12,6 +12,7 @@ import {
   INITIAL_EXPIRY_SETTINGS
 } from './initialData';
 import { Employee, TimecardRecord, LeaveRequest, EmployeeDocument, DocumentTypeConfig, Announcement, AuditLog, EmailLog, AuthUser, UserSession, ExpiryReminderSettings, NotificationItem } from '@/types';
+import { query, isDbConfigured } from './db';
 
 const DATA_DIR = path.join(process.cwd(), 'data');
 
@@ -146,6 +147,45 @@ export async function getStoredNotifications(): Promise<NotificationItem[]> {
 
 export async function saveStoredNotifications(notifications: NotificationItem[]): Promise<void> {
   await writeJsonFile('notifications.json', notifications);
+}
+
+export async function appendStoredNotification(notif: NotificationItem): Promise<void> {
+  try {
+    const notifs = await getStoredNotifications();
+    const updated = [notif, ...notifs.filter(n => n.id !== notif.id)];
+    await saveStoredNotifications(updated);
+
+    if (isDbConfigured) {
+      try {
+        const sql = `
+          INSERT INTO notifications (id, recipient, recipient_id, title, message, type, timestamp, read_status)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+          ON DUPLICATE KEY UPDATE
+            recipient = VALUES(recipient),
+            recipient_id = VALUES(recipient_id),
+            title = VALUES(title),
+            message = VALUES(message),
+            type = VALUES(type),
+            timestamp = VALUES(timestamp),
+            read_status = VALUES(read_status)
+        `;
+        await query(sql, [
+          notif.id,
+          notif.recipient || 'ALL',
+          notif.recipientId || null,
+          notif.title,
+          notif.message,
+          notif.type || 'GENERAL',
+          notif.timestamp || 'Just now',
+          notif.read ? 1 : 0
+        ]);
+      } catch (err: any) {
+        console.warn('MySQL appendStoredNotification error:', err.message);
+      }
+    }
+  } catch (e) {
+    console.error('Failed to append notification:', e);
+  }
 }
 
 export async function getStoredSettings(): Promise<any> {

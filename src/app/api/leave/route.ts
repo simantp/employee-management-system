@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { query, isDbConfigured } from '@/lib/db';
-import { LeaveRequest } from '@/types';
-import { getStoredLeaveRequests, saveStoredLeaveRequests } from '@/lib/serverData';
+import { LeaveRequest, NotificationItem } from '@/types';
+import { getStoredLeaveRequests, saveStoredLeaveRequests, appendStoredNotification } from '@/lib/serverData';
 import { getAuthenticatedUserFromRequest } from '@/lib/session';
 
 function mapRowToLeave(row: any): LeaveRequest {
@@ -88,6 +88,18 @@ export async function POST(req: Request) {
       }
     }
 
+    // Create and persist Admin Notification
+    const adminNotif: NotificationItem = {
+      id: `notif-leave-${Date.now()}`,
+      recipient: 'ADMIN',
+      title: `New ${r.leaveType || 'Leave'} Request: ${r.employeeName}`,
+      message: `${r.employeeName} submitted ${r.totalDays || 1} day(s) ${(r.leaveType || 'leave').toLowerCase()} leave (${r.startDate} - ${r.endDate}).`,
+      type: 'LEAVE_REQUEST',
+      timestamp: 'Just now',
+      read: false,
+    };
+    await appendStoredNotification(adminNotif);
+
     return NextResponse.json({ success: true, id });
   } catch (err: any) {
     console.error('Error saving leave request:', err);
@@ -104,6 +116,7 @@ export async function PUT(req: Request) {
     }
 
     const stored = await getStoredLeaveRequests();
+    const existingReq = stored.find(r => r.id === id);
     const updated = stored.map(r => {
       if (r.id === id) {
         return {
@@ -125,6 +138,23 @@ export async function PUT(req: Request) {
       } catch (err: any) {
         console.warn('MySQL leave update skipped:', err.message);
       }
+    }
+
+    // If leave request status was reviewed/updated, notify the staff member
+    if (existingReq && status && (status === 'APPROVED' || status === 'REJECTED')) {
+      const isApproved = status === 'APPROVED';
+      const leaveTypeClean = existingReq.leaveType ? existingReq.leaveType.replace(/_/g, ' ') : 'Leave';
+      const staffNotif: NotificationItem = {
+        id: `notif-leave-status-${Date.now()}`,
+        recipient: 'STAFF',
+        recipientId: existingReq.employeeId,
+        title: `${leaveTypeClean} Request ${isApproved ? 'Approved' : 'Rejected'} (${existingReq.startDate})`,
+        message: `Your ${leaveTypeClean.toLowerCase()} leave request (${existingReq.startDate} to ${existingReq.endDate}, ${existingReq.totalDays || 1} day${(existingReq.totalDays || 1) > 1 ? 's' : ''}) has been ${status.toLowerCase()} by Administration.${notes ? ` Note: "${notes}"` : ''}`,
+        type: 'LEAVE_STATUS',
+        timestamp: 'Just now',
+        read: false,
+      };
+      await appendStoredNotification(staffNotif);
     }
 
     return NextResponse.json({ success: true, id });

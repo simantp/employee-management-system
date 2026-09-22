@@ -1,5 +1,17 @@
 [
   {
+    "id": "aud-1790086935363",
+    "action": "USER_LOGOUT",
+    "targetType": "User",
+    "targetId": "usr-1",
+    "details": "User Admin User logged out",
+    "actorId": "usr-1",
+    "actorName": "Admin User",
+    "actorRole": "SUPER_ADMIN",
+    "timestamp": "23/09/2026, 12:22:15 am AEST",
+    "ipAddress": "127.0.0.1 (Localhost)"
+  },
+  {
     "id": "aud-1790085927416",
     "action": "USER_LOGIN_SUCCESS",
     "targetType": "User",

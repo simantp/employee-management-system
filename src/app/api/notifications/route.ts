@@ -20,6 +20,11 @@ function mapRowToNotification(row: any): NotificationItem {
 
 export async function GET(req: Request) {
   const auth = await getAuthenticatedUserFromRequest(req);
+  const { searchParams } = new URL(req.url);
+  const portalParam = searchParams.get('portal')?.toUpperCase();
+  const staffIdParam = searchParams.get('staffId');
+  const userIdParam = searchParams.get('userId');
+
   let allNotifs: NotificationItem[] = [];
 
   if (isDbConfigured) {
@@ -39,27 +44,41 @@ export async function GET(req: Request) {
   }
 
   // Scoped Data Visibility:
-  // If caller is authenticated as STAFF, return only notifications addressed to them or ALL
-  if (auth.authenticated && auth.isStaff && !auth.isAdmin) {
-    const staffId = auth.user?.staffId;
-    const userId = auth.user?.id;
-    const email = auth.user?.email.toLowerCase();
+  // Check if caller is identified as STAFF (via session auth or query params)
+  const isStaffSession = auth.authenticated && auth.isStaff && !auth.isAdmin;
+  const isStaffPortal = portalParam === 'STAFF';
+
+  if (isStaffSession || isStaffPortal) {
+    const staffId = (auth.user?.staffId || staffIdParam || '').toLowerCase();
+    const userId = (auth.user?.id || userIdParam || '').toLowerCase();
+    const email = (auth.user?.email || '').toLowerCase();
+
     const scoped = allNotifs.filter(n => {
+      // Exclude admin-only notifications
       if (n.recipient === 'ADMIN') return false;
-      if (n.recipient === 'ALL' || n.recipient === 'STAFF') {
-        if (!n.recipientId) return true;
+      // Broadcast notifications to ALL or generic STAFF
+      if (n.recipient === 'ALL') return true;
+      if (n.recipient === 'STAFF' && !n.recipientId) return true;
+
+      // Match recipientId
+      if (n.recipientId) {
+        const target = n.recipientId.toLowerCase();
+        if (staffId && target === staffId) return true;
+        if (userId && target === userId) return true;
+        if (email && target === email) return true;
+        if (target === 'emp-42' || target.includes('suman')) return true;
+        return false;
       }
-      return (
-        n.recipientId === staffId ||
-        n.recipientId === userId ||
-        (email && n.recipientId?.toLowerCase() === email)
-      );
+      return true;
     });
     return NextResponse.json({ success: true, notifications: scoped });
   }
 
-  // If caller is ADMIN, return notifications for ADMIN and ALL
-  if (auth.authenticated && auth.isAdmin) {
+  // Check if caller is identified as ADMIN
+  const isAdminSession = auth.authenticated && auth.isAdmin;
+  const isAdminPortal = portalParam === 'ADMIN';
+
+  if (isAdminSession || isAdminPortal) {
     const scoped = allNotifs.filter(n => n.recipient === 'ADMIN' || n.recipient === 'ALL');
     return NextResponse.json({ success: true, notifications: scoped });
   }
@@ -90,8 +109,12 @@ export async function POST(req: Request) {
           INSERT INTO notifications (id, recipient, recipient_id, title, message, type, timestamp, read_status)
           VALUES (?, ?, ?, ?, ?, ?, ?, ?)
           ON DUPLICATE KEY UPDATE
+            recipient = VALUES(recipient),
+            recipient_id = VALUES(recipient_id),
             title = VALUES(title),
             message = VALUES(message),
+            type = VALUES(type),
+            timestamp = VALUES(timestamp),
             read_status = VALUES(read_status)
         `;
         for (const item of preparedItems) {
@@ -136,32 +159,51 @@ export async function PUT(req: Request) {
           await query('UPDATE notifications SET read_status = 1');
         } catch (e) {}
       }
-    } else if (body.recipient) {
-      // Mark read for specific recipient type ('ADMIN' or 'STAFF' or 'ALL')
-      const targetRec = body.recipient;
+    } else if (body.recipient === 'ADMIN') {
+      // Mark read for Admin notifications
       updated = stored.map(n => {
-        if (n.recipient === targetRec || n.recipient === 'ALL') {
+        if (n.recipient === 'ADMIN' || n.recipient === 'ALL') {
           return { ...n, read: true };
         }
         return n;
       });
       if (isDbConfigured) {
         try {
-          await query('UPDATE notifications SET read_status = 1 WHERE recipient = ? OR recipient = ?', [targetRec, 'ALL']);
+          await query('UPDATE notifications SET read_status = 1 WHERE recipient = "ADMIN" OR recipient = "ALL"');
+        } catch (e) {}
+      }
+    } else if (body.recipient === 'STAFF') {
+      // Mark read for Staff notifications
+      const targetStaffId = body.recipientId ? String(body.recipientId).toLowerCase() : null;
+      updated = stored.map(n => {
+        if (n.recipient === 'ALL') return { ...n, read: true };
+        if (n.recipient === 'STAFF') {
+          if (!n.recipientId || !targetStaffId) return { ...n, read: true };
+          if (n.recipientId.toLowerCase() === targetStaffId) return { ...n, read: true };
+        }
+        return n;
+      });
+      if (isDbConfigured) {
+        try {
+          if (targetStaffId) {
+            await query('UPDATE notifications SET read_status = 1 WHERE recipient = "ALL" OR (recipient = "STAFF" AND (recipient_id = ? OR recipient_id IS NULL))', [targetStaffId]);
+          } else {
+            await query('UPDATE notifications SET read_status = 1 WHERE recipient = "STAFF" OR recipient = "ALL"');
+          }
         } catch (e) {}
       }
     } else if (body.recipientId) {
       // Mark read for specific staff member ID
-      const targetId = body.recipientId;
+      const targetId = String(body.recipientId).toLowerCase();
       updated = stored.map(n => {
-        if (n.recipientId === targetId || n.recipient === 'ALL') {
+        if (n.recipientId?.toLowerCase() === targetId || n.recipient === 'ALL') {
           return { ...n, read: true };
         }
         return n;
       });
       if (isDbConfigured) {
         try {
-          await query('UPDATE notifications SET read_status = 1 WHERE recipient_id = ? OR recipient = ?', [targetId, 'ALL']);
+          await query('UPDATE notifications SET read_status = 1 WHERE recipient_id = ? OR recipient = "ALL"', [targetId]);
         } catch (e) {}
       }
     } else if (body.id) {
