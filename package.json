@@ -7,6 +7,7 @@
     "build": "next build",
     "start": "next start -H 0.0.0.0",
     "start:server": "node server.js",
+    "db:migrate": "node scripts/migrate-data-to-mysql.js",
     "lint": "next lint"
   },
   "dependencies": {
