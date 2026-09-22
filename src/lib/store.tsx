@@ -503,6 +503,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         }
         if (notifRes.status === 'fulfilled' && notifRes.value?.success && Array.isArray(notifRes.value.notifications) && notifRes.value.notifications.length > 0) {
           setNotifications(notifRes.value.notifications);
+          notifRes.value.notifications.forEach((n: NotificationItem) => toastedNotifIdsRef.current.add(n.id));
+          hasHydratedNotifsRef.current = true;
         }
         if (setRes.status === 'fulfilled' && setRes.value?.success && setRes.value.settings) {
           if (setRes.value.settings.expirySettings) {
@@ -675,6 +677,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const recentToastsRef = React.useRef<Map<string, number>>(new Map());
   const toastedNotifIdsRef = React.useRef<Set<string>>(new Set());
   const localActionAlertsRef = React.useRef<Set<string>>(new Set());
+  const hasHydratedNotifsRef = React.useRef(false);
 
   const addToast = (title: string, message: string, type: 'success' | 'warning' | 'info' | 'error' = 'info') => {
     const cleanTitle = (title || '').trim();
@@ -869,15 +872,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           const parsed: NotificationItem[] = JSON.parse(e.newValue);
           if (Array.isArray(parsed)) {
             const prevIds = new Set((notificationsRef.current || []).map(n => n.id));
-            const fresh = parsed.filter(n => !prevIds.has(n.id) && !n.read);
+            const fresh = parsed.filter(n => !prevIds.has(n.id) && !n.read && !toastedNotifIdsRef.current.has(n.id));
             setNotifications(parsed);
 
             fresh.forEach(n => {
-              if (checkIsNotificationRelevant(n)) {
-                if (!toastedNotifIdsRef.current.has(n.id) && !localActionAlertsRef.current.has(n.id)) {
-                  toastedNotifIdsRef.current.add(n.id);
-                  addToast(n.title, n.message, 'info');
-                }
+              toastedNotifIdsRef.current.add(n.id);
+              if (checkIsNotificationRelevant(n) && !localActionAlertsRef.current.has(n.id)) {
+                addToast(n.title, n.message, 'info');
               }
             });
           }
@@ -902,8 +903,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     // 3. Periodic fast polling (every 3.5s) to synchronize with MySQL backend & disk
     const pollInterval = setInterval(async () => {
       try {
+        const portalParam = activePortalRef.current;
+        const staffIdParam = currentStaffIdRef.current || currentUserRef.current?.staffId || '';
+        const userIdParam = currentUserRef.current?.id || '';
+        const notifUrl = `/api/notifications?portal=${encodeURIComponent(portalParam)}&staffId=${encodeURIComponent(staffIdParam)}&userId=${encodeURIComponent(userIdParam)}`;
+
         const [notifRes, tcRes, lrRes] = await Promise.allSettled([
-          fetch('/api/notifications').then(r => r.json()),
+          fetch(notifUrl).then(r => r.json()),
           fetch('/api/timecards').then(r => r.json()),
           fetch('/api/leave').then(r => r.json()),
         ]);
@@ -911,7 +917,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         if (notifRes.status === 'fulfilled' && notifRes.value?.success && Array.isArray(notifRes.value.notifications)) {
           const serverNotifs: NotificationItem[] = notifRes.value.notifications;
           const prevIds = new Set((notificationsRef.current || []).map(n => n.id));
-          const fresh = serverNotifs.filter(n => !prevIds.has(n.id) && !n.read);
+
+          if (!hasHydratedNotifsRef.current) {
+            serverNotifs.forEach(n => toastedNotifIdsRef.current.add(n.id));
+            hasHydratedNotifsRef.current = true;
+          }
+
+          const fresh = serverNotifs.filter(n => !prevIds.has(n.id) && !n.read && !toastedNotifIdsRef.current.has(n.id));
 
           setNotifications(prev => {
             if (JSON.stringify(prev) !== JSON.stringify(serverNotifs)) {
@@ -921,11 +933,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           });
 
           fresh.forEach(n => {
-            if (checkIsNotificationRelevant(n)) {
-              if (!toastedNotifIdsRef.current.has(n.id) && !localActionAlertsRef.current.has(n.id)) {
-                toastedNotifIdsRef.current.add(n.id);
-                addToast(n.title, n.message, 'info');
-              }
+            toastedNotifIdsRef.current.add(n.id);
+            if (checkIsNotificationRelevant(n) && !localActionAlertsRef.current.has(n.id)) {
+              addToast(n.title, n.message, 'info');
             }
           });
         }
@@ -1218,6 +1228,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       }).catch(err => console.warn('Auth session sync error:', err));
     } catch (e) {}
 
+    // Seed toasted notifications cache so pre-existing notifications do not trigger popups upon sign-in
+    notificationsRef.current.forEach(n => toastedNotifIdsRef.current.add(n.id));
+
     // Auto-detect role and direct route!
     if (user.role === 'SUPER_ADMIN' || user.role === 'ADMIN' || user.role === 'HR_MANAGER') {
       setActivePortal('ADMIN');
@@ -1414,7 +1427,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       timestamp: 'Just now',
       read: false,
     };
-    setNotifications(prev => [adminNotif, ...prev]);
+    dispatchNotification(adminNotif);
 
     addToast('Email Verified & Account Created', `Welcome, ${newUser.name}! Your Staff Portal is now ready.`, 'success');
     return true;
@@ -1601,7 +1614,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         timestamp: 'Just now',
         read: false,
       };
-      setNotifications(prev => [staffNotif, ...prev]);
+      dispatchNotification(staffNotif);
     }
   };
 
@@ -1676,7 +1689,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         timestamp: 'Just now',
         read: false,
       };
-      setNotifications(prev => [adminNotif, ...prev]);
+      dispatchNotification(adminNotif);
 
       addToast('Profile Completed!', `Congratulations! Onboarding is complete and your staff account is now fully Active.`, 'success');
       return true;
@@ -1823,7 +1836,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       timestamp: 'Just now',
       read: false,
     };
-    setNotifications(prev => [adminNotif, ...prev]);
+    dispatchNotification(adminNotif);
 
     addToast('Invitation Dispatched (Valid 1 Hour)', `Added ${cleanFirstName} ${cleanLastName}. Invitation email dispatched to ${cleanEmail}.`, 'success');
 
@@ -1942,7 +1955,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         timestamp: 'Just now',
         read: false,
       };
-      setNotifications(prev => [staffNotif, ...prev]);
+      dispatchNotification(staffNotif);
 
       return {
         success: true,
@@ -2565,7 +2578,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         timestamp: 'Just now',
         read: false,
       };
-      setNotifications(prev => [adminNotif, ...prev]);
+      dispatchNotification(adminNotif);
 
       addAudit(
         'STAFF_PROFILE_UPDATE',
@@ -2592,7 +2605,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         timestamp: 'Just now',
         read: false,
       };
-      setNotifications(prev => [staffNotif, ...prev]);
+      dispatchNotification(staffNotif);
 
       addAudit(
         'ADMIN_UPDATE_EMPLOYEE',
@@ -2636,7 +2649,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         timestamp: 'Just now',
         read: false,
       };
-      setNotifications(prev => [adminNotif, ...prev]);
+      dispatchNotification(adminNotif);
 
       addToast('Profile Completed!', `Congratulations! Onboarding is complete and your staff account is now fully Active.`, 'success');
     }
@@ -2784,7 +2797,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       timestamp: 'Just now',
       read: false,
     };
-    setNotifications(prev => [staffNotif, ...prev]);
+    dispatchNotification(staffNotif);
   };
 
   const unarchiveEmployee = (id: string) => {
@@ -2813,14 +2826,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       timestamp: 'Just now',
       read: false,
     };
-    setNotifications(prev => [adminNotif, ...prev]);
-    try {
-      fetch('/api/notifications', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(adminNotif),
-      }).catch(() => {});
-    } catch (e) {}
+    dispatchNotification(adminNotif);
 
     // Dispatch Official Email Notification to Admin
     try {
@@ -2925,15 +2931,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       timestamp: 'Just now',
       read: false,
     };
-    setNotifications(prev => [staffNotif, ...prev]);
-
-    try {
-      fetch('/api/notifications', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(staffNotif),
-      }).catch(() => {});
-    } catch (e) {}
+    dispatchNotification(staffNotif);
     
     addAudit(`${status}_LEAVE_REQUEST`, 'LeaveRequest', id, `Admin marked request ${id} as ${status}`);
     addToast(`Leave ${status}`, `Request for ${req.employeeName} has been marked as ${status}.`, status === 'APPROVED' ? 'success' : 'warning');
@@ -2968,7 +2966,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       timestamp: 'Just now',
       read: false,
     };
-    setNotifications(prev => [adminNotif, ...prev]);
+    dispatchNotification(adminNotif);
 
     addToast('Medical Certificate Uploaded', 'Your certificate has been attached and sent to HR.', 'success');
   };
@@ -3058,21 +3056,34 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         timestamp: 'Just now',
         read: false,
       };
-      setNotifications(prev => [activeNotif, ...prev]);
+      dispatchNotification(activeNotif);
 
       addToast('Profile Completed!', `Congratulations! Onboarding is complete and your staff account is now fully Active.`, 'success');
     } else {
-      // Normal Bank/Super Update Notification to Admin
-      const bankAdminNotif: NotificationItem = {
-        id: 'notif-bank-' + Date.now(),
-        recipient: 'ADMIN',
-        title: `Banking & Super Updated: ${targetEmpName}`,
-        message: `${targetEmpName} updated their encrypted banking details and superannuation funds.`,
-        type: 'BANK_UPDATE',
-        timestamp: 'Just now',
-        read: false,
-      };
-      setNotifications(prev => [bankAdminNotif, ...prev]);
+      if (activePortal === 'ADMIN' || currentUser?.role === 'ADMIN' || currentUser?.role === 'SUPER_ADMIN') {
+        const staffNotif: NotificationItem = {
+          id: 'notif-bank-' + Date.now(),
+          recipient: 'STAFF',
+          recipientId: empId,
+          title: 'Banking Details Updated by Administration',
+          message: `Your banking and superannuation information was updated by Administration.`,
+          type: 'BANK_UPDATE',
+          timestamp: 'Just now',
+          read: false,
+        };
+        dispatchNotification(staffNotif);
+      } else {
+        const bankAdminNotif: NotificationItem = {
+          id: 'notif-bank-' + Date.now(),
+          recipient: 'ADMIN',
+          title: `Banking & Super Updated: ${targetEmpName}`,
+          message: `${targetEmpName} updated their encrypted banking details and superannuation funds.`,
+          type: 'BANK_UPDATE',
+          timestamp: 'Just now',
+          read: false,
+        };
+        dispatchNotification(bankAdminNotif);
+      }
     }
 
     try {
@@ -3155,7 +3166,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
     // Notify staff member in real-time
     const staffNotif: NotificationItem = {
-      id: 'notif-' + Date.now(),
+      id: 'notif-doc-review-' + Date.now(),
       recipient: 'STAFF',
       recipientId: empId,
       title: status === 'Verified' ? 'Document Verified by HR' : 'Document Rejected - Action Required',
@@ -3167,7 +3178,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       type: status === 'Verified' ? 'GENERAL' : 'CERTIFICATE_REMINDER',
       actionUrl: '/#documents',
     };
-    setNotifications(prev => [staffNotif, ...prev]);
+    dispatchNotification(staffNotif);
     addToast(
       status === 'Verified' ? 'Document Approved' : 'Document Rejected',
       `Document status updated to ${status} for ${empName}.`,
@@ -3202,16 +3213,30 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     const targetEmp = employees.find(e => e.id === empId);
     const empName = targetEmp ? `${targetEmp.firstName} ${targetEmp.lastName}` : 'Staff Member';
 
-    const adminNotif: NotificationItem = {
-      id: 'notif-avatar-' + Date.now(),
-      recipient: 'ADMIN',
-      title: `Profile Photo Updated: ${empName}`,
-      message: `${empName} updated their profile picture.`,
-      type: 'PROFILE_UPDATE',
-      timestamp: 'Just now',
-      read: false,
-    };
-    setNotifications(prev => [adminNotif, ...prev]);
+    if (activePortal === 'ADMIN' || currentUser?.role === 'ADMIN' || currentUser?.role === 'SUPER_ADMIN') {
+      const staffNotif: NotificationItem = {
+        id: 'notif-avatar-' + Date.now(),
+        recipient: 'STAFF',
+        recipientId: empId,
+        title: 'Profile Photo Updated by Administrator',
+        message: 'Your profile picture was updated by Administration.',
+        type: 'PROFILE_UPDATE',
+        timestamp: 'Just now',
+        read: false,
+      };
+      dispatchNotification(staffNotif);
+    } else {
+      const adminNotif: NotificationItem = {
+        id: 'notif-avatar-' + Date.now(),
+        recipient: 'ADMIN',
+        title: `Profile Photo Updated: ${empName}`,
+        message: `${empName} updated their profile picture.`,
+        type: 'PROFILE_UPDATE',
+        timestamp: 'Just now',
+        read: false,
+      };
+      dispatchNotification(adminNotif);
+    }
 
     addAudit('UPDATE_AVATAR', 'Employee', empId, `${empName} updated profile picture`, empName, 'STAFF');
     addToast('Profile Photo Updated', 'Your profile picture has been saved to database.', 'success');
@@ -3253,19 +3278,23 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          empId,
-          empName,
+          employeeId: empId,
+          employeeName: empName,
+          documentId: tempDocId,
           name: doc.name,
           type: doc.type,
-          documentNumber: doc.documentNumber || '',
-          expiryDate: doc.expiryDate || '',
-          status: doc.status || 'Pending',
+          documentNumber: doc.documentNumber || null,
+          issueDate: doc.issueDate || null,
+          expiryDate: doc.expiryDate || null,
+          fileData: doc.previewUrl || null,
           fileName: safeFileName,
-          fileData: doc.previewUrl,
+          fileSize: doc.fileSize || '1.2 MB',
+          fileType: doc.fileType || 'pdf',
+          status: doc.status || 'Pending',
         }),
       }).then(async res => {
-        const json = await res.json();
-        if (json.success && json.document) {
+        const data = await res.json();
+        if (data.success && data.fileUrl) {
           // Update the in-memory document with database generated ID and server relative file path
           setEmployees(prev => prev.map(emp => {
             if (emp.id === empId) {
@@ -3273,10 +3302,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
                 ...emp,
                 documents: emp.documents.map(d => d.id === tempDocId ? { 
                   ...d, 
-                  id: json.document.id, 
-                  previewUrl: json.document.previewUrl || d.previewUrl, 
-                  fileSize: json.document.fileSize || d.fileSize,
-                  fileType: json.document.fileType || d.fileType
+                  fileUrl: data.fileUrl,
+                  previewUrl: data.fileUrl,
                 } : d)
               };
             }
@@ -3296,7 +3323,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       timestamp: 'Just now',
       read: false,
     };
-    setNotifications(prev => [adminNotif, ...prev]);
+    dispatchNotification(adminNotif);
 
     addAudit('UPLOAD_DOCUMENT', 'Document', newDoc.id, `${empName} uploaded document: ${doc.name} (${doc.type})`, empName, 'STAFF');
     addToast('Document Uploaded', `"${doc.name}" saved to staff folder & sent for verification.`, 'success');
@@ -3343,7 +3370,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       timestamp: 'Just now',
       read: false,
     };
-    setNotifications(prev => [adminNotif, ...prev]);
+    dispatchNotification(adminNotif);
 
     addAudit('UPDATE_DOCUMENT', 'Document', docId, `${empName} renewed / replaced document: ${updates.name || docId}`, empName, 'STAFF');
     addToast('Document Renewed & Updated', 'Your updated document has been submitted for HR verification.', 'success');
@@ -3379,7 +3406,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       timestamp: 'Just now',
       read: false,
     };
-    setNotifications(prev => [adminNotif, ...prev]);
+    dispatchNotification(adminNotif);
 
     addAudit('DELETE_DOCUMENT', 'Document', docId, `${empName} deleted document ${docId} from vault`, empName, 'STAFF');
     addToast('Document Removed', 'Document deleted from your vault.', 'info');
@@ -4102,7 +4129,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       timestamp: 'Just now',
       read: false,
     };
-    setNotifications(prev => [staffNotif, ...prev]);
+    dispatchNotification(staffNotif);
 
     addToast(
       'Staff Clocked Out',
@@ -4156,7 +4183,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       timestamp: 'Just now',
       read: false,
     };
-    setNotifications(prev => [adminNotif, ...prev]);
+    dispatchNotification(adminNotif);
 
     addToast('Username Updated', `Shift username successfully updated to "@${clean}".`, 'success');
     addAudit('UPDATE_USERNAME', 'Employee', empId, `${empName} updated shift username to @${clean}`, empName, 'STAFF');
@@ -4196,7 +4223,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       timestamp: 'Just now',
       read: false,
     };
-    setNotifications(prev => [adminNotif, ...prev]);
+    dispatchNotification(adminNotif);
 
     addToast('PIN Updated', `4-digit PIN successfully changed to ${cleanPin}.`, 'success');
     addAudit('UPDATE_PIN', 'Employee', empId, `${empName} updated 4-digit PIN`, empName, 'STAFF');
@@ -4516,7 +4543,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     // Send Real-Time Notification to Staff Member
     if (record.employeeId) {
       const staffNotif: NotificationItem = {
-        id: 'notif-' + Date.now(),
+        id: 'notif-tc-add-' + Date.now(),
         recipient: 'STAFF',
         recipientId: record.employeeId,
         title: 'New Shift Added by Administration',
@@ -4525,7 +4552,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         timestamp: 'Just now',
         read: false,
       };
-      setNotifications(prev => [staffNotif, ...prev]);
+      dispatchNotification(staffNotif);
     }
 
     addToast('Shift Record Created', `Manual shift entry logged for ${record.employeeName}.`, 'success');
@@ -4591,7 +4618,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     // Send Real-Time Notification to Staff Member
     if (target?.employeeId) {
       const staffNotif: NotificationItem = {
-        id: 'notif-' + Date.now(),
+        id: 'notif-tc-del-' + Date.now(),
         recipient: 'STAFF',
         recipientId: target.employeeId,
         title: 'Shift Record Removed',
@@ -4600,7 +4627,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         timestamp: 'Just now',
         read: false,
       };
-      setNotifications(prev => [staffNotif, ...prev]);
+      dispatchNotification(staffNotif);
     }
 
     addToast('Shift Deleted', 'Timecard record deleted.', 'info');

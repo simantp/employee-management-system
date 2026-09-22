@@ -78,6 +78,7 @@ export interface EmployeeDocument {
   type: string;
   uploadDate: string;
   status: 'Verified' | 'Pending' | 'Rejected' | 'Expired';
+  issueDate?: string;
   expiryDate?: string;
   documentNumber?: string;
   fileSize?: string;

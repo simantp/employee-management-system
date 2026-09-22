@@ -6,7 +6,7 @@
     "message": "Suman Thapa clocked IN at 12:05:21 am (Production (Riverwood)) from Localhost Development Workstation (::1).",
     "type": "TIMECARD_CLOCK_IN",
     "timestamp": "Just now",
-    "read": false
+    "read": true
   },
   {
     "id": "notif-1790085783989",

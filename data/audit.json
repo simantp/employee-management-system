@@ -1,5 +1,77 @@
 [
   {
+    "id": "aud-1790087598381",
+    "action": "USER_LOGIN_SUCCESS",
+    "targetType": "User",
+    "targetId": "usr-1",
+    "details": "User Admin User successfully authenticated with role SUPER_ADMIN.",
+    "actorId": "usr-1",
+    "actorName": "Admin User",
+    "actorRole": "SUPER_ADMIN",
+    "timestamp": "23/09/2026, 12:33:18 am AEST",
+    "ipAddress": "127.0.0.1 (Localhost)"
+  },
+  {
+    "id": "aud-1790087596019",
+    "action": "USER_LOGOUT",
+    "targetType": "User",
+    "targetId": "usr-2",
+    "details": "User Suman Thapa logged out",
+    "actorId": "usr-1",
+    "actorName": "Suman Thapa",
+    "actorRole": "STAFF",
+    "timestamp": "23/09/2026, 12:33:16 am AEST",
+    "ipAddress": "127.0.0.1 (Localhost)"
+  },
+  {
+    "id": "aud-1790087433972",
+    "action": "USER_LOGIN_SUCCESS",
+    "targetType": "User",
+    "targetId": "usr-2",
+    "details": "User Suman Thapa successfully authenticated with role STAFF.",
+    "actorId": "usr-1",
+    "actorName": "Suman Thapa",
+    "actorRole": "STAFF",
+    "timestamp": "23/09/2026, 12:30:33 am AEST",
+    "ipAddress": "127.0.0.1 (Localhost)"
+  },
+  {
+    "id": "aud-1790087432035",
+    "action": "USER_LOGOUT",
+    "targetType": "User",
+    "targetId": "usr-1",
+    "details": "User Admin User logged out",
+    "actorId": "usr-1",
+    "actorName": "Admin User",
+    "actorRole": "SUPER_ADMIN",
+    "timestamp": "23/09/2026, 12:30:32 am AEST",
+    "ipAddress": "127.0.0.1 (Localhost)"
+  },
+  {
+    "id": "aud-1790087426062",
+    "action": "ADMIN_CLOCK_OUT_STAFF",
+    "targetType": "Employee",
+    "targetId": "emp-42 (Suman Thapa)",
+    "details": "SuperAdmin administratively clocked out Suman Thapa (Worked: 0.42 hrs, Break: 0m). Reason: Administrative Clock-Out via Active Floor Staff Modal",
+    "actorId": "usr-1",
+    "actorName": "Super Admin",
+    "actorRole": "SUPER_ADMIN",
+    "timestamp": "23/09/2026, 12:30:26 am AEST",
+    "ipAddress": "127.0.0.1 (Localhost)"
+  },
+  {
+    "id": "aud-1790087408942",
+    "action": "USER_LOGIN_SUCCESS",
+    "targetType": "User",
+    "targetId": "usr-1",
+    "details": "User Admin User successfully authenticated with role SUPER_ADMIN.",
+    "actorId": "usr-1",
+    "actorName": "Admin User",
+    "actorRole": "SUPER_ADMIN",
+    "timestamp": "23/09/2026, 12:30:08 am AEST",
+    "ipAddress": "127.0.0.1 (Localhost)"
+  },
+  {
     "id": "aud-1790086935363",
     "action": "USER_LOGOUT",
     "targetType": "User",
