@@ -8,10 +8,12 @@
     "start": "next start -H 0.0.0.0",
     "start:server": "node server.js",
     "db:migrate": "node scripts/migrate-data-to-mysql.js",
+    "db:harden-passwords": "node scripts/upgrade-passwords-to-bcrypt.js",
     "lint": "next lint"
   },
   "dependencies": {
     "@types/nodemailer": "^8.0.1",
+    "bcryptjs": "^3.0.3",
     "canvas-confetti": "^1.9.4",
     "clsx": "^2.1.1",
     "date-fns": "^3.6.0",
@@ -29,6 +31,7 @@
     "tailwind-merge": "^2.6.0"
   },
   "devDependencies": {
+    "@types/bcryptjs": "^2.4.6",
     "@types/canvas-confetti": "^1.9.0",
     "@types/node": "^20.17.16",
     "@types/react": "^18.3.18",

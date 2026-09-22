@@ -6,6 +6,7 @@ import {
   getClientIpFromRequest 
 } from '@/lib/session';
 import { getStoredUsers, getStoredEmployees } from '@/lib/serverData';
+import { sanitizeUser } from '@/lib/passwordSecurity';
 
 export async function GET(req: Request) {
   try {
@@ -50,17 +51,19 @@ export async function GET(req: Request) {
       }
     }
 
+    const returnedUser = user ? sanitizeUser(user) : {
+      id: session.userId,
+      name: session.userName,
+      email: session.userEmail,
+      role: session.role,
+      staffId: session.staffId,
+      isEmailVerified: true,
+      createdAt: new Date(session.createdAt).toLocaleDateString('en-AU'),
+    };
+
     return NextResponse.json({
       authenticated: true,
-      user: user || {
-        id: session.userId,
-        name: session.userName,
-        email: session.userEmail,
-        role: session.role,
-        staffId: session.staffId,
-        isEmailVerified: true,
-        createdAt: new Date(session.createdAt).toLocaleDateString('en-AU'),
-      },
+      user: returnedUser,
       session: {
         id: session.id,
         token: session.token,

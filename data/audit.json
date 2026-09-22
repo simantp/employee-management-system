@@ -1,5 +1,65 @@
 [
   {
+    "id": "aud-1790085357395",
+    "timestamp": "22/09/2026, 11:55:57 pm AEST",
+    "actorId": "usr-1789041462052",
+    "actorName": "simant testing",
+    "actorRole": "STAFF",
+    "action": "USER_LOGIN_FAILED_CREDENTIALS",
+    "targetType": "User",
+    "targetId": "usr-1789041462052",
+    "details": "Failed sign-in attempt for user simant testing (simantpaudyal42@gmail.com): Invalid password provided from IP ::1.",
+    "ipAddress": "::1"
+  },
+  {
+    "id": "aud-1790085357062",
+    "timestamp": "22/09/2026, 11:55:56 pm AEST",
+    "actorId": "usr-1789041462052",
+    "actorName": "simant testing",
+    "actorRole": "STAFF",
+    "action": "USER_LOGIN_SUCCESS",
+    "targetType": "User",
+    "targetId": "usr-1789041462052",
+    "details": "User simant testing (simantpaudyal42@gmail.com) successfully signed in with role STAFF to STAFF portal from IP ::1.",
+    "ipAddress": "::1"
+  },
+  {
+    "id": "aud-1790085356730",
+    "timestamp": "22/09/2026, 11:55:56 pm",
+    "actorId": "usr-1789041462052",
+    "actorName": "simant testing",
+    "actorRole": "STAFF",
+    "action": "PASSWORD_RESET_COMPLETED",
+    "targetType": "AUTH_CREDENTIALS",
+    "targetId": "usr-1789041462052",
+    "details": "Password reset successfully completed and secured with bcrypt hash for simantpaudyal42@gmail.com.",
+    "ipAddress": "127.0.0.1 (Sydney NSW)"
+  },
+  {
+    "id": "aud-1790085356021",
+    "timestamp": "22/09/2026, 11:55:55 pm AEST",
+    "actorId": "usr-2",
+    "actorName": "Suman Thapa",
+    "actorRole": "STAFF",
+    "action": "USER_LOGIN_FAILED_CREDENTIALS",
+    "targetType": "User",
+    "targetId": "usr-2",
+    "details": "Failed sign-in attempt for user Suman Thapa (suman.thapa@company.com): Invalid password provided from IP ::1.",
+    "ipAddress": "::1"
+  },
+  {
+    "id": "aud-1790085355680",
+    "timestamp": "22/09/2026, 11:55:55 pm AEST",
+    "actorId": "usr-2",
+    "actorName": "Suman Thapa",
+    "actorRole": "STAFF",
+    "action": "USER_LOGIN_SUCCESS",
+    "targetType": "User",
+    "targetId": "usr-2",
+    "details": "User Suman Thapa (suman.thapa@company.com) successfully signed in with role STAFF to STAFF portal from IP ::1.",
+    "ipAddress": "::1"
+  },
+  {
     "id": "aud-1790084476614",
     "timestamp": "22/09/2026, 11:41:16 pm AEST",
     "actorId": "emp-42",

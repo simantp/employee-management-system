@@ -1,6 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 const mysql = require('mysql2/promise');
+const bcrypt = require('bcryptjs');
 
 // Load environment variables from .env.local
 const envPath = path.join(__dirname, '..', '.env.local');
@@ -384,25 +385,30 @@ async function runMigration() {
     const users = readJsonFile('users.json');
     if (users.length > 0) {
       for (const u of users) {
+        let hash = u.passwordHash;
+        if (!hash && u.password) {
+          hash = /^\$2[aby]\$\d{2}\$[./A-Za-z0-9]{53}$/.test(u.password) ? u.password : bcrypt.hashSync(u.password, 12);
+        }
         await connection.query(`
-          INSERT INTO users (id, email, username, name, role, password, is_email_verified, staff_id, department, avatar_url, created_at)
-          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          INSERT INTO users (id, email, username, name, role, password_hash, password, is_email_verified, staff_id, department, avatar_url, created_at)
+          VALUES (?, ?, ?, ?, ?, ?, NULL, ?, ?, ?, ?, ?)
           ON DUPLICATE KEY UPDATE
             username = VALUES(username),
             name = VALUES(name),
             role = VALUES(role),
-            password = VALUES(password),
+            password_hash = VALUES(password_hash),
+            password = NULL,
             is_email_verified = VALUES(is_email_verified),
             staff_id = VALUES(staff_id),
             department = VALUES(department),
             avatar_url = VALUES(avatar_url)
         `, [
-          u.id, u.email, u.username || null, u.name, u.role, u.password || null,
+          u.id, u.email, u.username || null, u.name, u.role, hash || null,
           u.isEmailVerified ? 1 : 0, u.staffId || null, u.department || null,
           u.avatarUrl || null, u.createdAt || null
         ]);
       }
-      console.log(`✓ Migrated ${users.length} users`);
+      console.log(`✓ Migrated & secured ${users.length} users with bcrypt hashing`);
     }
 
     // Employees & Documents

@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { query, isDbConfigured } from '@/lib/db';
 import { AuthUser } from '@/types';
 import { getStoredUsers, saveStoredUsers } from '@/lib/serverData';
+import { hashPassword, isBcryptHash, sanitizeUser } from '@/lib/passwordSecurity';
 
 export async function GET() {
   if (isDbConfigured) {
@@ -12,7 +13,7 @@ export async function GET() {
         name: r.name,
         username: r.username || undefined,
         email: r.email,
-        password: r.password || undefined,
+        passwordHash: r.password_hash || (r.password && isBcryptHash(r.password) ? r.password : undefined),
         role: r.role,
         isEmailVerified: Boolean(r.is_email_verified),
         staffId: r.staff_id || undefined,
@@ -20,19 +21,31 @@ export async function GET() {
         createdAt: r.created_at || new Date().toLocaleDateString('en-AU'),
       }));
       await saveStoredUsers(users);
-      return NextResponse.json({ success: true, users });
+      // Return sanitized users (password and passwordHash are NEVER exposed to client)
+      return NextResponse.json({ success: true, users: users.map(sanitizeUser) });
     } catch (err: any) {
       console.warn('MySQL users fetch failed, using disk fallback:', err.message);
     }
   }
 
   const users = await getStoredUsers();
-  return NextResponse.json({ success: true, users });
+  return NextResponse.json({ success: true, users: users.map(sanitizeUser) });
 }
 
 export async function POST(req: Request) {
   try {
-    const user: AuthUser = await req.json();
+    const rawUser = await req.json();
+    let passwordHash = rawUser.passwordHash;
+    if (rawUser.password) {
+      passwordHash = isBcryptHash(rawUser.password) ? rawUser.password : await hashPassword(rawUser.password);
+    }
+
+    const user: AuthUser = {
+      ...rawUser,
+      passwordHash: passwordHash || undefined,
+      password: undefined,
+    };
+
     const stored = await getStoredUsers();
     const updated = [user, ...stored.filter(u => u.id !== user.id && u.email.toLowerCase() !== user.email.toLowerCase())];
     await saveStoredUsers(updated);
@@ -40,12 +53,19 @@ export async function POST(req: Request) {
     if (isDbConfigured) {
       try {
         const sql = `
-          INSERT INTO users (id, email, name, role, is_email_verified, staff_id, avatar_url, created_at)
-          VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-          ON DUPLICATE KEY UPDATE name = VALUES(name), role = VALUES(role), is_email_verified = VALUES(is_email_verified)
+          INSERT INTO users (id, email, username, name, role, password_hash, password, is_email_verified, staff_id, avatar_url, created_at)
+          VALUES (?, ?, ?, ?, ?, ?, NULL, ?, ?, ?, ?)
+          ON DUPLICATE KEY UPDATE 
+            name = VALUES(name), 
+            username = VALUES(username),
+            role = VALUES(role), 
+            password_hash = VALUES(password_hash),
+            password = NULL,
+            is_email_verified = VALUES(is_email_verified)
         `;
         await query(sql, [
-          user.id, user.email, user.name, user.role, user.isEmailVerified ? 1 : 0,
+          user.id, user.email, user.username || null, user.name, user.role, 
+          user.passwordHash || null, user.isEmailVerified ? 1 : 0,
           user.staffId || null, user.avatarUrl || null, user.createdAt
         ]);
       } catch (err: any) {
@@ -72,10 +92,17 @@ export async function PUT(req: Request) {
       return NextResponse.json({ success: false, message: 'User not found' }, { status: 404 });
     }
 
+    const cleanUpdates = { ...updates };
+    if (cleanUpdates.password) {
+      cleanUpdates.passwordHash = isBcryptHash(cleanUpdates.password) ? cleanUpdates.password : await hashPassword(cleanUpdates.password);
+      delete cleanUpdates.password;
+    }
+
     const updatedUser: AuthUser = {
       ...stored[userIndex],
-      ...updates,
+      ...cleanUpdates,
     };
+    delete (updatedUser as any).password;
 
     stored[userIndex] = updatedUser;
     await saveStoredUsers(stored);
@@ -84,7 +111,7 @@ export async function PUT(req: Request) {
       try {
         const sql = `
           UPDATE users 
-          SET name = ?, username = ?, role = ?, is_email_verified = ?, staff_id = ?, avatar_url = ?, password = ?
+          SET name = ?, username = ?, role = ?, is_email_verified = ?, staff_id = ?, avatar_url = ?, password_hash = ?, password = NULL
           WHERE id = ? OR email = ?
         `;
         await query(sql, [
@@ -94,7 +121,7 @@ export async function PUT(req: Request) {
           updatedUser.isEmailVerified ? 1 : 0,
           updatedUser.staffId || null,
           updatedUser.avatarUrl || null,
-          updatedUser.password || null,
+          updatedUser.passwordHash || null,
           updatedUser.id,
           updatedUser.email,
         ]);
@@ -103,7 +130,7 @@ export async function PUT(req: Request) {
       }
     }
 
-    return NextResponse.json({ success: true, user: updatedUser });
+    return NextResponse.json({ success: true, user: sanitizeUser(updatedUser) });
   } catch (err: any) {
     console.error('Error updating user:', err);
     return NextResponse.json({ success: false, message: err.message }, { status: 500 });

@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getStoredUsers, saveStoredUsers, getStoredAuditLogs, saveStoredAuditLogs } from '@/lib/serverData';
+import { hashPassword } from '@/lib/passwordSecurity';
+import { query, isDbConfigured } from '@/lib/db';
 
 export async function POST(req: NextRequest) {
   try {
@@ -31,10 +33,23 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Update password in database
-    users[userIndex].password = newPassword;
+    // Hash new password using bcrypt
+    const hashedPassword = await hashPassword(newPassword);
+    users[userIndex].passwordHash = hashedPassword;
+    delete (users[userIndex] as any).password;
     users[userIndex].isEmailVerified = true;
     await saveStoredUsers(users);
+
+    if (isDbConfigured) {
+      try {
+        await query(
+          'UPDATE users SET password_hash = ?, password = NULL, is_email_verified = 1 WHERE id = ? OR email = ?',
+          [hashedPassword, users[userIndex].id, cleanEmail]
+        );
+      } catch (dbErr: any) {
+        console.warn('MySQL password reset update failed:', dbErr.message);
+      }
+    }
 
     // Record audit log
     try {
@@ -48,7 +63,7 @@ export async function POST(req: NextRequest) {
         action: 'PASSWORD_RESET_COMPLETED',
         targetType: 'AUTH_CREDENTIALS',
         targetId: users[userIndex].id,
-        details: `Password reset successfully completed via 5-minute security link for ${cleanEmail}.`,
+        details: `Password reset successfully completed and secured with bcrypt hash for ${cleanEmail}.`,
         ipAddress: '127.0.0.1 (Sydney NSW)',
       };
       await saveStoredAuditLogs([newLog, ...logs]);

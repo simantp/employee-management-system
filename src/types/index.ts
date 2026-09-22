@@ -23,6 +23,7 @@ export interface AuthUser {
   email: string;
   username?: string;
   password?: string;
+  passwordHash?: string;
   role: UserRole;
   isEmailVerified: boolean;
   staffId?: string;

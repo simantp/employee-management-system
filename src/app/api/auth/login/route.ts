@@ -10,6 +10,8 @@ import {
   createSessionCookie, 
   getClientIpFromRequest 
 } from '@/lib/session';
+import { query, isDbConfigured } from '@/lib/db';
+import { hashPassword, verifyPassword, sanitizeUser } from '@/lib/passwordSecurity';
 import { AuthUser, AuditLog } from '@/types';
 
 export async function POST(req: Request) {
@@ -122,9 +124,12 @@ export async function POST(req: Request) {
       );
     }
 
-    // 3. Verify Password if provided and configured
-    if (password && user.password && user.password !== password) {
-      if (password !== 'password123' && password !== 'admin123') {
+    // 3. Verify Password using Enterprise Bcrypt Hashing with Timing-Safe Defense
+    const candidateHash = user.passwordHash || user.password;
+    if (password && candidateHash) {
+      const verification = await verifyPassword(password, candidateHash);
+
+      if (!verification.isValid) {
         const passFailAudit: AuditLog = {
           id: `aud-${Date.now()}`,
           timestamp: nowAest,
@@ -148,6 +153,24 @@ export async function POST(req: Request) {
           { status: 401 }
         );
       }
+
+      // If legacy plaintext password matched, automatically upgrade to high-security bcrypt hash in real time
+      if (verification.needsRehash) {
+        try {
+          const newBcryptHash = await hashPassword(password);
+          user.passwordHash = newBcryptHash;
+          delete (user as any).password;
+
+          const allUsers = await getStoredUsers();
+          await saveStoredUsers(allUsers.map(u => u.id === user!.id ? { ...u, passwordHash: newBcryptHash, password: undefined } : u));
+
+          if (isDbConfigured) {
+            await query('UPDATE users SET password_hash = ?, password = NULL WHERE id = ?', [newBcryptHash, user.id]);
+          }
+        } catch (upgradeErr) {
+          console.warn('Password auto-upgrade failed:', upgradeErr);
+        }
+      }
     }
 
     // 4. Create Authenticated Session
@@ -168,11 +191,11 @@ export async function POST(req: Request) {
     };
     await appendStoredAuditLog(successAudit);
 
-    // Return user and session details with Set-Cookie header
+    // Return sanitized user and session details with Set-Cookie header (password is NEVER returned over the wire)
     const response = NextResponse.json({
       success: true,
       message: 'Authentication successful.',
-      user,
+      user: sanitizeUser(user),
       session: {
         id: session.id,
         token: session.token,
