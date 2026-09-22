@@ -669,16 +669,47 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     } catch (e) {}
   };
 
+  const recentToastsRef = React.useRef<Map<string, number>>(new Map());
+  const toastedNotifIdsRef = React.useRef<Set<string>>(new Set());
+  const localActionAlertsRef = React.useRef<Set<string>>(new Set());
+
   const addToast = (title: string, message: string, type: 'success' | 'warning' | 'info' | 'error' = 'info') => {
-    const toastId = 'toast-' + Date.now() + '-' + Math.random();
+    const cleanTitle = (title || '').trim();
+    const cleanMsg = (message || '').trim();
+    const key = `${cleanTitle.toLowerCase()}::${cleanMsg.toLowerCase()}`;
+    const now = Date.now();
+    const lastTime = recentToastsRef.current.get(key) || 0;
+
+    // Deduplicate identical toasts within 3500ms
+    if (now - lastTime < 3500) {
+      return;
+    }
+    recentToastsRef.current.set(key, now);
+
+    // Housekeeping: clean up old entries
+    if (recentToastsRef.current.size > 40) {
+      recentToastsRef.current.forEach((t, k) => {
+        if (now - t > 8000) recentToastsRef.current.delete(k);
+      });
+    }
+
+    const toastId = 'toast-' + now + '-' + Math.random();
     const newToast: ToastMessage = {
       id: toastId,
-      title,
-      message,
+      title: cleanTitle,
+      message: cleanMsg,
       type,
       timestamp: new Date().toLocaleTimeString('en-AU', { timeZone: 'Australia/Sydney' }),
     };
-    setToasts(prev => [newToast, ...prev.slice(0, 3)]);
+
+    setToasts(prev => {
+      // Don't add if already in current visible list with exact same title & message
+      if (prev.some(t => t.title === cleanTitle && t.message === cleanMsg)) {
+        return prev;
+      }
+      return [newToast, ...prev.slice(0, 2)];
+    });
+
     playSoundChime(type === 'success' ? 'success' : 'alert');
 
     // Automatically dismiss toast after 4 seconds
@@ -765,6 +796,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   };
 
   const dispatchNotification = (notif: NotificationItem) => {
+    localActionAlertsRef.current.add(notif.id);
+    toastedNotifIdsRef.current.add(notif.id);
     setNotifications(prev => {
       const nextNotifs = [notif, ...prev.filter(n => n.id !== notif.id)];
       try {
@@ -815,8 +848,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           } else if (type === 'NEW_NOTIFICATION_ALERT' && payload) {
             const n: NotificationItem = payload;
             if (checkIsNotificationRelevant(n) && !n.read) {
-              playSoundChime('alert');
-              addToast(n.title, n.message, 'info');
+              if (!toastedNotifIdsRef.current.has(n.id) && !localActionAlertsRef.current.has(n.id)) {
+                toastedNotifIdsRef.current.add(n.id);
+                addToast(n.title, n.message, 'info');
+              }
             }
           }
         };
@@ -836,8 +871,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
             fresh.forEach(n => {
               if (checkIsNotificationRelevant(n)) {
-                playSoundChime('alert');
-                addToast(n.title, n.message, 'info');
+                if (!toastedNotifIdsRef.current.has(n.id) && !localActionAlertsRef.current.has(n.id)) {
+                  toastedNotifIdsRef.current.add(n.id);
+                  addToast(n.title, n.message, 'info');
+                }
               }
             });
           }
@@ -882,8 +919,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
           fresh.forEach(n => {
             if (checkIsNotificationRelevant(n)) {
-              playSoundChime('alert');
-              addToast(n.title, n.message, 'info');
+              if (!toastedNotifIdsRef.current.has(n.id) && !localActionAlertsRef.current.has(n.id)) {
+                toastedNotifIdsRef.current.add(n.id);
+                addToast(n.title, n.message, 'info');
+              }
             }
           });
         }
@@ -3670,6 +3709,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       timestamp: 'Just now',
       read: false
     };
+    toastedNotifIdsRef.current.add(newNotif.id);
+    localActionAlertsRef.current.add(newNotif.id);
     setNotifications(prev => [newNotif, ...prev]);
 
     addToast('Clock-In Successful', `Welcome ${emp.firstName}! Clocked in from ${ipEval.workstationLabel}.`, 'success');
@@ -3882,6 +3923,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       timestamp: 'Just now',
       read: false
     };
+    toastedNotifIdsRef.current.add(newNotif.id);
+    localActionAlertsRef.current.add(newNotif.id);
     setNotifications(prev => [newNotif, ...prev]);
 
     addToast('Clock-Out Successful', `Goodbye ${emp.firstName}! Shift recorded: ${hmsFormatted} (${totalHours.toFixed(2)} hrs).`, 'success');

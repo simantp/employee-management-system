@@ -79,6 +79,18 @@ function isWeekend(dateStr: string): boolean {
   return false;
 }
 
+function formatDisplayIp(ip?: string | null): string {
+  if (!ip) return '127.0.0.1';
+  const clean = ip.trim();
+  if (clean === '::1' || clean === '127.0.0.1' || clean === '::ffff:127.0.0.1' || clean === 'localhost') {
+    return '127.0.0.1 (Localhost)';
+  }
+  if (clean.startsWith('::ffff:')) {
+    return clean.replace('::ffff:', '');
+  }
+  return clean;
+}
+
 function formatDateDisplay(d: Date): string {
   const day = String(d.getDate()).padStart(2, '0');
   const month = MONTH_NAMES_SHORT[d.getMonth()];
@@ -1050,7 +1062,7 @@ export default function AdminTimecardManagement() {
                   <th className="py-3 px-4">Day &amp; Date</th>
                   <th className="py-3 px-4">Clock In</th>
                   <th className="py-3 px-4">Clock Out</th>
-                  <th className="py-3 px-4">Workstation IP</th>
+                  <th className="py-3 px-4">Workstation &amp; IP</th>
                   <th className="py-3 px-4">Total Hours (Live)</th>
                   <th className="py-3 px-4">Status</th>
                   <th className="py-3 px-4 text-right">Actions</th>
@@ -1060,6 +1072,9 @@ export default function AdminTimecardManagement() {
                 {filteredTimecards.map(t => {
                   const isClockedIn = t.status === 'CLOCKED_IN' || !t.clockOut;
                   const shiftInfo = getShiftBreakAndDuration(t, currentTime);
+
+                  const inWorkstation = t.clockInWorkstation || t.workstationLabel || (t.notes?.includes('via') ? t.notes.split('via')[1].split('(')[0].trim() : 'Standard Terminal');
+                  const outWorkstation = t.clockOutWorkstation || t.clockInWorkstation || t.workstationLabel || (t.notes?.includes('Clocked out via') ? t.notes.split('Clocked out via')[1].split('(')[0].trim() : 'Standard Terminal');
 
                   return (
                     <tr key={t.id} className="hover:bg-slate-50/70 transition-colors">
@@ -1104,20 +1119,27 @@ export default function AdminTimecardManagement() {
                         )}
                       </td>
 
-                      {/* Workstation IP (Clocked In IP & Clocked Out IP) */}
+                      {/* Workstation & IP */}
                       <td className="py-3.5 px-4">
-                        <div className="flex flex-col gap-1 text-[11px] font-mono">
-                          <div className="flex items-center gap-1.5">
-                            <span className="text-[9px] font-sans font-bold uppercase tracking-wider text-emerald-700 bg-emerald-50 border border-emerald-200 px-1.5 py-0.5 rounded shrink-0">
+                        <div className="flex flex-col gap-1.5 text-[11px]">
+                          {/* Clock In */}
+                          <div className="flex items-start gap-1.5">
+                            <span className="text-[9px] font-sans font-bold uppercase tracking-wider text-emerald-700 bg-emerald-50 border border-emerald-200 px-1.5 py-0.5 rounded shrink-0 mt-0.5">
                               In
                             </span>
-                            <span className="font-bold text-slate-900 truncate">
-                              {t.clockInIp || t.ipAddress || '127.0.0.1'}
-                            </span>
+                            <div className="min-w-0">
+                              <span className="font-bold text-slate-800 text-[11px] block truncate max-w-[170px]" title={inWorkstation}>
+                                {inWorkstation}
+                              </span>
+                              <span className="font-mono text-[10px] text-slate-500 font-medium block">
+                                {formatDisplayIp(t.clockInIp || t.ipAddress)}
+                              </span>
+                            </div>
                           </div>
 
-                          <div className="flex items-center gap-1.5">
-                            <span className={`text-[9px] font-sans font-bold uppercase tracking-wider px-1.5 py-0.5 rounded border shrink-0 ${
+                          {/* Clock Out */}
+                          <div className="flex items-start gap-1.5">
+                            <span className={`text-[9px] font-sans font-bold uppercase tracking-wider px-1.5 py-0.5 rounded border shrink-0 mt-0.5 ${
                               isClockedIn
                                 ? 'text-blue-700 bg-blue-50 border-blue-200'
                                 : 'text-slate-700 bg-slate-100 border-slate-200'
@@ -1125,14 +1147,19 @@ export default function AdminTimecardManagement() {
                               Out
                             </span>
                             {isClockedIn ? (
-                              <span className="text-[10px] font-sans font-bold text-blue-600 inline-flex items-center gap-1">
+                              <span className="text-[10px] font-sans font-bold text-blue-600 inline-flex items-center gap-1 mt-0.5">
                                 <span className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse" />
                                 On Shift
                               </span>
                             ) : (
-                              <span className="font-bold text-slate-700 truncate">
-                                {t.clockOutIp || t.ipAddress || '127.0.0.1'}
-                              </span>
+                              <div className="min-w-0">
+                                <span className="font-bold text-slate-700 text-[11px] block truncate max-w-[170px]" title={outWorkstation}>
+                                  {outWorkstation}
+                                </span>
+                                <span className="font-mono text-[10px] text-slate-500 font-medium block">
+                                  {formatDisplayIp(t.clockOutIp || t.clockInIp || t.ipAddress)}
+                                </span>
+                              </div>
                             )}
                           </div>
                         </div>

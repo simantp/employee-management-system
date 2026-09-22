@@ -1,15 +1,9 @@
 [
   {
-    "id": "dt-1",
-    "name": "Passport Copy (Australian / International)",
-    "category": "Identification",
-    "hasExpiry": true
-  },
-  {
-    "id": "dt-2",
-    "name": "Visa Grant Notice / VEVO Verification",
-    "category": "Visa & Immigration",
-    "hasExpiry": true
+    "id": "dt-7",
+    "name": "Bank Statement / Direct Debit Proof",
+    "category": "Payroll",
+    "hasExpiry": false
   },
   {
     "id": "dt-3",
@@ -18,10 +12,10 @@
     "hasExpiry": true
   },
   {
-    "id": "dt-4",
-    "name": "Tax File Number (TFN) Declaration",
-    "category": "Tax & Compliance",
-    "hasExpiry": false
+    "id": "dt-6",
+    "name": "Forklift / White Card / RSA License",
+    "category": "Workplace Licenses",
+    "hasExpiry": true
   },
   {
     "id": "dt-5",
@@ -30,15 +24,15 @@
     "hasExpiry": false
   },
   {
-    "id": "dt-6",
-    "name": "Forklift / White Card / RSA License",
-    "category": "Workplace Licenses",
+    "id": "dt-1",
+    "name": "Passport Copy (Australian / International)",
+    "category": "Identification",
     "hasExpiry": true
   },
   {
-    "id": "dt-7",
-    "name": "Bank Statement / Direct Debit Proof",
-    "category": "Payroll",
+    "id": "dt-9",
+    "name": "Signed Employment Contract",
+    "category": "HR Onboarding",
     "hasExpiry": false
   },
   {
@@ -48,9 +42,15 @@
     "hasExpiry": false
   },
   {
-    "id": "dt-9",
-    "name": "Signed Employment Contract",
-    "category": "HR Onboarding",
+    "id": "dt-4",
+    "name": "Tax File Number (TFN) Declaration",
+    "category": "Tax & Compliance",
     "hasExpiry": false
+  },
+  {
+    "id": "dt-2",
+    "name": "Visa Grant Notice / VEVO Verification",
+    "category": "Visa & Immigration",
+    "hasExpiry": true
   }
 ]
