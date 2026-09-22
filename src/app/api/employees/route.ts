@@ -3,6 +3,7 @@ import { query, isDbConfigured } from '@/lib/db';
 import { Employee, EmployeeDocument } from '@/types';
 import { getStoredEmployees, saveStoredEmployees } from '@/lib/serverData';
 import { getOnboardingProgress } from '@/lib/onboarding';
+import { getAuthenticatedUserFromRequest } from '@/lib/session';
 
 function mapDbRowToEmployee(row: any, documents: EmployeeDocument[] = []): Employee {
   return {
@@ -78,7 +79,11 @@ function mapDbRowToEmployee(row: any, documents: EmployeeDocument[] = []): Emplo
   };
 }
 
-export async function GET() {
+export async function GET(req: Request) {
+  const auth = await getAuthenticatedUserFromRequest(req);
+
+  let employeesList: Employee[] = [];
+
   if (isDbConfigured) {
     try {
       const empRows = await query<any[]>('SELECT * FROM employees ORDER BY employee_number ASC');
@@ -103,7 +108,7 @@ export async function GET() {
       });
 
       const rawEmployees: Employee[] = empRows.map(row => mapDbRowToEmployee(row, docsByEmp[row.id] || []));
-      const employees: Employee[] = rawEmployees.map(emp => {
+      employeesList = rawEmployees.map(emp => {
         const progress = getOnboardingProgress(emp);
         if (emp.status === 'Pending' && progress.isComplete) {
           return {
@@ -115,27 +120,47 @@ export async function GET() {
         }
         return emp;
       });
-      await saveStoredEmployees(employees);
-      return NextResponse.json({ success: true, employees });
+      await saveStoredEmployees(employeesList);
     } catch (err: any) {
       console.warn('MySQL employee fetch failed, falling back to disk storage:', err.message);
     }
   }
 
-  const rawEmployees = await getStoredEmployees();
-  const employees = rawEmployees.map(emp => {
-    const progress = getOnboardingProgress(emp);
-    if (emp.status === 'Pending' && progress.isComplete) {
+  if (employeesList.length === 0) {
+    const rawEmployees = await getStoredEmployees();
+    employeesList = rawEmployees.map(emp => {
+      const progress = getOnboardingProgress(emp);
+      if (emp.status === 'Pending' && progress.isComplete) {
+        return {
+          ...emp,
+          status: 'Active' as const,
+          onboardingStatus: 'COMPLETED' as const,
+          profileCompletedAt: emp.profileCompletedAt || new Date().toISOString(),
+        };
+      }
+      return emp;
+    });
+  }
+
+  // Scoped Data Visibility:
+  // If caller is authenticated as STAFF, sanitize confidential financial/TFN fields of OTHER staff members:
+  const sanitized = employeesList.map(emp => {
+    if (auth.authenticated && auth.isStaff && auth.user?.staffId !== emp.id && auth.user?.email.toLowerCase() !== emp.email.toLowerCase()) {
       return {
         ...emp,
-        status: 'Active' as const,
-        onboardingStatus: 'COMPLETED' as const,
-        profileCompletedAt: emp.profileCompletedAt || new Date().toISOString(),
+        bsbEncrypted: undefined,
+        bsbMasked: '•••-•••',
+        accountNumberEncrypted: undefined,
+        accountNumberMasked: '••••••••',
+        tfnEncrypted: undefined,
+        tfnMasked: '•••-•••-•••',
+        kioskPin: undefined,
       };
     }
     return emp;
   });
-  return NextResponse.json({ success: true, employees });
+
+  return NextResponse.json({ success: true, employees: sanitized });
 }
 
 export async function POST(req: Request) {
@@ -259,8 +284,23 @@ export async function PUT(req: Request) {
       return NextResponse.json({ success: false, message: 'Employee ID required' }, { status: 400 });
     }
 
-    // Update disk JSON
+    const auth = await getAuthenticatedUserFromRequest(req);
     const stored = await getStoredEmployees();
+
+    // Enforce Staff-level Scoping
+    if (auth.authenticated && auth.isStaff && !auth.isAdmin) {
+      const isSelf = auth.user?.staffId === id || (auth.user?.email && stored.find(e => e.id === id)?.email.toLowerCase() === auth.user.email.toLowerCase());
+      if (!isSelf) {
+        return NextResponse.json({ success: false, message: 'Forbidden: Staff members can only update their own profile.' }, { status: 403 });
+      }
+      if (updates) {
+        delete updates.status;
+        delete updates.employeeNumber;
+        delete updates.workingHours;
+      }
+    }
+
+    // Update disk JSON
     const updated = stored.map(emp => emp.id === id ? { ...emp, ...updates } : emp);
     await saveStoredEmployees(updated);
 

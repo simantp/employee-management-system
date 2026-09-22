@@ -1,5 +1,23 @@
 [
   {
+    "id": "notif-1790084476614",
+    "recipient": "ADMIN",
+    "title": "Suman Thapa Clocked Out",
+    "message": "Suman Thapa finished shift at 11:41:16 pm (0.00h, 30m break).",
+    "type": "TIMECARD_CLOCK_OUT",
+    "timestamp": "Just now",
+    "read": false
+  },
+  {
+    "id": "notif-1790084476537",
+    "recipient": "ADMIN",
+    "title": "Suman Thapa Clocked In",
+    "message": "Suman Thapa clocked IN at 11:41:16 pm (Production (Riverwood)) from Localhost Development Workstation (::1).",
+    "type": "TIMECARD_CLOCK_IN",
+    "timestamp": "Just now",
+    "read": false
+  },
+  {
     "id": "notif-exp-1790002450637-xwta",
     "recipient": "STAFF",
     "recipientId": "emp-42",

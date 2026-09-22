@@ -1,5 +1,41 @@
 [
   {
+    "id": "aud-1790084476614",
+    "timestamp": "22/09/2026, 11:41:16 pm AEST",
+    "actorId": "emp-42",
+    "actorName": "Suman Thapa",
+    "actorRole": "STAFF",
+    "action": "SHIFT_CLOCK_OUT",
+    "targetType": "Timecard",
+    "targetId": "tc-1790084476537",
+    "details": "Suman Thapa clocked OUT at 11:41:16 pm (0.00 hrs logged, 30m break) from Localhost Development Workstation (IP: ::1)",
+    "ipAddress": "::1"
+  },
+  {
+    "id": "aud-1790084476537",
+    "timestamp": "22/09/2026, 11:41:16 pm AEST",
+    "actorId": "emp-42",
+    "actorName": "Suman Thapa",
+    "actorRole": "STAFF",
+    "action": "SHIFT_CLOCK_IN",
+    "targetType": "Timecard",
+    "targetId": "tc-1790084476537",
+    "details": "Suman Thapa clocked IN at 11:41:16 pm from Localhost Development Workstation (IP: ::1)",
+    "ipAddress": "::1"
+  },
+  {
+    "id": "aud-1790084403764",
+    "timestamp": "22/09/2026, 11:40:03 pm AEST",
+    "actorId": "invalid.user",
+    "actorName": "invalid.user",
+    "actorRole": "Unknown",
+    "action": "CLOCK_IN_FAILED_UNAUTHORIZED",
+    "targetType": "ShiftTerminal",
+    "targetId": "invalid.user",
+    "details": "Unauthorized shift punch attempt with invalid username \"invalid.user\" or PIN from IP ::1. Punch rejected.",
+    "ipAddress": "::1"
+  },
+  {
     "id": "aud-1788775845000",
     "action": "VISA_STATUS_VERIFIED",
     "targetType": "Compliance",

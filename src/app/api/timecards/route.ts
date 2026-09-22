@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { query, isDbConfigured } from '@/lib/db';
 import { TimecardRecord } from '@/types';
 import { getStoredTimecards, saveStoredTimecards } from '@/lib/serverData';
+import { getAuthenticatedUserFromRequest } from '@/lib/session';
 
 function mapRowToTimecard(row: any): TimecardRecord {
   return {
@@ -39,19 +40,32 @@ function mapRowToTimecard(row: any): TimecardRecord {
   };
 }
 
-export async function GET() {
+export async function GET(req: Request) {
+  const auth = await getAuthenticatedUserFromRequest(req);
+  let timecards: TimecardRecord[] = [];
+
   if (isDbConfigured) {
     try {
       const rows = await query<any[]>('SELECT * FROM timecards ORDER BY clock_in_timestamp DESC');
-      const timecards = rows.map(mapRowToTimecard);
+      timecards = rows.map(mapRowToTimecard);
       await saveStoredTimecards(timecards);
-      return NextResponse.json({ success: true, timecards });
     } catch (err: any) {
       console.warn('MySQL timecards fetch failed, using disk fallback:', err.message);
     }
   }
 
-  const timecards = await getStoredTimecards();
+  if (timecards.length === 0) {
+    timecards = await getStoredTimecards();
+  }
+
+  // Scoped Data Visibility:
+  // If caller is authenticated as STAFF, return only their own timecards:
+  if (auth.authenticated && auth.isStaff && !auth.isAdmin) {
+    const staffId = auth.user?.staffId;
+    const scoped = timecards.filter(t => t.employeeId === staffId);
+    return NextResponse.json({ success: true, timecards: scoped });
+  }
+
   return NextResponse.json({ success: true, timecards });
 }
 

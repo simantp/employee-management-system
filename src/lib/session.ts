@@ -1,6 +1,6 @@
 import crypto from 'crypto';
 import { AuthUser, UserSession, AuditLog } from '@/types';
-import { getStoredSessions, saveStoredSessions, appendStoredAuditLog } from './serverData';
+import { getStoredSessions, saveStoredSessions, appendStoredAuditLog, getStoredUsers } from './serverData';
 
 export const SESSION_COOKIE_NAME = 'ems_session_token';
 export const SESSION_MAX_AGE_SECONDS = 7 * 24 * 60 * 60; // 7 days
@@ -149,4 +149,49 @@ export function createSessionCookie(token: string, maxAgeSeconds: number = SESSI
  */
 export function clearSessionCookie(): string {
   return `${SESSION_COOKIE_NAME}=; Path=/; Max-Age=0; SameSite=Lax; HttpOnly`;
+}
+
+export interface AuthContext {
+  authenticated: boolean;
+  user: AuthUser | null;
+  session: UserSession | null;
+  isAdmin: boolean;
+  isStaff: boolean;
+}
+
+/**
+ * Resolve authenticated user & role permissions from request headers/cookies
+ */
+export async function getAuthenticatedUserFromRequest(req: Request): Promise<AuthContext> {
+  const token = extractSessionToken(req);
+  if (!token) {
+    return { authenticated: false, user: null, session: null, isAdmin: false, isStaff: false };
+  }
+
+  const session = await verifySession(token);
+  if (!session) {
+    return { authenticated: false, user: null, session: null, isAdmin: false, isStaff: false };
+  }
+
+  const users = await getStoredUsers();
+  const user = users.find(u => u.id === session.userId || u.email.toLowerCase() === session.userEmail.toLowerCase()) || {
+    id: session.userId,
+    name: session.userName,
+    email: session.userEmail,
+    role: session.role,
+    isEmailVerified: true,
+    staffId: session.staffId,
+    createdAt: new Date(session.createdAt).toLocaleDateString('en-AU'),
+  };
+
+  const isAdmin = user.role === 'SUPER_ADMIN' || user.role === 'ADMIN' || user.role === 'HR_MANAGER';
+  const isStaff = user.role === 'STAFF';
+
+  return {
+    authenticated: true,
+    user,
+    session,
+    isAdmin,
+    isStaff,
+  };
 }

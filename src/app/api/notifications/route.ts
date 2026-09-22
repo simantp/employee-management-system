@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { query, isDbConfigured } from '@/lib/db';
 import { NotificationItem } from '@/types';
 import { getStoredNotifications, saveStoredNotifications } from '@/lib/serverData';
+import { getAuthenticatedUserFromRequest } from '@/lib/session';
 
 function mapRowToNotification(row: any): NotificationItem {
   return {
@@ -17,22 +18,53 @@ function mapRowToNotification(row: any): NotificationItem {
   };
 }
 
-export async function GET() {
+export async function GET(req: Request) {
+  const auth = await getAuthenticatedUserFromRequest(req);
+  let allNotifs: NotificationItem[] = [];
+
   if (isDbConfigured) {
     try {
       const rows = await query<any[]>('SELECT * FROM notifications ORDER BY created_at DESC');
       if (rows && rows.length > 0) {
-        const notifications = rows.map(mapRowToNotification);
-        await saveStoredNotifications(notifications);
-        return NextResponse.json({ success: true, notifications });
+        allNotifs = rows.map(mapRowToNotification);
+        await saveStoredNotifications(allNotifs);
       }
     } catch (err: any) {
       console.warn('MySQL notifications fetch failed, using disk fallback:', err.message);
     }
   }
 
-  const notifications = await getStoredNotifications();
-  return NextResponse.json({ success: true, notifications });
+  if (allNotifs.length === 0) {
+    allNotifs = await getStoredNotifications();
+  }
+
+  // Scoped Data Visibility:
+  // If caller is authenticated as STAFF, return only notifications addressed to them or ALL
+  if (auth.authenticated && auth.isStaff && !auth.isAdmin) {
+    const staffId = auth.user?.staffId;
+    const userId = auth.user?.id;
+    const email = auth.user?.email.toLowerCase();
+    const scoped = allNotifs.filter(n => {
+      if (n.recipient === 'ADMIN') return false;
+      if (n.recipient === 'ALL' || n.recipient === 'STAFF') {
+        if (!n.recipientId) return true;
+      }
+      return (
+        n.recipientId === staffId ||
+        n.recipientId === userId ||
+        (email && n.recipientId?.toLowerCase() === email)
+      );
+    });
+    return NextResponse.json({ success: true, notifications: scoped });
+  }
+
+  // If caller is ADMIN, return notifications for ADMIN and ALL
+  if (auth.authenticated && auth.isAdmin) {
+    const scoped = allNotifs.filter(n => n.recipient === 'ADMIN' || n.recipient === 'ALL');
+    return NextResponse.json({ success: true, notifications: scoped });
+  }
+
+  return NextResponse.json({ success: true, notifications: allNotifs });
 }
 
 export async function POST(req: Request) {

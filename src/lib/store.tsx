@@ -3646,27 +3646,18 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     };
     setEmployees(prev => prev.map(e => e.id === emp.id ? updatedEmp : e));
 
-    // MySQL Backend Sync: Timecard record + Employee state
+    // Verified Server Shift Punch Sync (MySQL + Audit + Notifications)
     try {
-      fetch('/api/timecards', {
+      fetch('/api/timecards/punch', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(newTimecard),
-      }).catch(err => console.warn('Timecard DB sync skipped:', err));
-
-      fetch('/api/employees', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          id: emp.id,
-          updates: {
-            clockState: 'CLOCKED_IN',
-            lastClockIn: now.toISOString(),
-            clockInTimestamp: nowMs,
-            currentShiftId: shiftId,
-          }
+          action: 'IN',
+          username: cleanUser,
+          pin: cleanPin,
+          device,
         }),
-      }).catch(err => console.warn('Employee clock-in DB sync skipped:', err));
+      }).catch(err => console.warn('Verified punch server sync warning:', err));
     } catch (e) {}
 
     // Instant SuperAdmin Notification
@@ -3866,29 +3857,19 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     };
     setEmployees(prev => prev.map(e => e.id === emp.id ? updatedEmp : e));
 
-    // MySQL Backend Sync: Timecard + Employee status
+    // Verified Server Shift Punch Sync (MySQL + Audit + Notifications)
     try {
-      if (recordToSave) {
-        fetch('/api/timecards', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(recordToSave),
-        }).catch(err => console.warn('Timecard DB sync skipped:', err));
-      }
-
-      fetch('/api/employees', {
-        method: 'PUT',
+      fetch('/api/timecards/punch', {
+        method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          id: emp.id,
-          updates: {
-            clockState: 'CLOCKED_OUT',
-            lastClockOut: now.toISOString(),
-            clockInTimestamp: null,
-            currentShiftId: null,
-          }
+          action: 'OUT',
+          username: cleanUser,
+          pin: cleanPin,
+          breakMinutes: effectiveBreak,
+          device,
         }),
-      }).catch(err => console.warn('Employee clock-out DB sync skipped:', err));
+      }).catch(err => console.warn('Verified punch server sync warning:', err));
     } catch (e) {}
 
     // Instant SuperAdmin Notification

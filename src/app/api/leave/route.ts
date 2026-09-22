@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { query, isDbConfigured } from '@/lib/db';
 import { LeaveRequest } from '@/types';
 import { getStoredLeaveRequests, saveStoredLeaveRequests } from '@/lib/serverData';
+import { getAuthenticatedUserFromRequest } from '@/lib/session';
 
 function mapRowToLeave(row: any): LeaveRequest {
   return {
@@ -26,19 +27,32 @@ function mapRowToLeave(row: any): LeaveRequest {
   };
 }
 
-export async function GET() {
+export async function GET(req: Request) {
+  const auth = await getAuthenticatedUserFromRequest(req);
+  let leaveRequests: LeaveRequest[] = [];
+
   if (isDbConfigured) {
     try {
       const rows = await query<any[]>('SELECT * FROM leave_requests ORDER BY created_at DESC');
-      const leaveRequests = rows.map(mapRowToLeave);
+      leaveRequests = rows.map(mapRowToLeave);
       await saveStoredLeaveRequests(leaveRequests);
-      return NextResponse.json({ success: true, leaveRequests });
     } catch (err: any) {
       console.warn('MySQL leave fetch failed, using disk fallback:', err.message);
     }
   }
 
-  const leaveRequests = await getStoredLeaveRequests();
+  if (leaveRequests.length === 0) {
+    leaveRequests = await getStoredLeaveRequests();
+  }
+
+  // Scoped Data Visibility:
+  // If caller is authenticated as STAFF, return only their own leave requests:
+  if (auth.authenticated && auth.isStaff && !auth.isAdmin) {
+    const staffId = auth.user?.staffId;
+    const scoped = leaveRequests.filter(l => l.employeeId === staffId);
+    return NextResponse.json({ success: true, leaveRequests: scoped });
+  }
+
   return NextResponse.json({ success: true, leaveRequests });
 }
 

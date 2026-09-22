@@ -2,10 +2,13 @@ import { NextResponse } from 'next/server';
 import { query, isDbConfigured } from '@/lib/db';
 import { AuditLog } from '@/types';
 import { getStoredAuditLogs, saveStoredAuditLogs, getStoredSettings, getAuditLogTimestampMs, pruneLogsByDays } from '@/lib/serverData';
+import { getAuthenticatedUserFromRequest } from '@/lib/session';
 
-export async function GET() {
+export async function GET(req: Request) {
+  const auth = await getAuthenticatedUserFromRequest(req);
   const settings = await getStoredSettings();
   const retentionDays = Number(settings.auditRetentionDays) || 90;
+  let allLogs: AuditLog[] = [];
 
   if (isDbConfigured) {
     try {
@@ -29,20 +32,38 @@ export async function GET() {
       }));
 
       const { kept } = pruneLogsByDays(auditLogs, retentionDays);
+      allLogs = kept;
       await saveStoredAuditLogs(kept);
-      return NextResponse.json({ success: true, auditLogs: kept, retentionDays });
     } catch (err: any) {
       console.warn('MySQL audit fetch failed, using disk fallback:', err.message);
     }
   }
 
-  const stored = await getStoredAuditLogs();
-  const { kept, prunedCount } = pruneLogsByDays(stored, retentionDays);
-  if (prunedCount > 0) {
-    await saveStoredAuditLogs(kept);
+  if (allLogs.length === 0) {
+    const stored = await getStoredAuditLogs();
+    const { kept, prunedCount } = pruneLogsByDays(stored, retentionDays);
+    if (prunedCount > 0) {
+      await saveStoredAuditLogs(kept);
+    }
+    allLogs = kept;
   }
 
-  return NextResponse.json({ success: true, auditLogs: kept, retentionDays });
+  // Scoped Data Visibility:
+  // If caller is authenticated as STAFF, return only audit records concerning their own actions/profile
+  if (auth.authenticated && auth.isStaff && !auth.isAdmin) {
+    const staffId = auth.user?.staffId;
+    const userId = auth.user?.id;
+    const userEmail = auth.user?.email.toLowerCase();
+    const scoped = allLogs.filter(l => 
+      l.actorId === userId || 
+      l.targetId === staffId || 
+      l.targetId === userId || 
+      (userEmail && (l.details.toLowerCase().includes(userEmail) || l.targetId.toLowerCase() === userEmail))
+    );
+    return NextResponse.json({ success: true, auditLogs: scoped, retentionDays });
+  }
+
+  return NextResponse.json({ success: true, auditLogs: allLogs, retentionDays });
 }
 
 export async function POST(req: Request) {
