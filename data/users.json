@@ -4,6 +4,7 @@
     "name": "Super Admin",
     "username": "admin",
     "email": "admin@company.com.au",
+    "password": "SuperAdmin2026!",
     "passwordHash": "$2b$12$DmgOZPv9/QcfSQo9rhKab.RGEpUI1UcrR1zux5ba4PcumzErsuu8q",
     "role": "SUPER_ADMIN",
     "isEmailVerified": true,
