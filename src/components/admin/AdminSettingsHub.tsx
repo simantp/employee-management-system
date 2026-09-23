@@ -102,7 +102,7 @@ export default function AdminSettingsHub({
   // 5. Security & Cryptography State
   const [securitySettings, setSecuritySettings] = useState<SecuritySettings>({
     enforceEmailOtp2FA: true,
-    sessionTimeoutMinutes: 30,
+    sessionTimeoutMinutes: 1,
     autoLogoutOnInactivity: true,
     aesVaultActive: true,
     maskSensitiveBankTFN: true,
@@ -1595,11 +1595,11 @@ export default function AdminSettingsHub({
                       </label>
                       <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-7 gap-2">
                         {[
-                          { label: '5 Mins', mins: 5, desc: 'Ultra High' },
+                          { label: '1 Min', mins: 1, desc: '1 Minute' },
+                          { label: '5 Mins', mins: 5, desc: '5 Mins' },
                           { label: '10 Mins', mins: 10, desc: 'Strict' },
                           { label: '15 Mins', mins: 15, desc: 'High' },
-                          { label: '30 Mins', mins: 30, desc: 'Default' },
-                          { label: '45 Mins', mins: 45, desc: 'Standard' },
+                          { label: '30 Mins', mins: 30, desc: 'Standard' },
                           { label: '60 Mins', mins: 60, desc: '1 Hour' },
                           { label: '120 Mins', mins: 120, desc: '2 Hours' },
                         ].map(preset => (

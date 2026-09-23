@@ -455,7 +455,7 @@ export const INITIAL_USERS: AuthUser[] = [
 
 export const INITIAL_SECURITY_SETTINGS: SecuritySettings = {
   enforceEmailOtp2FA: true,
-  sessionTimeoutMinutes: 30,
+  sessionTimeoutMinutes: 1,
   autoLogoutOnInactivity: true,
   aesVaultActive: true,
   maskSensitiveBankTFN: true,
