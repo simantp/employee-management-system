@@ -51,6 +51,7 @@ export default function Topbar({
   const [showAlertsHub, setShowAlertsHub] = useState(false);
   const [showUserDropdown, setShowUserDropdown] = useState(false);
   const [viewedActionIds, setViewedActionIds] = useState<string[]>([]);
+  const [adminNotifTab, setAdminNotifTab] = useState<'TODAY' | 'PREVIOUS' | 'ALL'>('TODAY');
 
   // Hydrate viewed action IDs from localStorage on mount
   useEffect(() => {
@@ -357,6 +358,36 @@ export default function Topbar({
     return list;
   }, [leaveRequests, employees, alerts, timecards, notifications, isAdmin, currentUser, currentStaff, currentStaffId, viewedActionIds]);
 
+  // Sydney Timezone date checking helper
+  const isTodaySydney = (rawTime?: number | string) => {
+    if (!rawTime) return false;
+    try {
+      const d = new Date(rawTime);
+      if (isNaN(d.getTime())) return false;
+      const itemDateStr = new Intl.DateTimeFormat('en-CA', { timeZone: 'Australia/Sydney', year: 'numeric', month: '2-digit', day: '2-digit' }).format(d);
+      const todayDateStr = new Intl.DateTimeFormat('en-CA', { timeZone: 'Australia/Sydney', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date());
+      return itemDateStr === todayDateStr;
+    } catch (e) {
+      return false;
+    }
+  };
+
+  // Group notifications into Today vs Previous
+  const todayNotifications = useMemo(() => {
+    return staffActionNotifications.filter(item => isTodaySydney(item.rawTimestamp));
+  }, [staffActionNotifications]);
+
+  const previousNotifications = useMemo(() => {
+    return staffActionNotifications.filter(item => !isTodaySydney(item.rawTimestamp));
+  }, [staffActionNotifications]);
+
+  const displayedNotifications = useMemo(() => {
+    if (!isAdmin) return staffActionNotifications;
+    if (adminNotifTab === 'TODAY') return todayNotifications;
+    if (adminNotifTab === 'PREVIOUS') return previousNotifications;
+    return staffActionNotifications;
+  }, [isAdmin, adminNotifTab, todayNotifications, previousNotifications, staffActionNotifications]);
+
   const attentionCount = useMemo(() => {
     return staffActionNotifications.filter(item => item.isUnread).length;
   }, [staffActionNotifications]);
@@ -475,18 +506,15 @@ export default function Topbar({
           {/* STAFF REQUESTS & ACTION CENTER NOTIFICATION PANEL */}
           {/* ========================================================================= */}
           {showAlertsHub && (
-            <div className="absolute right-0 top-full mt-2.5 w-84 sm:w-[420px] bg-white border border-slate-200 rounded-2xl shadow-2xl overflow-hidden z-50 animate-in fade-in zoom-in-95 duration-150 text-xs">
+            <div className="absolute right-0 top-full mt-2.5 w-84 sm:w-[430px] bg-white border border-slate-200 rounded-2xl shadow-2xl overflow-hidden z-50 animate-in fade-in zoom-in-95 duration-150 text-xs">
               
-              {/* Dropdown Header */}
+              {/* Dropdown Header (No number on the side of title) */}
               <div className="px-4 py-3 border-b border-slate-200 bg-slate-50 text-slate-900 flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <span className="w-2 h-2 rounded-full bg-emerald-500" />
                   <div>
-                    <h4 className="text-xs font-black tracking-tight text-slate-900 flex items-center gap-1.5">
-                      <span>{isAdmin ? 'Staff Requests & Attention' : 'Notifications'}</span>
-                      <span className="px-1.5 py-0.5 rounded-full bg-slate-200 text-slate-700 text-[9px] font-bold border border-slate-300">
-                        {staffActionNotifications.length}
-                      </span>
+                    <h4 className="text-xs font-black tracking-tight text-slate-900">
+                      {isAdmin ? 'Staff Requests & Attention' : 'Notifications'}
                     </h4>
                     <p className="text-[10px] text-slate-500 font-medium">
                       {isAdmin 
@@ -504,70 +532,166 @@ export default function Topbar({
                 </button>
               </div>
 
-              {/* Request & Alert List */}
-              <div className="max-h-[380px] overflow-y-auto p-3 space-y-2 scrollbar-thin scrollbar-thumb-slate-200">
-                {staffActionNotifications.length === 0 ? (
-                  <div className="text-center py-8 text-slate-400 space-y-1">
-                    <span className="px-3 py-1 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-black uppercase tracking-wider inline-block mb-1">
-                      All Caught Up
-                    </span>
-                    <p className="text-xs font-bold text-slate-700">All Staff Requests Up to Date</p>
-                    <p className="text-[11px] text-slate-400 max-w-[240px] mx-auto">
-                      {isAdmin 
-                        ? 'No pending leave approvals, shift queries, document reviews, or compliance alerts.' 
-                        : 'You are all caught up. No new notifications.'}
-                    </p>
-                  </div>
-                ) : (
-                  staffActionNotifications.map(item => (
-                    <div
-                      key={item.id}
-                      onClick={() => {
-                        markSingleActionAsViewed(item.id);
-                        if (item.targetTab && onNavigateTab) {
-                          onNavigateTab(item.targetTab);
-                          setShowAlertsHub(false);
-                        }
-                      }}
-                      className={`p-3 rounded-xl border transition-all flex items-start gap-2.5 cursor-pointer ${
-                        item.isUnread
-                          ? 'bg-amber-50/70 border-amber-200/90 shadow-2xs hover:bg-amber-50'
-                          : 'bg-slate-50/80 border-slate-200/70 hover:bg-slate-100/70'
+              {/* Admin Date Tab Switcher: Current Date (Default) vs Previous Notifications */}
+              {isAdmin && (
+                <div className="px-3 py-2 bg-slate-100/90 border-b border-slate-200/90 flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-1 bg-slate-200/80 p-0.5 rounded-xl">
+                    <button
+                      type="button"
+                      onClick={() => setAdminNotifTab('TODAY')}
+                      className={`px-3 py-1 rounded-lg text-[10px] font-black transition-all cursor-pointer ${
+                        adminNotifTab === 'TODAY'
+                          ? 'bg-white text-slate-900 shadow-xs'
+                          : 'text-slate-600 hover:text-slate-900'
                       }`}
                     >
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center justify-between gap-1">
-                          <span className={`text-[9px] font-black px-1.5 py-0.5 rounded-md border ${item.badgeColor}`}>
-                            {item.badge}
-                          </span>
-                          <span className="text-[9px] font-mono text-slate-400 shrink-0">
-                            {item.timestamp}
-                          </span>
+                      Today ({todayNotifications.length})
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setAdminNotifTab('PREVIOUS')}
+                      className={`px-3 py-1 rounded-lg text-[10px] font-black transition-all cursor-pointer ${
+                        adminNotifTab === 'PREVIOUS'
+                          ? 'bg-white text-slate-900 shadow-xs'
+                          : 'text-slate-600 hover:text-slate-900'
+                      }`}
+                    >
+                      Previous ({previousNotifications.length})
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setAdminNotifTab('ALL')}
+                      className={`px-2.5 py-1 rounded-lg text-[10px] font-black transition-all cursor-pointer ${
+                        adminNotifTab === 'ALL'
+                          ? 'bg-white text-slate-900 shadow-xs'
+                          : 'text-slate-600 hover:text-slate-900'
+                      }`}
+                    >
+                      All ({staffActionNotifications.length})
+                    </button>
+                  </div>
+                  <span className="text-[10px] font-bold text-slate-500 font-mono pr-1">
+                    {adminNotifTab === 'TODAY' ? 'Current Date' : adminNotifTab === 'PREVIOUS' ? 'Previous Days' : 'Full History'}
+                  </span>
+                </div>
+              )}
+
+              {/* Request & Alert List */}
+              <div className="max-h-[380px] overflow-y-auto p-3 space-y-2 scrollbar-thin scrollbar-thumb-slate-200">
+                {displayedNotifications.length === 0 ? (
+                  isAdmin && adminNotifTab === 'TODAY' ? (
+                    <div className="text-center py-8 text-slate-400 space-y-2">
+                      <span className="px-3 py-1 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-black uppercase tracking-wider inline-block">
+                        All Caught Up Today
+                      </span>
+                      <p className="text-xs font-bold text-slate-700">No Notifications Received Today</p>
+                      <p className="text-[11px] text-slate-500 max-w-[260px] mx-auto">
+                        There are no new staff requests or shift inquiries recorded for the current date.
+                      </p>
+                      {previousNotifications.length > 0 && (
+                        <div className="pt-2">
+                          <button
+                            type="button"
+                            onClick={() => setAdminNotifTab('PREVIOUS')}
+                            className="px-3.5 py-1.5 rounded-xl bg-orange-50 hover:bg-orange-100 text-orange-700 border border-orange-200 text-xs font-bold transition cursor-pointer"
+                          >
+                            View {previousNotifications.length} Previous Notifications →
+                          </button>
                         </div>
-
-                        <h5 className="text-[11px] font-bold text-slate-900 mt-1 truncate">
-                          {item.title}
-                        </h5>
-                        <p className="text-[10px] text-slate-600 mt-0.5 leading-snug">
-                          {item.description}
-                        </p>
-                      </div>
-
-                      {item.isUnread && (
-                        <span className="w-2 h-2 rounded-full bg-orange-500 shrink-0 mt-1.5 shadow-xs animate-pulse" />
                       )}
                     </div>
-                  ))
+                  ) : isAdmin && adminNotifTab === 'PREVIOUS' ? (
+                    <div className="text-center py-8 text-slate-400 space-y-1">
+                      <p className="text-xs font-bold text-slate-700">No Previous Notifications</p>
+                      <p className="text-[11px] text-slate-400">All historical staff action items have been completed.</p>
+                      <div className="pt-2">
+                        <button
+                          type="button"
+                          onClick={() => setAdminNotifTab('TODAY')}
+                          className="text-[11px] font-bold text-orange-600 hover:text-orange-700 underline cursor-pointer"
+                        >
+                          ← Back to Today's Notifications
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="text-center py-8 text-slate-400 space-y-1">
+                      <span className="px-3 py-1 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-black uppercase tracking-wider inline-block mb-1">
+                        All Caught Up
+                      </span>
+                      <p className="text-xs font-bold text-slate-700">All Notifications Up to Date</p>
+                      <p className="text-[11px] text-slate-400 max-w-[240px] mx-auto">
+                        You are all caught up. No new notifications.
+                      </p>
+                    </div>
+                  )
+                ) : (
+                  <>
+                    {displayedNotifications.map(item => (
+                      <div
+                        key={item.id}
+                        onClick={() => {
+                          markSingleActionAsViewed(item.id);
+                          if (item.targetTab && onNavigateTab) {
+                            onNavigateTab(item.targetTab);
+                            setShowAlertsHub(false);
+                          }
+                        }}
+                        className={`p-3 rounded-xl border transition-all flex items-start gap-2.5 cursor-pointer ${
+                          item.isUnread
+                            ? 'bg-amber-50/70 border-amber-200/90 shadow-2xs hover:bg-amber-50'
+                            : 'bg-slate-50/80 border-slate-200/70 hover:bg-slate-100/70'
+                        }`}
+                      >
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center justify-between gap-1">
+                            <span className={`text-[9px] font-black px-1.5 py-0.5 rounded-md border ${item.badgeColor}`}>
+                              {item.badge}
+                            </span>
+                            <span className="text-[9px] font-mono text-slate-400 shrink-0">
+                              {item.timestamp}
+                            </span>
+                          </div>
+
+                          <h5 className="text-[11px] font-bold text-slate-900 mt-1 truncate">
+                            {item.title}
+                          </h5>
+                          <p className="text-[10px] text-slate-600 mt-0.5 leading-snug">
+                            {item.description}
+                          </p>
+                        </div>
+
+                        {item.isUnread && (
+                          <span className="w-2 h-2 rounded-full bg-orange-500 shrink-0 mt-1.5 shadow-xs animate-pulse" />
+                        )}
+                      </div>
+                    ))}
+
+                    {/* In Today tab, offer quick shortcut to view previous days if available */}
+                    {isAdmin && adminNotifTab === 'TODAY' && previousNotifications.length > 0 && (
+                      <div className="pt-2 pb-1 text-center border-t border-slate-100">
+                        <button
+                          type="button"
+                          onClick={() => setAdminNotifTab('PREVIOUS')}
+                          className="text-[11px] font-bold text-orange-600 hover:text-orange-700 transition hover:underline cursor-pointer"
+                        >
+                          View {previousNotifications.length} older notifications from previous days →
+                        </button>
+                      </div>
+                    )}
+                  </>
                 )}
               </div>
 
               {/* Dropdown Footer */}
               <div className="p-2 border-t border-slate-100 bg-slate-50/80 text-center flex items-center justify-between px-3">
                 <span className="text-[9px] text-slate-400 font-medium">
-                  {isAdmin ? 'Staff section action queue' : 'Portal notifications'}
+                  {isAdmin 
+                    ? (adminNotifTab === 'TODAY' ? 'Current date activity queue' : adminNotifTab === 'PREVIOUS' ? 'Previous days records' : 'All activity records')
+                    : 'Portal notifications'}
                 </span>
                 <span className="text-[9px] text-slate-500 font-mono font-bold">
-                  {staffActionNotifications.length} items
+                  {displayedNotifications.length} items
                 </span>
               </div>
 

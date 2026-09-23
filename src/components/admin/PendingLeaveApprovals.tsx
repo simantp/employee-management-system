@@ -85,11 +85,6 @@ export default function PendingLeaveApprovals({
             <div>
               <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
                 <span>Pending Staff Requests &amp; Approvals</span>
-                {pendingRequests.length > 0 && (
-                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-rose-50 text-rose-700 border border-rose-200">
-                    {pendingRequests.length} Action Required
-                  </span>
-                )}
               </h3>
               <p className="text-[11px] text-slate-500">Live approval queue (Instant staff notification upon review)</p>
             </div>
