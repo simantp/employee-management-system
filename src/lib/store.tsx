@@ -438,7 +438,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       const savedSecurity = localStorage.getItem('ems_security_settings_v1');
       if (savedSecurity) {
         try {
-          setSecuritySettings({ ...INITIAL_SECURITY_SETTINGS, ...JSON.parse(savedSecurity) });
+          const parsed = JSON.parse(savedSecurity);
+          setSecuritySettings({
+            ...INITIAL_SECURITY_SETTINGS,
+            ...parsed,
+            sessionTimeoutMinutes: Number(parsed.sessionTimeoutMinutes) || 1,
+            autoLogoutOnInactivity: parsed.autoLogoutOnInactivity !== false,
+          });
         } catch (e) {}
       }
 
@@ -534,7 +540,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
             setSmtpSettings(prev => ({ ...prev, ...setRes.value.settings.smtpSettings }));
           }
           if (setRes.value.settings.securitySettings) {
-            setSecuritySettings(prev => ({ ...prev, ...setRes.value.settings.securitySettings }));
+            const sec = setRes.value.settings.securitySettings;
+            setSecuritySettings(prev => ({
+              ...prev,
+              ...sec,
+              sessionTimeoutMinutes: Number(sec.sessionTimeoutMinutes) || 1,
+              autoLogoutOnInactivity: sec.autoLogoutOnInactivity !== false,
+            }));
           }
         }
 
@@ -1485,6 +1497,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     // Call backend /api/auth/logout to invalidate session cookie
     try {
       fetch('/api/auth/logout', { method: 'POST' }).catch(() => {});
+    } catch (e) {}
+
+    try {
+      localStorage.removeItem('ems_auth_user_v1');
+      localStorage.removeItem('ems_current_user_v1');
     } catch (e) {}
 
     setCurrentUser(null);

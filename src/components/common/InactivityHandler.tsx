@@ -11,8 +11,9 @@ export default function InactivityHandler() {
   const lastActivityRef = useRef<number>(Date.now());
   const lastStorageSyncRef = useRef<number>(0);
   const isLoggingOutRef = useRef<boolean>(false);
+  const lastMousePosRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
 
-  // Reset activity timestamp on user interaction
+  // Reset activity timestamp on intentional user interaction
   const recordActivity = useCallback(() => {
     const now = Date.now();
     lastActivityRef.current = now;
@@ -58,30 +59,49 @@ export default function InactivityHandler() {
     logout();
   }, [currentUser, securitySettings, addToast, addAudit, logout]);
 
-  // Listen to global user interactions on window & document
+  // Listen to intentional user interactions (clicks, keys, touches, scrolls, deliberate mouse moves)
   useEffect(() => {
     if (!currentUser) {
       isLoggingOutRef.current = false;
       return;
     }
 
-    recordActivity();
+    // Initialize activity timestamp upon login
+    lastActivityRef.current = Date.now();
+    isLoggingOutRef.current = false;
+    try {
+      localStorage.removeItem('ems_auth_session_logout');
+      localStorage.setItem('ems_last_active_timestamp', Date.now().toString());
+    } catch (e) {}
 
-    const events = ['mousedown', 'mousemove', 'keydown', 'scroll', 'touchstart', 'click', 'wheel'];
-    const handleEvent = () => recordActivity();
+    const handleInteraction = () => recordActivity();
 
-    events.forEach(event => {
-      window.addEventListener(event, handleEvent, { passive: true });
+    // Mouse movement filter (ignore micro-jitter/sensor noise, only detect intentional cursor moves > 25px)
+    const handleMouseMove = (e: MouseEvent) => {
+      const dx = Math.abs(e.clientX - lastMousePosRef.current.x);
+      const dy = Math.abs(e.clientY - lastMousePosRef.current.y);
+      if (dx > 25 || dy > 25) {
+        lastMousePosRef.current = { x: e.clientX, y: e.clientY };
+        recordActivity();
+      }
+    };
+
+    const directEvents = ['click', 'mousedown', 'pointerdown', 'keydown', 'keypress', 'touchstart', 'scroll', 'wheel'];
+
+    directEvents.forEach(event => {
+      window.addEventListener(event, handleInteraction, { passive: true });
     });
+    window.addEventListener('mousemove', handleMouseMove, { passive: true });
 
     return () => {
-      events.forEach(event => {
-        window.removeEventListener(event, handleEvent);
+      directEvents.forEach(event => {
+        window.removeEventListener(event, handleInteraction);
       });
+      window.removeEventListener('mousemove', handleMouseMove);
     };
   }, [currentUser, recordActivity]);
 
-  // Multi-tab synchronization & background visibility handling
+  // Multi-tab synchronization & background tab visibility handling
   useEffect(() => {
     if (!currentUser) return;
 
@@ -188,7 +208,7 @@ export default function InactivityHandler() {
       const warningThresholdSec = timeoutMinutes <= 1 ? 15 : Math.min(30, Math.floor((timeoutMinutes * 60) / 3));
 
       if (remainingSec <= 0) {
-        // Inactivity limit exceeded -> terminate session
+        // Inactivity limit reached -> terminate session
         executeAutoLogout();
       } else if (remainingSec <= warningThresholdSec && remainingSec > 0) {
         // Show interactive warning modal if tab is currently visible

@@ -39,10 +39,11 @@
   },
   "securitySettings": {
     "enforceEmailOtp2FA": true,
-    "sessionTimeoutMinutes": 45,
+    "sessionTimeoutMinutes": 1,
     "aesVaultActive": true,
     "maskSensitiveBankTFN": true,
-    "allowStaffPasswordResetSelfService": true
+    "allowStaffPasswordResetSelfService": true,
+    "autoLogoutOnInactivity": true
   },
   "notifPreferences": {
     "notifyAdminOnClockIn": true,
@@ -53,17 +54,7 @@
   },
   "ipLockSettings": {
     "enabled": true,
-    "lockedIps": [
-      {
-        "id": "iplock-1790090132455",
-        "ip": "27.34.73.159",
-        "label": "Workstation (27.34.73.159)",
-        "addedAt": "22 Sept 2026",
-        "addedBy": "Admin User",
-        "isActive": true,
-        "notes": "Auto-detected & locked from Admin Hub"
-      }
-    ]
+    "lockedIps": []
   },
   "smtpSettings": {
     "host": "",
