@@ -1,30 +1,10 @@
 [
   {
-    "id": "usr-2",
-    "name": "Suman Thapa",
-    "email": "suman.thapa@company.com",
-    "passwordHash": "$2b$12$bS9z0vi1l3GWyZiyEEbwpuRFrUIcD8yJKLuf80bzeR1xlB22JTYui",
-    "role": "STAFF",
-    "isEmailVerified": true,
-    "staffId": "emp-42",
-    "avatarUrl": "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150",
-    "createdAt": "15/05/2025"
-  },
-  {
-    "id": "usr-1789041462052",
-    "name": "simant testing",
-    "email": "simantpaudyal42@gmail.com",
-    "passwordHash": "$2b$12$gaPp5VFen1kNm9TWqAEI/e3nWXUnDuOTzJllIitb5pjxpN8eK2NAG",
-    "role": "STAFF",
-    "isEmailVerified": true,
-    "staffId": "emp-9",
-    "createdAt": "10/09/2026"
-  },
-  {
     "id": "usr-1",
-    "name": "Admin User",
+    "name": "Super Admin",
+    "username": "admin",
     "email": "admin@company.com.au",
-    "passwordHash": "$2b$12$TJ2oK5ndCFM62HGeVwLv0.vUda8KJZx/M9ZA4aP1ximoOhpS8g/yy",
+    "passwordHash": "$2b$12$bN.7nPulnuCX1j07w.IKluOugftjPG4LkSAv.ZZ9AMraOMKytAEWW",
     "role": "SUPER_ADMIN",
     "isEmailVerified": true,
     "avatarUrl": "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150",

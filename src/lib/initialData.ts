@@ -1,350 +1,29 @@
 import { Employee, LeaveRequest, ComplianceAlert, NotificationItem, AuditLog, TimecardRecord, DocumentTypeConfig, Announcement, AuthUser, ExpiryReminderSettings, SmtpSettings, SecuritySettings } from '@/types';
-import { encryptAES256 } from './crypto';
 
-const getTodayFormatted = (): string => {
-  const d = new Date();
-  const day = String(d.getDate()).padStart(2, '0');
-  const month = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'][d.getMonth()];
-  const year = d.getFullYear();
-  return `${day} ${month} ${year}`;
-};
+export const INITIAL_EMPLOYEES: Employee[] = [];
 
-export const INITIAL_EMPLOYEES: Employee[] = [
-  {
-    id: 'emp-9',
-    employeeNumber: 'EMP-00564',
-    username: 'simant.test',
-    firstName: 'simant',
-    lastName: 'testing',
-    email: 'simantpaudyal42@gmail.com',
-    mobilePhone: '9843929293',
-    homePhone: '',
-    dateOfBirth: '2000-02-15',
-    startDate: '2026-09-10',
-    gender: 'Male',
-    address: 'bhaktapur',
-    suburb: 'kathmandu',
-    state: 'NSW',
-    postcode: '5566',
-    department: 'Production (Riverwood)',
-    jobTitle: 'Production Associate',
-    workLocation: 'Sydney, NSW',
-    reportsTo: 'Operations Lead',
-    status: 'Active',
-    onboardingStatus: 'COMPLETED',
-    profileCompletedAt: '2026-09-11T04:00:00.000Z',
-    workingHours: 38,
-    workingHoursConfirmed: true,
-    citizenStatus: 'CITIZEN',
-    visaType: 'Subclass 482 (Temporary Skill Shortage)',
-    visaExpiryDate: '',
-    visaStatusConfirmed: true,
-    workRestrictions: 'Unlimited Australian work rights (38 hrs/week)',
-    hasDriverLicense: true,
-    licenseCountry: 'Australia',
-    licenseState: 'NSW',
-    licenseNumber: '565926956',
-    licenseExpiryDate: '2029-06-12',
-    emergencyNextOfKin: 'simant paudyal',
-    emergencyRelationship: 'Spouse / Partner',
-    emergencyAddress: 'bhaktapur',
-    emergencySuburb: 'frdf',
-    emergencyState: 'NSW',
-    emergencyPostcode: '8798',
-    emergencyMobile: '9843929293',
-    emergencyHomePhone: '',
-    bankName: 'Commonwealth Bank of Australia',
-    bankBranch: 'Riverwood Branch',
-    accountName: 'simant testing',
-    bsbMasked: '062-•••',
-    bsbEncrypted: encryptAES256('062-184'),
-    accountNumberMasked: '••••••789',
-    accountNumberEncrypted: encryptAES256('104856789'),
-    tfnMasked: '••••••••782',
-    tfnEncrypted: encryptAES256('847291782'),
-    superFundName: 'AustralianSuper',
-    superMemberNumber: 'AUS-998241',
-    kioskPin: '6636',
-    clockState: 'CLOCKED_OUT',
-    avatarUrl: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150',
-    leaveBalance: {
-      annual: 20,
-      sick: 9,
-      carers: 5,
-      longService: 0
-    },
-    payslips: [],
-    documents: [
-      {
-        id: 'doc-1789116054442',
-        name: 'Driving License Copy',
-        type: "Driver's License (NSW / State)",
-        documentNumber: '3432',
-        expiryDate: '2026-09-28',
-        uploadDate: '11/09/2026',
-        status: 'Verified',
-        fileSize: '417 KB',
-        fileType: 'image',
-        previewUrl: '/uploads/simant_testing_emp_9/1789116054436_dfds.jpg',
-        rejectionReason: null
-      }
-    ],
-    lastClockIn: '2026-09-13T12:21:49.829Z',
-    lastClockOut: '2026-09-13T12:41:44.548Z'
-  },
-  {
-    id: 'emp-42',
-    employeeNumber: 'EMP-0042',
-    username: 'suman.thapa',
-    firstName: 'Suman',
-    lastName: 'Thapa',
-    email: 'suman.thapa@company.com',
-    mobilePhone: '0412 345 678',
-    homePhone: '02 9876 5432',
-    dateOfBirth: '14/08/1994',
-    startDate: '15/05/2025',
-    gender: 'Male',
-    address: '14 Belmore Road',
-    suburb: 'Riverwood',
-    state: 'NSW',
-    postcode: '2210',
-    department: 'Production (Riverwood)',
-    jobTitle: 'Production Specialist',
-    workLocation: 'Riverwood, NSW',
-    reportsTo: 'Operations Lead',
-    status: 'Active',
-    avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
-    citizenStatus: 'VISA_HOLDER',
-    visaType: 'Temporary Skill Shortage (Subclass 482)',
-    visaExpiryDate: '30/08/2026',
-    workRestrictions: 'Full-time work rights, 38 hours/week',
-    hasDriverLicense: true,
-    licenseCountry: 'Australia',
-    licenseNumber: 'DL-9948210',
-    licenseExpiryDate: '12/10/2027',
-    emergencyNextOfKin: 'Pooja Thapa',
-    emergencyRelationship: 'Spouse',
-    emergencyAddress: '14 Belmore Road',
-    emergencySuburb: 'Riverwood',
-    emergencyState: 'NSW',
-    emergencyPostcode: '2210',
-    emergencyMobile: '0423 999 888',
-    emergencyHomePhone: '02 9876 5432',
-    tfnMasked: '• • • - • • • - 482',
-    tfnEncrypted: encryptAES256('847291482'),
-    superFundName: 'AustralianSuper',
-    superMemberNumber: 'AUS-998241',
-    bankName: 'Commonwealth Bank of Australia',
-    bankBranch: 'Riverwood Branch',
-    accountName: 'Suman Thapa',
-    bsbMasked: '062-•••',
-    bsbEncrypted: encryptAES256('062-184'),
-    accountNumberMasked: '••••••789',
-    accountNumberEncrypted: encryptAES256('104856789'),
-    leaveBalance: {
-      annual: 8,
-      sick: 10,
-      carers: 2,
-      longService: 15,
-    },
-    payslips: [
-      {
-        id: 'ps-01',
-        payPeriod: '01 May 2025 - 15 May 2025',
-        payDate: '16/05/2025',
-        grossPay: 1650.00,
-        taxDeductions: 404.20,
-        superannuation: 181.50,
-        netPay: 1245.80,
-        status: 'Paid',
-      },
-      {
-        id: 'ps-02',
-        payPeriod: '16 Apr 2025 - 30 Apr 2025',
-        payDate: '01/05/2025',
-        grossPay: 1650.00,
-        taxDeductions: 404.20,
-        superannuation: 181.50,
-        netPay: 1245.80,
-        status: 'Paid',
-      }
-    ],
-    documents: [
-      { id: 'doc-1', name: 'Passport Copy', type: 'Identification', uploadDate: '10/05/2025', status: 'Verified', fileSize: '2.4 MB' },
-      { id: 'doc-2', name: 'TFN Declaration', type: 'Tax & Compliance', uploadDate: '10/05/2025', status: 'Verified', fileSize: '1.1 MB' },
-      { id: 'doc-3', name: 'Bank Account Confirmation', type: 'Payroll', uploadDate: '10/05/2025', status: 'Verified', fileSize: '850 KB' },
-      { id: 'doc-4', name: 'Driving License Copy', type: 'License', uploadDate: '12/05/2025', status: 'Pending', fileSize: '3.1 MB' },
-      { id: 'doc-5', name: 'Signed Resume & CV', type: 'HR Onboarding', uploadDate: '10/05/2025', status: 'Verified', fileSize: '1.8 MB' },
-    ],
-    kioskPin: '4829',
-    clockState: 'CLOCKED_OUT',
-    lastClockIn: '2026-09-13T12:00:00.000Z',
-    lastClockOut: '2026-09-13T17:00:00.000Z'
-  }
-];
+export const INITIAL_LEAVE_REQUESTS: LeaveRequest[] = [];
 
-export const INITIAL_LEAVE_REQUESTS: LeaveRequest[] = [
-  {
-    id: 'lr-101',
-    employeeId: 'emp-42',
-    employeeName: 'Suman Thapa',
-    employeeAvatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
-    department: 'Production (Riverwood)',
-    leaveType: 'SICK',
-    startDate: '12/08/2026',
-    endDate: '13/08/2026',
-    totalDays: 2,
-    reason: 'Severe flu and fever, medical certificate attached.',
-    status: 'APPROVED',
-    submittedAt: '12/08/2026 06:25 AM',
-    submittedBefore7AM: true,
-    isAdvanceNoticeMet: true,
-    advanceNoticeDays: 0,
-    certificateUploaded: true,
-    certificateUrl: 'https://images.unsplash.com/photo-1584515979956-d9f6e5d09982?w=1000&auto=format&fit=crop&q=80',
-    reminderCount: 0,
-    reviewedBy: 'Admin User',
-    reviewedAt: '12/08/2026 08:30 AM',
-  },
-  {
-    id: 'lr-102',
-    employeeId: 'emp-42',
-    employeeName: 'Suman Thapa',
-    employeeAvatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
-    department: 'Production (Riverwood)',
-    leaveType: 'ANNUAL',
-    startDate: '22/09/2026',
-    endDate: '26/09/2026',
-    totalDays: 5,
-    reason: 'Family trip to Gold Coast.',
-    status: 'APPROVED',
-    submittedAt: '15/08/2026 10:15 AM',
-    isAdvanceNoticeMet: true,
-    advanceNoticeDays: 38,
-    certificateUploaded: false,
-    reminderCount: 0,
-    reviewedBy: 'Admin User',
-    reviewedAt: '16/08/2026 09:00 AM',
-  },
-  {
-    id: 'lr-1789140165241',
-    employeeId: 'emp-9',
-    employeeName: 'simant testing',
-    employeeAvatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150',
-    department: 'Production (Riverwood)',
-    leaveType: 'SICK',
-    startDate: '12/09/2026',
-    endDate: '13/09/2026',
-    totalDays: 2,
-    reason: 'Fever and rest required.',
-    status: 'PENDING',
-    submittedAt: '11/09/2026 09:30 AM',
-    isAdvanceNoticeMet: true,
-    advanceNoticeDays: 1,
-    certificateUploaded: false,
-    reminderCount: 0
-  }
-];
+export const INITIAL_ALERTS: ComplianceAlert[] = [];
 
-export const INITIAL_ALERTS: ComplianceAlert[] = [
-  {
-    id: 'alt-4',
-    employeeId: 'emp-42',
-    employeeName: 'Suman Thapa',
-    employeeAvatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
-    department: 'Production (Riverwood)',
-    type: 'VISA_EXPIRY',
-    title: 'Temporary Skill Shortage Visa (Subclass 482)',
-    description: 'Visa expires in 21 days on 30/08/2026.',
-    dueDate: '30/08/2026',
-    daysRemaining: 21,
-    severity: 'URGENT',
-  },
-  {
-    id: 'alt-5',
-    employeeId: 'emp-9',
-    employeeName: 'simant testing',
-    employeeAvatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150',
-    department: 'Production (Riverwood)',
-    type: 'LICENSE_EXPIRY',
-    title: "Driver's License Expiry Notice",
-    description: 'Driver License document expires on 28/09/2026.',
-    dueDate: '28/09/2026',
-    daysRemaining: 7,
-    severity: 'URGENT',
-  }
-];
-
-export const INITIAL_NOTIFICATIONS: NotificationItem[] = [
-  {
-    id: 'notif-1',
-    recipient: 'ADMIN',
-    title: 'New Sick Leave Submitted',
-    message: 'simant testing submitted 2 days sick leave.',
-    type: 'LEAVE_REQUEST',
-    timestamp: '10 minutes ago',
-    read: false,
-  },
-  {
-    id: 'notif-2',
-    recipient: 'ADMIN',
-    title: 'Visa Expiry Compliance Alert',
-    message: 'Suman Thapa TSS 482 visa renewal notice dispatched.',
-    type: 'COMPLIANCE',
-    timestamp: '2 hours ago',
-    read: false,
-  }
-];
+export const INITIAL_NOTIFICATIONS: NotificationItem[] = [];
 
 export const INITIAL_AUDIT_LOGS: AuditLog[] = [
   {
     id: 'aud-01',
-    timestamp: '21 Sep 2026, 08:30 AM',
+    timestamp: new Date().toLocaleString('en-AU', { timeZone: 'Australia/Sydney' }) + ' AEST',
     actorId: 'usr-1',
     actorName: 'Super Admin',
     actorRole: 'SUPER_ADMIN',
-    action: 'EMPLOYEE_DATABASE_CLEANUP',
-    targetType: 'EMPLOYEE',
+    action: 'SYSTEM_INITIALIZATION',
+    targetType: 'SYSTEM',
     targetId: 'ALL',
-    details: 'Pruned demo employees; preserved simant testing and Suman Thapa.',
-    ipAddress: '192.168.1.100'
+    details: 'System initialized with single Super Admin account. Demo staff records cleared.',
+    ipAddress: '127.0.0.1'
   }
 ];
 
-export const INITIAL_TIMECARDS: TimecardRecord[] = [
-  {
-    id: 'tc-01',
-    employeeId: 'emp-9',
-    employeeName: 'simant testing',
-    employeeAvatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150',
-    department: 'Production (Riverwood)',
-    date: '21 Sep 2026',
-    clockIn: '08:00 AM',
-    clockOut: '04:30 PM',
-    breakMinutes: 30,
-    durationSeconds: 28800,
-    totalHours: 8.0,
-    overtimeHours: 0,
-    status: 'COMPLETED',
-    notes: 'Regular production shift.'
-  },
-  {
-    id: 'tc-02',
-    employeeId: 'emp-42',
-    employeeName: 'Suman Thapa',
-    employeeAvatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
-    department: 'Production (Riverwood)',
-    date: '20 Sep 2026',
-    clockIn: '07:30 AM',
-    clockOut: '04:00 PM',
-    breakMinutes: 30,
-    durationSeconds: 28800,
-    totalHours: 8.0,
-    overtimeHours: 0,
-    status: 'COMPLETED',
-    notes: 'Die-cutting and packaging line.'
-  }
-];
+export const INITIAL_TIMECARDS: TimecardRecord[] = [];
 
 export const INITIAL_EXPIRY_SETTINGS: ExpiryReminderSettings = {
   autoReminderEnabled: true,
@@ -382,22 +61,12 @@ export const INITIAL_DOCUMENT_TYPES: DocumentTypeConfig[] = [
 export const INITIAL_ANNOUNCEMENTS: Announcement[] = [
   {
     id: 'ann-1',
-    title: 'Sydney Plant Annual Team Building & WHS Safety Workshop',
-    content: 'All Sydney NSW staff members are invited to our annual safety presentation and company celebration lunch on Friday 28 August 2026. Shifts and production schedules will operate on modified hours.',
+    title: 'Sydney Plant Operations & HR Compliance System',
+    content: 'Welcome to the HsCreations Enterprise Workforce Portal. Authorized staff and administrators can manage personnel files, clock timecards, track visas, and generate compliance reports.',
     author: 'Super Admin (HsCreations Executive)',
     authorRole: 'SUPER_ADMIN',
-    date: '20 Aug 2026',
+    date: new Date().toLocaleDateString('en-AU', { day: '2-digit', month: 'short', year: 'numeric' }),
     category: 'Operations & Safety',
-    isPinned: true
-  },
-  {
-    id: 'ann-2',
-    title: 'Fair Work Australia 2026/2027 Award & Pay Updates',
-    content: 'The 2026 annual Fair Work Commission wage review adjustments have been fully integrated into the HsCreations payroll schedule. Review your employment specifications in My Profile.',
-    author: 'Human Resources Director',
-    authorRole: 'ADMIN',
-    date: '15 Aug 2026',
-    category: 'Fair Work NSW',
     isPinned: true
   }
 ];
@@ -413,43 +82,6 @@ export const INITIAL_USERS: AuthUser[] = [
     isEmailVerified: true,
     avatarUrl: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150',
     createdAt: '10/01/2024',
-  },
-  {
-    id: 'usr-1789041462052',
-    name: 'simant testing',
-    username: 'simant.test',
-    email: 'simantpaudyal42@gmail.com',
-    passwordHash: '$2b$12$mCCNx5kx1ovN7J5poXpUQ.pWALLQ/uJWnvfnYUtk3bDVhMP3.xpaC',
-    role: 'STAFF',
-    isEmailVerified: true,
-    staffId: 'emp-9',
-    department: 'Production (Riverwood)',
-    avatarUrl: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150',
-    createdAt: '10/09/2026',
-  },
-  {
-    id: 'usr-2',
-    name: 'Suman Thapa',
-    username: 'suman.thapa',
-    email: 'suman.thapa@company.com',
-    passwordHash: '$2b$12$mCCNx5kx1ovN7J5poXpUQ.pWALLQ/uJWnvfnYUtk3bDVhMP3.xpaC',
-    role: 'STAFF',
-    isEmailVerified: true,
-    staffId: 'emp-42',
-    department: 'Production (Riverwood)',
-    avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150',
-    createdAt: '15/05/2025',
-  },
-  {
-    id: 'usr-4',
-    name: 'Operations Admin',
-    username: 'ops.admin',
-    email: 'hr@company.com.au',
-    passwordHash: '$2b$12$mCCNx5kx1ovN7J5poXpUQ.pWALLQ/uJWnvfnYUtk3bDVhMP3.xpaC',
-    role: 'ADMIN',
-    isEmailVerified: true,
-    avatarUrl: 'https://images.unsplash.com/photo-1580489944761-15a19d654956?w=150',
-    createdAt: '01/02/2024',
   }
 ];
 

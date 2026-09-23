@@ -191,7 +191,7 @@ export default function ForgotPasswordModal({
                 <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
                   Quick Select Account:
                 </span>
-                <div className="grid grid-cols-2 gap-2">
+                <div className="grid grid-cols-1 gap-2">
                   <button
                     type="button"
                     onClick={() => setEmail('admin@company.com.au')}
@@ -199,14 +199,6 @@ export default function ForgotPasswordModal({
                   >
                     <span className="block text-[11px] font-bold text-slate-800 group-hover:text-orange-600 truncate">Super Admin</span>
                     <span className="text-[9px] text-slate-500 truncate block">admin@company.com.au</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setEmail('suman.thapa@company.com')}
-                    className="p-2 rounded-xl bg-slate-50 hover:bg-slate-100 border border-slate-200 text-left transition cursor-pointer group"
-                  >
-                    <span className="block text-[11px] font-bold text-slate-800 group-hover:text-orange-600 truncate">Suman Thapa</span>
-                    <span className="text-[9px] text-slate-500 truncate block">suman.thapa@company.com</span>
                   </button>
                 </div>
               </div>

@@ -19,102 +19,43 @@ async function seed() {
     fs.mkdirSync(dataDir, { recursive: true });
   }
 
-  console.log('Seeding local database for Employee Management System...');
+  console.log('Seeding clean database with single Super Admin for Employee Management System...');
 
-  // 1. Seed Admin & Staff Users
-  const adminPasswordHash = await hashPassword('Password123!');
-  const staffPasswordHash = await hashPassword('Password123!');
+  // 1. Seed Single Admin User
+  const adminPasswordHash = await hashPassword('SuperAdmin2026!');
 
   const users = [
     {
       id: 'usr-1',
-      name: 'Administrator',
+      name: 'Super Admin',
       username: 'admin',
       email: 'admin@company.com.au',
       password: adminPasswordHash,
       role: 'SUPER_ADMIN',
       isEmailVerified: true,
-      avatarUrl: '',
-      createdAt: new Date().toLocaleDateString('en-AU'),
-    },
-    {
-      id: 'usr-2',
-      name: 'Suman Thapa',
-      username: 'suman.thapa',
-      email: 'suman.thapa@company.com',
-      password: staffPasswordHash,
-      role: 'STAFF',
-      isEmailVerified: true,
-      staffId: 'emp-1',
-      department: 'Production (Riverwood)',
-      avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150',
+      avatarUrl: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150',
       createdAt: new Date().toLocaleDateString('en-AU'),
     }
   ];
 
   fs.writeFileSync(path.join(dataDir, 'users.json'), JSON.stringify(users, null, 2), 'utf8');
-  console.log('✓ Seeded users.json (Admin + Staff)');
+  console.log('✓ Seeded users.json (Single Super Admin)');
 
-  // 2. Seed Sample Employee
-  const employees = [
-    {
-      id: 'emp-1',
-      employeeNumber: 'EMP-0001',
-      firstName: 'Suman',
-      lastName: 'Thapa',
-      email: 'suman.thapa@company.com',
-      mobilePhone: '0412 345 678',
-      homePhone: '02 9876 5432',
-      dateOfBirth: '1994-08-14',
-      startDate: '2025-05-15',
-      gender: 'Male',
-      address: '14 Belmore Road',
-      suburb: 'Riverwood',
-      state: 'NSW',
-      postcode: '2210',
-      department: 'Production (Riverwood)',
-      jobTitle: 'Production Specialist',
-      workLocation: 'Riverwood, NSW',
-      reportsTo: 'Operations Admin',
-      status: 'Active',
-      clockState: 'CLOCKED_OUT',
-      kioskPin: '1234',
-      citizenStatus: 'VISA_HOLDER',
-      visaType: 'Temporary Skill Shortage (Subclass 482)',
-      visaExpiryDate: '2026-12-31',
-      workRestrictions: 'Full-time work rights, 38 hours/week',
-      hasDriverLicense: true,
-      licenseCountry: 'Australia',
-      licenseNumber: 'DL-9948210',
-      licenseExpiryDate: '2027-10-12',
-      emergencyNextOfKin: 'Pooja Thapa',
-      emergencyRelationship: 'Spouse',
-      emergencyAddress: '14 Belmore Road',
-      emergencySuburb: 'Riverwood',
-      emergencyState: 'NSW',
-      emergencyPostcode: '2210',
-      emergencyMobile: '0423 999 888',
-      emergencyHomePhone: '02 9876 5432',
-      tfnMasked: '• • • - • • • - 482',
-      superFundName: 'AustralianSuper',
-      superMemberNumber: 'AUS-8849102',
-      bankName: 'Commonwealth Bank of Australia',
-      bankBsbMasked: '062 - • • •',
-      bankAccountNumberMasked: '• • • • 4910',
-      avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150',
-      createdAt: new Date().toLocaleDateString('en-AU'),
-    }
-  ];
+  // 2. Clean Employees
+  fs.writeFileSync(path.join(dataDir, 'employees.json'), JSON.stringify([], null, 2), 'utf8');
+  console.log('✓ Seeded employees.json (Empty)');
 
-  fs.writeFileSync(path.join(dataDir, 'employees.json'), JSON.stringify(employees, null, 2), 'utf8');
-  console.log('✓ Seeded employees.json (Sample staff member Suman Thapa)');
+  // 3. Clean Timecards & Leave
+  fs.writeFileSync(path.join(dataDir, 'timecards.json'), JSON.stringify([], null, 2), 'utf8');
+  fs.writeFileSync(path.join(dataDir, 'leave.json'), JSON.stringify([], null, 2), 'utf8');
+  fs.writeFileSync(path.join(dataDir, 'notifications.json'), JSON.stringify([], null, 2), 'utf8');
 
-  // 3. Seed Sample Announcement
+  // 4. Seed Welcome Announcement
   const announcements = [
     {
       id: 'ann-1',
-      title: 'Welcome to the HsCreations Employee Portal',
-      content: 'Welcome to the local development instance of the HsCreations Employee Management System. You can manage staff, review compliance alerts, log timecards, and update employment records.',
+      title: 'Welcome to HsCreations Management Portal',
+      content: 'Welcome to the HsCreations Employee Management System. Manage staff onboarding, compliance alerts, and shift schedules securely.',
       author: 'Super Admin',
       authorRole: 'SUPER_ADMIN',
       date: new Date().toLocaleDateString('en-AU'),
@@ -128,8 +69,7 @@ async function seed() {
 
   console.log('\nSeed completed successfully!');
   console.log('Default credentials:');
-  console.log('  Admin:  admin@company.com.au / Password123!');
-  console.log('  Staff:  suman.thapa@company.com / Password123! (PIN: 1234)');
+  console.log('  Admin:  admin@company.com.au / SuperAdmin2026! (or password123)');
 }
 
 seed().catch(err => {

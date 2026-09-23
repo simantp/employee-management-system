@@ -924,7 +924,7 @@ export default function AuthPortal() {
                     Instant 1-Click Test Access:
                   </div>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                  <div className="grid grid-cols-1 gap-2.5">
                     <button
                       type="button"
                       onClick={() => handleQuickLogin('admin@company.com.au')}
@@ -933,18 +933,6 @@ export default function AuthPortal() {
                       <div>
                         <span className="block text-xs font-bold text-slate-900 group-hover:text-orange-600">Super Admin</span>
                         <span className="text-[10px] text-orange-600 font-semibold">Admin &amp; HR Portal</span>
-                      </div>
-                      <span className="text-xs font-bold text-slate-400 group-hover:text-orange-600">Enter →</span>
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() => handleQuickLogin('suman.thapa@company.com')}
-                      className="p-3 rounded-xl border border-slate-200 bg-slate-50 hover:bg-slate-100 hover:border-orange-400 text-left transition-all flex items-center justify-between group cursor-pointer shadow-xs"
-                    >
-                      <div>
-                        <span className="block text-xs font-bold text-slate-900 group-hover:text-orange-600">Suman Thapa</span>
-                        <span className="text-[10px] text-amber-700 font-semibold">Staff Workspace</span>
                       </div>
                       <span className="text-xs font-bold text-slate-400 group-hover:text-orange-600">Enter →</span>
                     </button>

@@ -200,7 +200,7 @@ export default function AuthModal({ onClose }: { onClose: () => void }) {
               <div className="text-slate-400 font-bold uppercase tracking-wider text-[10px]">
                 1-Click Test Accounts:
               </div>
-              <div className="grid grid-cols-2 gap-2">
+              <div className="grid grid-cols-1 gap-2">
                 <button
                   type="button"
                   onClick={() => handleQuickLogin('admin@company.com.au')}
@@ -210,19 +210,7 @@ export default function AuthModal({ onClose }: { onClose: () => void }) {
                     <span className="block text-[11px]">Super Admin</span>
                     <span className="text-[9px] text-blue-600 font-normal">Admin Dashboard</span>
                   </div>
-                  <span className="text-xs font-bold text-blue-600">Enter</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => handleQuickLogin('suman.thapa@company.com')}
-                  className="p-2 rounded-xl border border-cyan-200 bg-cyan-50/60 hover:bg-cyan-100 text-cyan-900 font-bold text-left transition flex items-center justify-between cursor-pointer"
-                >
-                  <div>
-                    <span className="block text-[11px]">Suman Thapa</span>
-                    <span className="text-[9px] text-cyan-600 font-normal">Staff Portal</span>
-                  </div>
-                  <span className="text-xs font-bold text-cyan-600">Enter</span>
+                  <span className="text-xs font-bold text-blue-600">Enter →</span>
                 </button>
               </div>
             </div>
