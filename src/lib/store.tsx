@@ -2118,11 +2118,14 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       };
     }
 
+    const finalUsername = customUsername?.trim().toLowerCase() || emp.username || emp.email.split('@')[0].toLowerCase();
+    const finalPin = customPin?.trim() || emp.kioskPin || Math.floor(1000 + Math.random() * 9000).toString();
+
     const updatedEmp: Partial<Employee> = {
       onboardingStatus: 'PASSWORD_SET',
       passwordSetAt: new Date().toISOString(),
-      username: customUsername?.trim().toLowerCase() || emp.username,
-      kioskPin: customPin?.trim() || emp.kioskPin,
+      username: finalUsername,
+      kioskPin: finalPin,
     };
 
     setEmployees(prev => prev.map(e => e.id === emp.id ? { ...e, ...updatedEmp } : e));
@@ -2141,12 +2144,14 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
     const verifiedUser: AuthUser = {
       ...targetUser,
+      username: finalUsername,
+      password: newPassword,
       isEmailVerified: true,
       staffId: emp.id,
     };
 
     setUsers(prev => {
-      const filtered = prev.filter(u => u.email.toLowerCase() !== emp.email.toLowerCase());
+      const filtered = prev.filter(u => u.email.toLowerCase() !== emp.email.toLowerCase() && u.id !== verifiedUser.id);
       return [verifiedUser, ...filtered];
     });
 

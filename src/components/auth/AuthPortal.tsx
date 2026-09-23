@@ -99,13 +99,11 @@ export default function AuthPortal() {
       if (resetParam) {
         setResetToken(resetParam);
         if (email) setResetEmail(decodeURIComponent(email));
-        window.history.replaceState(null, '', window.location.pathname);
       } else if (inviteParam) {
         setUrlInviteToken(inviteParam);
         setInviteTokenInput(inviteParam);
-        if (email) setUrlEmail(email);
+        if (email) setUrlEmail(decodeURIComponent(email));
         setShowInviteModal(true);
-        window.history.replaceState(null, '', window.location.pathname);
       }
     }
   }, []);
@@ -122,13 +120,17 @@ export default function AuthPortal() {
         if (match) cleanToken = match[1];
       }
 
-      const match = employees.find(e => 
-        (e.inviteToken && (e.inviteToken === cleanToken || cleanToken.includes(e.inviteToken))) || 
-        (emailToSearch && e.email.toLowerCase() === emailToSearch) ||
-        (e.inviteToken && e.inviteToken === tokenToSearch) ||
-        e.id === cleanToken ||
-        (cleanToken && e.email.toLowerCase() === cleanToken.toLowerCase())
-      );
+      const findMatch = (list: Employee[]) => {
+        return list.find(e => 
+          (e.inviteToken && (e.inviteToken === cleanToken || cleanToken.includes(e.inviteToken))) || 
+          (emailToSearch && e.email.toLowerCase() === emailToSearch) ||
+          (e.inviteToken && e.inviteToken === tokenToSearch) ||
+          e.id === cleanToken ||
+          (cleanToken && e.email.toLowerCase() === cleanToken.toLowerCase())
+        );
+      };
+
+      const match = findMatch(employees);
 
       if (match) {
         setInviteMatchedEmp(match);
@@ -155,9 +157,24 @@ export default function AuthPortal() {
         } else {
           setInviteError(null);
         }
+      } else if (employees.length === 0) {
+        // Fallback fetch if state has not hydrated yet from server
+        fetch('/api/employees')
+          .then(r => r.json())
+          .then(data => {
+            if (data?.employees && Array.isArray(data.employees)) {
+              const serverMatch = findMatch(data.employees);
+              if (serverMatch) {
+                setInviteMatchedEmp(serverMatch);
+                setInviteUsername(prev => prev || serverMatch.username || `${serverMatch.firstName}.${serverMatch.lastName}`.toLowerCase().replace(/[^a-z0-9._-]/g, ''));
+                setInvitePin(prev => prev || serverMatch.kioskPin || '');
+              }
+            }
+          })
+          .catch(() => {});
       }
     }
-  }, [employees, urlInviteToken, urlEmail]);
+  }, [employees, urlInviteToken, urlEmail, inviteTokenInput]);
 
   // Clean any URL hash automatically on mount
   useEffect(() => {
@@ -470,6 +487,18 @@ export default function AuthPortal() {
       }
     } else {
       setInviteError(res.message);
+    }
+  };
+
+  const handleCloseInviteModal = () => {
+    setShowInviteModal(false);
+    setUrlInviteToken('');
+    setUrlEmail('');
+    setInviteTokenInput('');
+    setInviteError(null);
+    setInviteMatchedEmp(null);
+    if (typeof window !== 'undefined' && window.location.search.includes('invite')) {
+      window.history.replaceState(null, '', window.location.pathname);
     }
   };
 
@@ -986,7 +1015,7 @@ export default function AuthPortal() {
       {showInviteModal && (
         <div 
           className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4 overflow-y-auto animate-in fade-in duration-200 font-sans"
-          onClick={() => setShowInviteModal(false)}
+          onClick={handleCloseInviteModal}
         >
           <div 
             className="bg-white border border-slate-200 rounded-3xl shadow-2xl p-6 sm:p-8 max-w-lg w-full text-slate-800 space-y-5 animate-in zoom-in-95 duration-150 relative"
@@ -995,7 +1024,7 @@ export default function AuthPortal() {
             {/* Modal Close Button */}
             <button
               type="button"
-              onClick={() => setShowInviteModal(false)}
+              onClick={handleCloseInviteModal}
               className="absolute top-5 right-5 text-slate-400 hover:text-slate-700 p-2 rounded-xl bg-slate-100 hover:bg-slate-200 transition cursor-pointer text-xs font-bold"
               aria-label="Close"
             >
@@ -1166,7 +1195,7 @@ export default function AuthPortal() {
 
                 <button
                   type="button"
-                  onClick={() => setShowInviteModal(false)}
+                  onClick={handleCloseInviteModal}
                   className="w-full sm:w-auto py-3 px-4 rounded-xl bg-slate-50 hover:bg-slate-100 text-slate-600 hover:text-slate-900 font-bold text-xs border border-slate-200 transition cursor-pointer"
                 >
                   Cancel

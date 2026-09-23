@@ -12,7 +12,7 @@ import ChangePasswordModal from '@/components/staff/ChangePasswordModal';
 import AuthPortal from '@/components/auth/AuthPortal';
 
 export default function AppHome() {
-  const { currentUser, currentStaff, showChangePasswordModal, setShowChangePasswordModal } = useApp();
+  const { currentUser, currentStaff, showChangePasswordModal, setShowChangePasswordModal, logout } = useApp();
   const [adminTab, setAdminTab] = useState('dashboard');
   const [staffTab, setStaffTab] = useState('dashboard');
 
@@ -24,6 +24,18 @@ export default function AppHome() {
       window.history.replaceState(null, '', window.location.pathname + window.location.search);
     }
   }, []);
+
+  // If an invite or password reset link is opened while an existing user session is active, sign out to display the setup modal
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const searchParams = new URLSearchParams(window.location.search);
+      const hasInvite = searchParams.has('invite');
+      const hasReset = searchParams.has('resetToken') || searchParams.has('reset');
+      if ((hasInvite || hasReset) && currentUser) {
+        logout();
+      }
+    }
+  }, [currentUser]);
 
   // Whenever admin or staff logs in, automatically select and display the dashboard tab
   useEffect(() => {
