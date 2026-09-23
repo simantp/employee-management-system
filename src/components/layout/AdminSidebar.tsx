@@ -12,7 +12,8 @@ export default function AdminSidebar({
 }) {
   const { alerts, leaveRequests, employees, activeWorkingStaffCount, announcements, logout } = useApp();
 
-  const pendingApprovals = leaveRequests.filter(r => r.status === 'PENDING').length;
+  const activeEmpIds = new Set(employees.filter(e => e.status !== 'Archived' && e.status !== 'Terminated').map(e => e.id));
+  const pendingApprovals = leaveRequests.filter(r => r.status === 'PENDING' && activeEmpIds.has(r.employeeId)).length;
 
   const navItems = [
     { id: 'dashboard', label: 'Dashboard', badge: null },

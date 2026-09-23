@@ -8,8 +8,9 @@ export default function VisaExpiryAlerts({
 }: {
   onOpenAlertsModal?: () => void;
 }) {
-  const { alerts } = useApp();
-  const visaAlerts = alerts.filter(a => a.type === 'VISA_EXPIRY');
+  const { alerts, employees } = useApp();
+  const activeEmpIds = new Set(employees.filter(e => e.status !== 'Archived' && e.status !== 'Terminated').map(e => e.id));
+  const visaAlerts = alerts.filter(a => a.type === 'VISA_EXPIRY' && activeEmpIds.has(a.employeeId));
 
   return (
     <div className="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-xs flex flex-col h-full">

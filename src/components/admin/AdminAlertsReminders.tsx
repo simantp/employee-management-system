@@ -62,6 +62,7 @@ export default function AdminAlertsReminders({
   // 1. Compile Visa Expiring Records (ONLY Warning & Critical)
   const visaExpiring: ExpiringRecord[] = [];
   employees.forEach(emp => {
+    if (emp.status === 'Archived' || emp.status === 'Terminated') return;
     if (emp.visaExpiryDate && emp.citizenStatus !== 'CITIZEN' && emp.citizenStatus !== 'PERMANENT_RESIDENT') {
       let days = parseExpiryDays(emp.visaExpiryDate);
       if (days === null) {
@@ -128,6 +129,7 @@ export default function AdminAlertsReminders({
   // 2. Compile Driver License Expiring Records (ONLY Warning & Critical)
   const licenseExpiring: ExpiringRecord[] = [];
   employees.forEach(emp => {
+    if (emp.status === 'Archived' || emp.status === 'Terminated') return;
     if (emp.hasDriverLicense && emp.licenseExpiryDate) {
       let days = parseExpiryDays(emp.licenseExpiryDate);
       if (days === null) {

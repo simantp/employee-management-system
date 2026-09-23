@@ -14,6 +14,7 @@ export default function PendingDocumentApprovals() {
   const pendingDocs: Array<{ doc: EmployeeDocument; empId: string; empName: string; empNumber: string; dept: string }> = [];
 
   employees.forEach(emp => {
+    if (emp.status === 'Archived' || emp.status === 'Terminated') return;
     emp.documents.forEach(doc => {
       if (doc.status === 'Pending') {
         pendingDocs.push({

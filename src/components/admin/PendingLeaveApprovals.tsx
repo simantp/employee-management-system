@@ -20,12 +20,18 @@ export default function PendingLeaveApprovals({
   const [inspectingCert, setInspectingCert] = useState<LeaveRequest | null>(null);
   const [zoomCert, setZoomCert] = useState<boolean>(false);
 
-  const pendingRequests = leaveRequests.filter(r => r.status === 'PENDING');
+  const activeEmpMap = new Map(employees.map(e => [e.id, e]));
+  const isEmpActive = (empId: string) => {
+    const emp = activeEmpMap.get(empId);
+    return !emp || (emp.status !== 'Archived' && emp.status !== 'Terminated');
+  };
+
+  const pendingRequests = leaveRequests.filter(r => r.status === 'PENDING' && isEmpActive(r.employeeId));
   const approvedRequests = leaveRequests.filter(r => r.status === 'APPROVED');
   const rejectedRequests = leaveRequests.filter(r => r.status === 'REJECTED');
   
   const totalApprovedDays = approvedRequests.reduce((acc, curr) => acc + (curr.totalDays || 0), 0);
-  const staffOnLeaveCount = employees.filter(e => e.status === 'On Leave').length;
+  const staffOnLeaveCount = employees.filter(e => e.status !== 'Archived' && e.status !== 'Terminated' && e.status === 'On Leave').length;
 
   // Filtered list for the approved / historical records table
   const filteredLeaves = leaveRequests.filter(req => {

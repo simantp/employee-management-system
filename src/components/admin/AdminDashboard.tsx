@@ -28,7 +28,7 @@ export default function AdminDashboard({
   const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
   const [selectedEmployeeSection, setSelectedEmployeeSection] = useState<'EMPLOYMENT' | 'PERSONAL' | 'VISA_LICENCE_EMERGENCY' | 'BANKING' | 'DOCUMENTS'>('EMPLOYMENT');
 
-  const activeStaffOnDuty = employees.filter(e => e.clockState === 'CLOCKED_IN').length;
+  const activeStaffOnDuty = employees.filter(e => e.status !== 'Archived' && e.status !== 'Terminated' && e.clockState === 'CLOCKED_IN').length;
 
   // Calculate Visa and License Warning & Critical alerts count
   const parseDays = (dateStr?: string) => {
@@ -46,6 +46,8 @@ export default function AdminDashboard({
 
   const dashboardAlertList: { id: string }[] = [];
   employees.forEach(emp => {
+    if (emp.status === 'Archived' || emp.status === 'Terminated') return;
+
     // 1. Visa Expiry
     if (emp.visaExpiryDate && emp.citizenStatus !== 'CITIZEN' && emp.citizenStatus !== 'PERMANENT_RESIDENT') {
       let days = parseDays(emp.visaExpiryDate);

@@ -510,7 +510,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           setTimecards(backendTimecards);
         }
 
-        if (empRes.status === 'fulfilled' && empRes.value?.success && Array.isArray(empRes.value.employees) && empRes.value.employees.length > 0) {
+        if (empRes.status === 'fulfilled' && empRes.value?.success && Array.isArray(empRes.value.employees)) {
           const healed = empRes.value.employees.map((emp: Employee) => {
             const progress = getOnboardingProgress(emp);
             if (emp.status === 'Pending' && progress.isComplete) {
@@ -544,7 +544,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         if (usrRes.status === 'fulfilled' && usrRes.value?.success && Array.isArray(usrRes.value.users) && usrRes.value.users.length > 0) {
           setUsers(usrRes.value.users);
         }
-        if (notifRes.status === 'fulfilled' && notifRes.value?.success && Array.isArray(notifRes.value.notifications) && notifRes.value.notifications.length > 0) {
+        if (notifRes.status === 'fulfilled' && notifRes.value?.success && Array.isArray(notifRes.value.notifications)) {
           setNotifications(notifRes.value.notifications);
           notifRes.value.notifications.forEach((n: NotificationItem) => toastedNotifIdsRef.current.add(n.id));
           hasHydratedNotifsRef.current = true;
@@ -960,10 +960,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         const userIdParam = currentUserRef.current?.id || '';
         const notifUrl = `/api/notifications?portal=${encodeURIComponent(portalParam)}&staffId=${encodeURIComponent(staffIdParam)}&userId=${encodeURIComponent(userIdParam)}`;
 
-        const [notifRes, tcRes, lrRes] = await Promise.allSettled([
+        const [notifRes, tcRes, lrRes, empRes] = await Promise.allSettled([
           fetch(notifUrl).then(r => r.json()),
           fetch('/api/timecards').then(r => r.json()),
           fetch('/api/leave').then(r => r.json()),
+          fetch('/api/employees').then(r => r.json()),
         ]);
 
         if (notifRes.status === 'fulfilled' && notifRes.value?.success && Array.isArray(notifRes.value.notifications)) {
@@ -992,15 +993,29 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           });
         }
 
+        let latestTc = timecards;
         if (tcRes.status === 'fulfilled' && tcRes.value?.success && Array.isArray(tcRes.value.timecards)) {
           const serverTc: TimecardRecord[] = tcRes.value.timecards;
+          latestTc = serverTc;
           setTimecards(prev => {
             if (JSON.stringify(prev) !== JSON.stringify(serverTc)) {
               return serverTc;
             }
             return prev;
           });
-          setEmployees(prevEmp => reconcileEmployeesWithTimecards(prevEmp, serverTc));
+        }
+
+        if (empRes.status === 'fulfilled' && empRes.value?.success && Array.isArray(empRes.value.employees)) {
+          const serverEmp: Employee[] = empRes.value.employees;
+          setEmployees(prevEmp => {
+            const reconciled = reconcileEmployeesWithTimecards(serverEmp, latestTc);
+            if (JSON.stringify(prevEmp) !== JSON.stringify(reconciled)) {
+              return reconciled;
+            }
+            return prevEmp;
+          });
+        } else if (tcRes.status === 'fulfilled' && tcRes.value?.success) {
+          setEmployees(prevEmp => reconcileEmployeesWithTimecards(prevEmp, latestTc));
         }
 
         if (lrRes.status === 'fulfilled' && lrRes.value?.success && Array.isArray(lrRes.value.leaveRequests)) {
@@ -3694,7 +3709,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   // TIMECARD & SHIFT CLOCK-IN/OUT METHODS
   // ==========================================
 
-  const activeWorkingStaffCount = employees.filter(e => e.clockState === 'CLOCKED_IN').length;
+  const activeWorkingStaffCount = employees.filter(e => e.status !== 'Archived' && e.status !== 'Terminated' && e.clockState === 'CLOCKED_IN').length;
 
   const clockInWithKiosk = (
     username: string, 

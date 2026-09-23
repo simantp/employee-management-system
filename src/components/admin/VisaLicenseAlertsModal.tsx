@@ -56,6 +56,8 @@ export default function VisaLicenseAlertsModal({
   const expiryItems: ExpiryItem[] = [];
 
   employees.forEach(emp => {
+    if (emp.status === 'Archived' || emp.status === 'Terminated') return;
+
     // 1. Visa Expiry
     if (emp.visaExpiryDate && emp.citizenStatus !== 'CITIZEN' && emp.citizenStatus !== 'PERMANENT_RESIDENT') {
       let days = parseExpiryDays(emp.visaExpiryDate);

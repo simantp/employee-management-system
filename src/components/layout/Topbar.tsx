@@ -73,8 +73,10 @@ export default function Topbar({
     const list: ActivityNotificationItem[] = [];
 
     if (isAdmin) {
+      const activeEmpIds = new Set(employees.filter(e => e.status !== 'Archived' && e.status !== 'Terminated').map(e => e.id));
+
       // 1. Pending Staff Shift Inquiries & Error Notes (Highest priority for timesheet adjustments)
-      const pendingShiftNotes = timecards.filter(t => t.staffNote && t.staffNote.trim() && t.staffNoteStatus !== 'RESOLVED');
+      const pendingShiftNotes = timecards.filter(t => t.staffNote && t.staffNote.trim() && t.staffNoteStatus !== 'RESOLVED' && activeEmpIds.has(t.employeeId));
       pendingShiftNotes.forEach(tc => {
         const emp = employees.find(e => e.id === tc.employeeId);
         const empName = tc.employeeName || (emp ? `${emp.firstName} ${emp.lastName}` : 'Staff Member');
@@ -101,7 +103,7 @@ export default function Topbar({
       });
 
       // 2. Pending Staff Leave Requests
-      const pendingLeaves = leaveRequests.filter(l => l.status === 'PENDING');
+      const pendingLeaves = leaveRequests.filter(l => l.status === 'PENDING' && activeEmpIds.has(l.employeeId));
       pendingLeaves.forEach(lr => {
         const emp = employees.find(e => e.id === lr.employeeId);
         const hasMedCert = !!(lr.certificateUrl || lr.certificateUploaded);
@@ -127,6 +129,7 @@ export default function Topbar({
 
       // 3. Pending Staff Uploaded Documents needing verification
       employees.forEach(emp => {
+        if (emp.status === 'Archived' || emp.status === 'Terminated') return;
         if (Array.isArray(emp.documents)) {
           emp.documents.forEach(doc => {
             if (doc.status === 'Pending') {

@@ -26,6 +26,7 @@ export default function AdminComplianceManagement({
 
   // Visa holders list
   const visaHolders = employees.filter(e => {
+    if (e.status === 'Archived' || e.status === 'Terminated') return false;
     const isVisa = e.citizenStatus === 'VISA_HOLDER' || (e.visaType && !e.visaType.toLowerCase().includes('citizen'));
     const q = search.toLowerCase();
     const matchesSearch = 
@@ -40,6 +41,7 @@ export default function AdminComplianceManagement({
 
   // Driver License holders
   const licenseHolders = employees.filter(e => {
+    if (e.status === 'Archived' || e.status === 'Terminated') return false;
     const hasLicense = e.hasDriverLicense || e.licenseNumber || e.licenseExpiryDate;
     const q = search.toLowerCase();
     const matchesSearch = 
@@ -53,10 +55,14 @@ export default function AdminComplianceManagement({
   });
 
   // Calculate KPIs
-  const totalVisaHolders = employees.filter(e => e.citizenStatus === 'VISA_HOLDER').length;
-  const criticalVisas = alerts.filter(a => a.type === 'VISA_EXPIRY' && a.daysRemaining <= 30).length;
-  const totalLicenses = employees.filter(e => e.hasDriverLicense || e.licenseNumber).length;
-  const forkliftOperators = employees.filter(e => e.department && e.department.includes('Production')).length;
+  const totalVisaHolders = employees.filter(e => e.status !== 'Archived' && e.status !== 'Terminated' && e.citizenStatus === 'VISA_HOLDER').length;
+  const criticalVisas = alerts.filter(a => {
+    const matchedEmp = employees.find(e => e.id === a.employeeId);
+    if (matchedEmp && (matchedEmp.status === 'Archived' || matchedEmp.status === 'Terminated')) return false;
+    return a.type === 'VISA_EXPIRY' && a.daysRemaining <= 30;
+  }).length;
+  const totalLicenses = employees.filter(e => e.status !== 'Archived' && e.status !== 'Terminated' && (e.hasDriverLicense || e.licenseNumber)).length;
+  const forkliftOperators = employees.filter(e => e.status !== 'Archived' && e.status !== 'Terminated' && e.department && e.department.includes('Production')).length;
 
   const handleSimulateVevoCheck = (emp: Employee) => {
     setVevoCheckingId(emp.id);
