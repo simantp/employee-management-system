@@ -1,10 +1,10 @@
 [
   {
-    "id": "aud-1790152366364",
-    "action": "USER_LOGOUT",
+    "id": "aud-1790152366358",
+    "action": "SESSION_AUTO_LOGOUT_INACTIVITY",
     "targetType": "User",
     "targetId": "usr-1",
-    "details": "User Admin User logged out",
+    "details": "User Admin User (SUPER_ADMIN) automatically logged out after 1 min(s) inactivity.",
     "actorId": "usr-1",
     "actorName": "Admin User",
     "actorRole": "SUPER_ADMIN",
@@ -12,11 +12,11 @@
     "ipAddress": "127.0.0.1 (Localhost)"
   },
   {
-    "id": "aud-1790152366358",
-    "action": "SESSION_AUTO_LOGOUT_INACTIVITY",
+    "id": "aud-1790152366364",
+    "action": "USER_LOGOUT",
     "targetType": "User",
     "targetId": "usr-1",
-    "details": "User Admin User (SUPER_ADMIN) automatically logged out after 1 min(s) inactivity.",
+    "details": "User Admin User logged out",
     "actorId": "usr-1",
     "actorName": "Admin User",
     "actorRole": "SUPER_ADMIN",
@@ -34,18 +34,6 @@
     "actorRole": "SUPER_ADMIN",
     "timestamp": "23/09/2026, 6:31:46 pm AEST",
     "ipAddress": "127.0.0.1 (Localhost)"
-  },
-  {
-    "id": "aud-1790152306666",
-    "timestamp": "23/09/2026, 6:31:46 pm AEST",
-    "actorId": "usr-1",
-    "actorName": "Admin User",
-    "actorRole": "SUPER_ADMIN",
-    "action": "USER_LOGIN_FAILED_CREDENTIALS",
-    "targetType": "User",
-    "targetId": "usr-1",
-    "details": "Failed sign-in attempt for user Admin User (admin@company.com.au): Invalid password provided from IP ::1.",
-    "ipAddress": "::1"
   },
   {
     "id": "aud-1790151842192",
