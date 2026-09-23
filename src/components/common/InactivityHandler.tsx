@@ -6,10 +6,10 @@ import { useApp } from '@/lib/store';
 export default function InactivityHandler() {
   const { currentUser, logout, securitySettings, addToast, addAudit } = useApp();
 
-  // Active countdown number (null when safe, 15..1 when warning is visible)
+  // Active countdown number (null when safe, 15..1 when warning modal is displayed)
   const [secondsRemaining, setSecondsRemaining] = useState<number | null>(null);
 
-  // Stable references
+  // Stable references to prevent effect re-triggering
   const currentUserRef = useRef(currentUser);
   currentUserRef.current = currentUser;
 
@@ -25,22 +25,15 @@ export default function InactivityHandler() {
   const addAuditRef = useRef(addAudit);
   addAuditRef.current = addAudit;
 
-  // Last user physical action timestamp in memory
+  // Single in-memory timestamp of the last user physical action
   const lastActionTimestampRef = useRef<number>(Date.now());
   const isLoggedOutRef = useRef<boolean>(false);
-  const isModalVisibleRef = useRef<boolean>(false);
 
-  // Sync ref with modal visibility
-  useEffect(() => {
-    isModalVisibleRef.current = secondsRemaining !== null && !!currentUser;
-  }, [secondsRemaining, currentUser]);
-
-  // Execute guaranteed hard logout
+  // Hard logout function
   const terminateSession = useCallback((reasonMsg?: string) => {
     if (isLoggedOutRef.current) return;
     isLoggedOutRef.current = true;
     setSecondsRemaining(null);
-    isModalVisibleRef.current = false;
 
     const user = currentUserRef.current;
     const timeoutMin = securitySettingsRef.current?.sessionTimeoutMinutes ?? 1;
@@ -76,7 +69,6 @@ export default function InactivityHandler() {
   const handleStayLoggedIn = useCallback(() => {
     lastActionTimestampRef.current = Date.now();
     setSecondsRemaining(null);
-    isModalVisibleRef.current = false;
     try {
       localStorage.setItem('ems_last_active_timestamp', Date.now().toString());
     } catch (e) {}
@@ -84,16 +76,24 @@ export default function InactivityHandler() {
 
   // Explicit user action: "Log Out Now"
   const handleLogOutNow = useCallback(() => {
-    terminateSession('User clicked Log Out on inactivity warning.');
+    terminateSession('User clicked Log Out on inactivity notice.');
   }, [terminateSession]);
 
-  // 1. Listen strictly to physical user interactions
+  // 1. Direct physical user interaction listener
   useEffect(() => {
     if (!currentUser?.id) return;
 
     const onInteraction = () => {
-      // While warning modal is on screen, ambient clicks do not dismiss it
-      if (isModalVisibleRef.current) return;
+      const timeoutMin = securitySettingsRef.current?.sessionTimeoutMinutes ?? 1;
+      const totalTimeoutMs = timeoutMin * 60 * 1000;
+      const elapsed = Date.now() - lastActionTimestampRef.current;
+      const warningWindowStart = Math.max(0, totalTimeoutMs - 15000);
+
+      // Synchronous Guard: If we are already in the 15-second warning zone, ambient clicks do NOT reset the clock
+      if (elapsed >= warningWindowStart) {
+        return;
+      }
+
       lastActionTimestampRef.current = Date.now();
     };
 
@@ -109,20 +109,18 @@ export default function InactivityHandler() {
     };
   }, [currentUser?.id]);
 
-  // 2. High-precision continuous clock (runs every 250ms)
+  // 2. Continuous Monotonic Inactivity Clock (ticks every 250ms)
   useEffect(() => {
     if (!currentUser?.id) {
       isLoggedOutRef.current = false;
       setSecondsRemaining(null);
-      isModalVisibleRef.current = false;
       return;
     }
 
-    // Reset clock upon sign-in
+    // Initialize clock on login
     lastActionTimestampRef.current = Date.now();
     isLoggedOutRef.current = false;
     setSecondsRemaining(null);
-    isModalVisibleRef.current = false;
 
     try {
       localStorage.removeItem('ems_auth_session_logout');
@@ -149,12 +147,13 @@ export default function InactivityHandler() {
         return;
       }
 
-      // Warning window (last 15 seconds)
-      const warningThresholdMs = Math.max(0, totalTimeoutMs - 15000);
-      if (elapsedMs >= warningThresholdMs && remainingMs > 0) {
+      // Warning window: 45s to 60s (15s remaining down to 1s)
+      const warningWindowStart = Math.max(0, totalTimeoutMs - 15000);
+      if (elapsedMs >= warningWindowStart && remainingMs > 0) {
         const sec = Math.max(1, Math.min(15, Math.ceil(remainingMs / 1000)));
         setSecondsRemaining(prev => (prev === sec ? prev : sec));
       } else {
+        // Normal active zone (0s to 45s)
         setSecondsRemaining(prev => (prev === null ? prev : null));
       }
     }, 250);
@@ -171,7 +170,6 @@ export default function InactivityHandler() {
         if (!isLoggedOutRef.current) {
           isLoggedOutRef.current = true;
           setSecondsRemaining(null);
-          isModalVisibleRef.current = false;
           try {
             logoutRef.current?.();
           } catch (e) {}
