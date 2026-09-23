@@ -11,44 +11,38 @@ export default function InactivityHandler() {
   const lastActivityRef = useRef<number>(Date.now());
   const lastStorageSyncRef = useRef<number>(0);
   const isLoggingOutRef = useRef<boolean>(false);
+  const showWarningModalRef = useRef<boolean>(false);
   const prevUserIdRef = useRef<string | null>(null);
 
-  // Stable activity recorder with no unstable dependencies
-  const recordActivity = useCallback(() => {
-    const now = Date.now();
-    lastActivityRef.current = now;
-    setShowWarningModal(false);
-
-    // Throttle writing to localStorage
-    if (now - lastStorageSyncRef.current > 1500) {
-      lastStorageSyncRef.current = now;
-      try {
-        localStorage.setItem('ems_last_active_timestamp', now.toString());
-      } catch (e) {}
-    }
-  }, []);
+  // Sync ref with state so event handlers always have the latest value without re-binding
+  useEffect(() => {
+    showWarningModalRef.current = showWarningModal;
+  }, [showWarningModal]);
 
   // Execute clean auto-logout with audit & notification
   const executeAutoLogout = useCallback((reasonMsg?: string) => {
-    if (isLoggingOutRef.current || !currentUser) return;
+    if (isLoggingOutRef.current) return;
     isLoggingOutRef.current = true;
     setShowWarningModal(false);
+    showWarningModalRef.current = false;
 
     const timeoutMinutes = securitySettings?.sessionTimeoutMinutes ?? 1;
     const message = reasonMsg || `You have been automatically logged out due to ${timeoutMinutes} minute(s) of inactivity.`;
 
     addToast('Session Expired', message, 'info');
 
-    try {
-      addAudit(
-        'SESSION_AUTO_LOGOUT_INACTIVITY',
-        'User',
-        currentUser.id,
-        `User ${currentUser.name} (${currentUser.role}) auto-logged out after ${timeoutMinutes} min(s) inactivity.`,
-        currentUser.name,
-        currentUser.role
-      );
-    } catch (e) {}
+    if (currentUser) {
+      try {
+        addAudit(
+          'SESSION_AUTO_LOGOUT_INACTIVITY',
+          'User',
+          currentUser.id,
+          `User ${currentUser.name} (${currentUser.role}) auto-logged out after ${timeoutMinutes} min(s) inactivity.`,
+          currentUser.name,
+          currentUser.role
+        );
+      } catch (e) {}
+    }
 
     // Broadcast logout to other open tabs
     try {
@@ -58,24 +52,48 @@ export default function InactivityHandler() {
     logout();
   }, [currentUser, securitySettings, addToast, addAudit, logout]);
 
-  // Listen to intentional user interactions (clicks, keyboard, touch, scroll)
-  // NOTE: mousemove is intentionally excluded to avoid optical sensor noise, micro-jitter, and premature modal dismissal when hovering
+  // Reset/record user activity on intentional click or keypress
+  const recordActivity = useCallback(() => {
+    // If the warning modal is active, ambient page clicks must NOT dismiss it; user must click "Stay Logged In"
+    if (showWarningModalRef.current) return;
+
+    const now = Date.now();
+    lastActivityRef.current = now;
+
+    if (now - lastStorageSyncRef.current > 1500) {
+      lastStorageSyncRef.current = now;
+      try {
+        localStorage.setItem('ems_last_active_timestamp', now.toString());
+      } catch (e) {}
+    }
+  }, []);
+
+  // Explicit user action: "Stay Logged In"
+  const handleStayLoggedIn = useCallback(() => {
+    const now = Date.now();
+    lastActivityRef.current = now;
+    lastStorageSyncRef.current = now;
+    try {
+      localStorage.setItem('ems_last_active_timestamp', now.toString());
+    } catch (e) {}
+    setShowWarningModal(false);
+    showWarningModalRef.current = false;
+    setRemainingSeconds(15);
+  }, []);
+
+  // Listen strictly to intentional user interactions (clicks, keyboard, touch)
   useEffect(() => {
     if (!currentUser) {
       isLoggingOutRef.current = false;
       return;
     }
 
-    const handleInteraction = (e: Event) => {
-      // If warning modal is open and user clicks inside the modal, let the modal buttons handle it
-      const target = e.target as HTMLElement | null;
-      if (target && target.closest('[data-inactivity-modal]')) {
-        return;
-      }
+    const handleInteraction = () => {
       recordActivity();
     };
 
-    const directEvents = ['click', 'mousedown', 'pointerdown', 'keydown', 'keypress', 'touchstart', 'scroll', 'wheel'];
+    // Only real intentional user actions (no scroll, no mousemove, no wheel to avoid micro-sensor noise)
+    const directEvents = ['click', 'keydown', 'touchstart'];
 
     directEvents.forEach(event => {
       window.addEventListener(event, handleInteraction, { passive: true });
@@ -98,6 +116,7 @@ export default function InactivityHandler() {
         if (!isLoggingOutRef.current) {
           isLoggingOutRef.current = true;
           setShowWarningModal(false);
+          showWarningModalRef.current = false;
           logout();
         }
       }
@@ -105,7 +124,10 @@ export default function InactivityHandler() {
         const val = parseInt(e.newValue, 10);
         if (!isNaN(val) && val > lastActivityRef.current) {
           lastActivityRef.current = val;
-          setShowWarningModal(false);
+          if (showWarningModalRef.current) {
+            setShowWarningModal(false);
+            showWarningModalRef.current = false;
+          }
         }
       }
     };
@@ -152,10 +174,11 @@ export default function InactivityHandler() {
     };
   }, [currentUser, securitySettings, logout, executeAutoLogout]);
 
-  // Main inactivity timer tick (every 500ms)
+  // Main inactivity timer tick (runs every 500ms)
   useEffect(() => {
     if (!currentUser) {
       setShowWarningModal(false);
+      showWarningModalRef.current = false;
       prevUserIdRef.current = null;
       return;
     }
@@ -178,7 +201,10 @@ export default function InactivityHandler() {
       const timeoutMinutes = securitySettings?.sessionTimeoutMinutes ?? 1;
 
       if (!isAutoLogoutActive || timeoutMinutes <= 0) {
-        setShowWarningModal(false);
+        if (showWarningModalRef.current) {
+          setShowWarningModal(false);
+          showWarningModalRef.current = false;
+        }
         return;
       }
 
@@ -212,9 +238,13 @@ export default function InactivityHandler() {
         if (document.visibilityState === 'visible') {
           setRemainingSeconds(remainingSec);
           setShowWarningModal(true);
+          showWarningModalRef.current = true;
         }
       } else {
-        setShowWarningModal(false);
+        if (showWarningModalRef.current) {
+          setShowWarningModal(false);
+          showWarningModalRef.current = false;
+        }
       }
     }, 500);
 
@@ -267,10 +297,7 @@ export default function InactivityHandler() {
         <div className="grid grid-cols-2 gap-3 pt-1">
           <button
             type="button"
-            onClick={() => {
-              recordActivity();
-              setShowWarningModal(false);
-            }}
+            onClick={handleStayLoggedIn}
             className="py-3 px-4 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-slate-950 font-black text-xs shadow-lg shadow-emerald-500/20 transition-all cursor-pointer flex items-center justify-center gap-1.5"
           >
             <span>Stay Logged In</span>
@@ -280,6 +307,7 @@ export default function InactivityHandler() {
             type="button"
             onClick={() => {
               setShowWarningModal(false);
+              showWarningModalRef.current = false;
               executeAutoLogout();
             }}
             className="py-3 px-4 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs transition cursor-pointer"
