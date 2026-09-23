@@ -11,23 +11,22 @@ export default function InactivityHandler() {
   const lastActivityRef = useRef<number>(Date.now());
   const lastStorageSyncRef = useRef<number>(0);
   const isLoggingOutRef = useRef<boolean>(false);
-  const lastMousePosRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
+  const prevUserIdRef = useRef<string | null>(null);
 
-  // Reset activity timestamp on intentional user interaction
+  // Stable activity recorder with no unstable dependencies
   const recordActivity = useCallback(() => {
     const now = Date.now();
     lastActivityRef.current = now;
-    if (showWarningModal) {
-      setShowWarningModal(false);
-    }
-    // Throttle writing to localStorage to once every 1.5 seconds
+    setShowWarningModal(false);
+
+    // Throttle writing to localStorage
     if (now - lastStorageSyncRef.current > 1500) {
       lastStorageSyncRef.current = now;
       try {
         localStorage.setItem('ems_last_active_timestamp', now.toString());
       } catch (e) {}
     }
-  }, [showWarningModal]);
+  }, []);
 
   // Execute clean auto-logout with audit & notification
   const executeAutoLogout = useCallback((reasonMsg?: string) => {
@@ -59,31 +58,21 @@ export default function InactivityHandler() {
     logout();
   }, [currentUser, securitySettings, addToast, addAudit, logout]);
 
-  // Listen to intentional user interactions (clicks, keys, touches, scrolls, deliberate mouse moves)
+  // Listen to intentional user interactions (clicks, keyboard, touch, scroll)
+  // NOTE: mousemove is intentionally excluded to avoid optical sensor noise, micro-jitter, and premature modal dismissal when hovering
   useEffect(() => {
     if (!currentUser) {
       isLoggingOutRef.current = false;
       return;
     }
 
-    // Initialize activity timestamp upon login
-    lastActivityRef.current = Date.now();
-    isLoggingOutRef.current = false;
-    try {
-      localStorage.removeItem('ems_auth_session_logout');
-      localStorage.setItem('ems_last_active_timestamp', Date.now().toString());
-    } catch (e) {}
-
-    const handleInteraction = () => recordActivity();
-
-    // Mouse movement filter (ignore micro-jitter/sensor noise, only detect intentional cursor moves > 25px)
-    const handleMouseMove = (e: MouseEvent) => {
-      const dx = Math.abs(e.clientX - lastMousePosRef.current.x);
-      const dy = Math.abs(e.clientY - lastMousePosRef.current.y);
-      if (dx > 25 || dy > 25) {
-        lastMousePosRef.current = { x: e.clientX, y: e.clientY };
-        recordActivity();
+    const handleInteraction = (e: Event) => {
+      // If warning modal is open and user clicks inside the modal, let the modal buttons handle it
+      const target = e.target as HTMLElement | null;
+      if (target && target.closest('[data-inactivity-modal]')) {
+        return;
       }
+      recordActivity();
     };
 
     const directEvents = ['click', 'mousedown', 'pointerdown', 'keydown', 'keypress', 'touchstart', 'scroll', 'wheel'];
@@ -91,13 +80,11 @@ export default function InactivityHandler() {
     directEvents.forEach(event => {
       window.addEventListener(event, handleInteraction, { passive: true });
     });
-    window.addEventListener('mousemove', handleMouseMove, { passive: true });
 
     return () => {
       directEvents.forEach(event => {
         window.removeEventListener(event, handleInteraction);
       });
-      window.removeEventListener('mousemove', handleMouseMove);
     };
   }, [currentUser, recordActivity]);
 
@@ -118,9 +105,7 @@ export default function InactivityHandler() {
         const val = parseInt(e.newValue, 10);
         if (!isNaN(val) && val > lastActivityRef.current) {
           lastActivityRef.current = val;
-          if (showWarningModal) {
-            setShowWarningModal(false);
-          }
+          setShowWarningModal(false);
         }
       }
     };
@@ -165,13 +150,25 @@ export default function InactivityHandler() {
       document.removeEventListener('visibilitychange', handleVisibilityOrFocus);
       window.removeEventListener('focus', handleVisibilityOrFocus);
     };
-  }, [currentUser, securitySettings, logout, executeAutoLogout, showWarningModal]);
+  }, [currentUser, securitySettings, logout, executeAutoLogout]);
 
   // Main inactivity timer tick (every 500ms)
   useEffect(() => {
     if (!currentUser) {
       setShowWarningModal(false);
+      prevUserIdRef.current = null;
       return;
+    }
+
+    // Reset activity timestamps when a new user signs in
+    if (prevUserIdRef.current !== currentUser.id) {
+      prevUserIdRef.current = currentUser.id;
+      lastActivityRef.current = Date.now();
+      isLoggingOutRef.current = false;
+      try {
+        localStorage.removeItem('ems_auth_session_logout');
+        localStorage.setItem('ems_last_active_timestamp', Date.now().toString());
+      } catch (e) {}
     }
 
     const checkInterval = setInterval(() => {
@@ -181,7 +178,7 @@ export default function InactivityHandler() {
       const timeoutMinutes = securitySettings?.sessionTimeoutMinutes ?? 1;
 
       if (!isAutoLogoutActive || timeoutMinutes <= 0) {
-        if (showWarningModal) setShowWarningModal(false);
+        setShowWarningModal(false);
         return;
       }
 
@@ -202,7 +199,7 @@ export default function InactivityHandler() {
       const now = Date.now();
       const elapsedMs = now - lastActive;
       const remainingMs = timeoutMs - elapsedMs;
-      const remainingSec = Math.ceil(remainingMs / 1000);
+      const remainingSec = Math.max(0, Math.ceil(remainingMs / 1000));
 
       // Warning threshold: 15s for 1 min timeout, or up to 30s for longer timeouts
       const warningThresholdSec = timeoutMinutes <= 1 ? 15 : Math.min(30, Math.floor((timeoutMinutes * 60) / 3));
@@ -217,14 +214,12 @@ export default function InactivityHandler() {
           setShowWarningModal(true);
         }
       } else {
-        if (showWarningModal) {
-          setShowWarningModal(false);
-        }
+        setShowWarningModal(false);
       }
     }, 500);
 
     return () => clearInterval(checkInterval);
-  }, [currentUser, securitySettings, executeAutoLogout, showWarningModal]);
+  }, [currentUser, securitySettings, executeAutoLogout]);
 
   if (!showWarningModal || !currentUser) {
     return null;
@@ -233,7 +228,10 @@ export default function InactivityHandler() {
   const timeoutMinutes = securitySettings?.sessionTimeoutMinutes ?? 1;
 
   return (
-    <div className="fixed inset-0 z-[200] flex items-center justify-center bg-slate-950/75 backdrop-blur-xs p-4 animate-in fade-in duration-200">
+    <div 
+      data-inactivity-modal="true"
+      className="fixed inset-0 z-[200] flex items-center justify-center bg-slate-950/75 backdrop-blur-xs p-4 animate-in fade-in duration-200"
+    >
       <div 
         className="bg-white rounded-3xl border border-slate-200 shadow-2xl max-w-md w-full p-6 sm:p-7 space-y-5 animate-in zoom-in-95 text-slate-900 relative"
         onClick={e => e.stopPropagation()}
