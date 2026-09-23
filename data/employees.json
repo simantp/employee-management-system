@@ -21,11 +21,11 @@
     "status": "Active",
     "onboardingStatus": "COMPLETED",
     "workingHours": 38,
-    "workingHoursConfirmed": false,
+    "workingHoursConfirmed": true,
     "citizenStatus": "VISA_HOLDER",
     "visaType": "Temporary Skill Shortage (Subclass 482)",
-    "visaExpiryDate": "30/08/2026",
-    "visaStatusConfirmed": false,
+    "visaExpiryDate": "2026-09-30",
+    "visaStatusConfirmed": true,
     "hasDriverLicense": true,
     "licenseCountry": "Australia",
     "licenseNumber": "DL-9948210",
@@ -121,9 +121,7 @@
         "fileType": "image",
         "previewUrl": "/uploads/suman_thapa_emp_42/1789011812722_test.jpg"
       }
-    ],
-    "clockInTimestamp": null,
-    "currentShiftId": null
+    ]
   },
   {
     "id": "emp-9",

@@ -1,5 +1,14 @@
 [
   {
+    "id": "notif-staff-edit-1790136185057",
+    "recipient": "ADMIN",
+    "title": "Staff Profile Updated: Suman Thapa",
+    "message": "Suman Thapa updated their profile information (Citizenship / Work Rights, Visa Subclass, Visa Expiry Date, Weekly Hours, work Restrictions, Driver Licence Status, Licence State / Country, license State, Licence Number, Licence Expiry Date, Working Hours Confirmation, Visa Verification).",
+    "type": "PROFILE_UPDATE",
+    "timestamp": "Just now",
+    "read": true
+  },
+  {
     "id": "notif-admin-clockout-1790090246078",
     "recipient": "STAFF",
     "recipientId": "emp-42",
@@ -7,7 +16,7 @@
     "message": "Your shift was administratively concluded by SuperAdmin (0.03 hrs net worked). Reason: \"Administrative Clock-Out via Active Floor Staff Modal\".",
     "type": "TIMECARD_CLOCK_OUT",
     "timestamp": "Just now",
-    "read": false
+    "read": true
   },
   {
     "id": "notif-1790090145475",
