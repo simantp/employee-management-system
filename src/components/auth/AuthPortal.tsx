@@ -514,22 +514,6 @@ export default function AuthPortal() {
             </p>
           </div>
         </div>
-
-        {/* Top Navbar Sign In Action Button */}
-        <div className="flex items-center gap-3">
-          <button
-            type="button"
-            onClick={() => {
-              setErrorMessage(null);
-              setRightMode('LOGIN');
-              setShowLoginModal(true);
-            }}
-            className="px-4 sm:px-5 py-2 sm:py-2.5 rounded-xl bg-gradient-to-r from-orange-500 via-amber-500 to-orange-500 hover:from-orange-400 hover:to-amber-400 text-slate-950 font-black text-xs shadow-md shadow-orange-500/20 transition-all hover:scale-105 active:scale-95 flex items-center gap-2 cursor-pointer"
-          >
-            <span>Sign In / Admin Access</span>
-            <span className="font-bold text-[11px] opacity-75">→</span>
-          </button>
-        </div>
       </header>
 
       {/* Main Full-Page Workspace: SHIFT CLOCK TERMINAL */}
