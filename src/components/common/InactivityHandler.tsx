@@ -6,7 +6,7 @@ import { useApp } from '@/lib/store';
 export default function InactivityHandler() {
   const { currentUser, logout, securitySettings, addToast, addAudit } = useApp();
 
-  // Modal UI state
+  // Active countdown number (null when safe, 15..1 when warning is visible)
   const [secondsRemaining, setSecondsRemaining] = useState<number | null>(null);
 
   // Stable references
@@ -25,15 +25,22 @@ export default function InactivityHandler() {
   const addAuditRef = useRef(addAudit);
   addAuditRef.current = addAudit;
 
-  // Monotonic action timestamp
+  // Last user physical action timestamp in memory
   const lastActionTimestampRef = useRef<number>(Date.now());
   const isLoggedOutRef = useRef<boolean>(false);
+  const isModalVisibleRef = useRef<boolean>(false);
 
-  // Terminate session and execute clean logout
+  // Sync ref with modal visibility
+  useEffect(() => {
+    isModalVisibleRef.current = secondsRemaining !== null && !!currentUser;
+  }, [secondsRemaining, currentUser]);
+
+  // Execute guaranteed hard logout
   const terminateSession = useCallback((reasonMsg?: string) => {
     if (isLoggedOutRef.current) return;
     isLoggedOutRef.current = true;
     setSecondsRemaining(null);
+    isModalVisibleRef.current = false;
 
     const user = currentUserRef.current;
     const timeoutMin = securitySettingsRef.current?.sessionTimeoutMinutes ?? 1;
@@ -65,36 +72,28 @@ export default function InactivityHandler() {
     } catch (e) {}
   }, []);
 
-  // Explicit action: "Stay Logged In"
+  // Explicit user action: "Stay Logged In"
   const handleStayLoggedIn = useCallback(() => {
     lastActionTimestampRef.current = Date.now();
     setSecondsRemaining(null);
+    isModalVisibleRef.current = false;
     try {
       localStorage.setItem('ems_last_active_timestamp', Date.now().toString());
     } catch (e) {}
   }, []);
 
-  // Explicit action: "Log Out Now"
+  // Explicit user action: "Log Out Now"
   const handleLogOutNow = useCallback(() => {
     terminateSession('User clicked Log Out on inactivity warning.');
   }, [terminateSession]);
 
-  // 1. Physical interaction listener (clicks, keyboard, touch)
+  // 1. Listen strictly to physical user interactions
   useEffect(() => {
     if (!currentUser?.id) return;
 
     const onInteraction = () => {
-      // If we are already in the warning countdown (last 15s), ambient clicks do NOT reset the timer
-      const timeoutMin = securitySettingsRef.current?.sessionTimeoutMinutes ?? 1;
-      const totalTimeoutMs = timeoutMin * 60 * 1000;
-      const elapsedMs = Date.now() - lastActionTimestampRef.current;
-      const warningThresholdMs = Math.max(0, totalTimeoutMs - 15000);
-
-      if (elapsedMs >= warningThresholdMs) {
-        // User must click "Stay Logged In" button explicitly
-        return;
-      }
-
+      // While warning modal is on screen, ambient clicks do not dismiss it
+      if (isModalVisibleRef.current) return;
       lastActionTimestampRef.current = Date.now();
     };
 
@@ -110,11 +109,12 @@ export default function InactivityHandler() {
     };
   }, [currentUser?.id]);
 
-  // 2. Continuous Monotonic Inactivity Clock (ticks every 250ms)
+  // 2. High-precision continuous clock (runs every 250ms)
   useEffect(() => {
     if (!currentUser?.id) {
       isLoggedOutRef.current = false;
       setSecondsRemaining(null);
+      isModalVisibleRef.current = false;
       return;
     }
 
@@ -122,6 +122,7 @@ export default function InactivityHandler() {
     lastActionTimestampRef.current = Date.now();
     isLoggedOutRef.current = false;
     setSecondsRemaining(null);
+    isModalVisibleRef.current = false;
 
     try {
       localStorage.removeItem('ems_auth_session_logout');
@@ -134,7 +135,7 @@ export default function InactivityHandler() {
       const autoLogout = securitySettingsRef.current?.autoLogoutOnInactivity !== false;
       const timeoutMinutes = securitySettingsRef.current?.sessionTimeoutMinutes ?? 1;
       if (!autoLogout || timeoutMinutes <= 0) {
-        setSecondsRemaining(null);
+        setSecondsRemaining(prev => (prev === null ? prev : null));
         return;
       }
 
@@ -142,20 +143,19 @@ export default function InactivityHandler() {
       const elapsedMs = Date.now() - lastActionTimestampRef.current;
       const remainingMs = totalTimeoutMs - elapsedMs;
 
-      // Case A: 60s reached -> Hard Logout
+      // 60s reached -> Hard Logout!
       if (elapsedMs >= totalTimeoutMs) {
         terminateSession();
         return;
       }
 
-      // Case B: In warning window (45s to 60s -> remaining between 15s and 1s)
+      // Warning window (last 15 seconds)
       const warningThresholdMs = Math.max(0, totalTimeoutMs - 15000);
       if (elapsedMs >= warningThresholdMs && remainingMs > 0) {
         const sec = Math.max(1, Math.min(15, Math.ceil(remainingMs / 1000)));
-        setSecondsRemaining(sec);
+        setSecondsRemaining(prev => (prev === sec ? prev : sec));
       } else {
-        // Case C: Normal active zone (0s to 45s)
-        setSecondsRemaining(null);
+        setSecondsRemaining(prev => (prev === null ? prev : null));
       }
     }, 250);
 
@@ -171,6 +171,7 @@ export default function InactivityHandler() {
         if (!isLoggedOutRef.current) {
           isLoggedOutRef.current = true;
           setSecondsRemaining(null);
+          isModalVisibleRef.current = false;
           try {
             logoutRef.current?.();
           } catch (e) {}
@@ -203,20 +204,20 @@ export default function InactivityHandler() {
     };
   }, [currentUser?.id, terminateSession]);
 
-  // Only render modal when secondsRemaining is a number (1 to 15) and user is logged in
-  if (secondsRemaining === null || !currentUser) {
-    return null;
-  }
-
+  const isVisible = secondsRemaining !== null && !!currentUser;
   const timeoutMinutes = securitySettings?.sessionTimeoutMinutes ?? 1;
 
   return (
     <div 
       data-inactivity-modal="true"
-      className="fixed inset-0 z-[999999] flex items-center justify-center bg-slate-950/80 backdrop-blur-sm p-4 animate-in fade-in duration-200 select-none"
+      className={`fixed inset-0 z-[999999] flex items-center justify-center bg-slate-950/80 backdrop-blur-sm p-4 select-none transition-opacity duration-200 ${
+        isVisible ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
+      }`}
     >
       <div 
-        className="bg-white rounded-3xl border border-slate-200 shadow-2xl max-w-md w-full p-6 sm:p-7 space-y-5 animate-in zoom-in-95 text-slate-900 relative"
+        className={`bg-white rounded-3xl border border-slate-200 shadow-2xl max-w-md w-full p-6 sm:p-7 space-y-5 text-slate-900 relative transform transition-transform duration-200 ${
+          isVisible ? 'scale-100 opacity-100' : 'scale-95 opacity-0'
+        }`}
         onClick={e => e.stopPropagation()}
       >
         <div className="flex items-center gap-3">
@@ -234,13 +235,13 @@ export default function InactivityHandler() {
         </div>
 
         <p className="text-xs text-slate-600 leading-relaxed">
-          For security and data protection, your session will automatically terminate if no activity is detected:
+          For security and workforce privacy, your session will automatically terminate if no activity is detected:
         </p>
 
         {/* High-Visibility Live Countdown Display */}
         <div className="p-4 rounded-2xl bg-amber-50 border border-amber-200 text-center space-y-1">
-          <div className="text-4xl sm:text-5xl font-black font-mono text-amber-600 tracking-wider animate-pulse">
-            {secondsRemaining}s
+          <div className="text-4xl sm:text-5xl font-black font-mono text-amber-600 tracking-wider">
+            {secondsRemaining ?? 15}s
           </div>
           <span className="text-[10px] font-bold text-slate-500">
             Auto-Logout Inactivity Limit: {timeoutMinutes} {timeoutMinutes === 1 ? 'Minute' : 'Minutes'}
