@@ -3,23 +3,50 @@ import { getStoredSettings, saveStoredSettings, getStoredAuditLogs, saveStoredAu
 import { query, isDbConfigured } from '@/lib/db';
 import { getAuthenticatedUserFromRequest } from '@/lib/session';
 
+import { getEnvSmtpConfig } from '@/lib/smtpConfig';
+
 export async function GET(req: Request) {
   const auth = await getAuthenticatedUserFromRequest(req);
   const settings = await getStoredSettings();
+
+  const envSmtp = getEnvSmtpConfig();
+  let effectiveSmtp = settings.smtpSettings || {};
+
+  if (envSmtp && envSmtp.isConfigured) {
+    effectiveSmtp = {
+      ...effectiveSmtp,
+      host: envSmtp.host,
+      port: envSmtp.port,
+      secure: envSmtp.secure,
+      user: envSmtp.user,
+      pass: envSmtp.pass,
+      fromEmail: envSmtp.fromEmail,
+      fromName: envSmtp.fromName,
+      enableSmtp: true,
+      source: 'ENV_VARS',
+      isEnvConfigured: true,
+    };
+  }
 
   // If calling user is non-admin staff, mask confidential SMTP passwords
   if (auth.authenticated && auth.isStaff && !auth.isAdmin) {
     const maskedSettings = {
       ...settings,
-      smtpSettings: settings.smtpSettings ? {
-        ...settings.smtpSettings,
+      smtpSettings: effectiveSmtp ? {
+        ...effectiveSmtp,
         pass: '••••••••',
       } : undefined
     };
     return NextResponse.json({ success: true, settings: maskedSettings });
   }
 
-  return NextResponse.json({ success: true, settings });
+  return NextResponse.json({ 
+    success: true, 
+    settings: {
+      ...settings,
+      smtpSettings: effectiveSmtp,
+    }
+  });
 }
 
 export async function POST(req: Request) {

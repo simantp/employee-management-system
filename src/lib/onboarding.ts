@@ -52,12 +52,15 @@ export function getOnboardingProgress(emp: Employee | null | undefined): Onboard
 
   // 2. Legal Work Rights & Citizenship
   const missingWorkRights: string[] = [];
-  const citizenStr = String(emp.citizenStatus || '').toUpperCase();
-  if (!emp.citizenStatus || citizenStr.length === 0) {
+  const citizenStr = String(emp.citizenStatus || '').trim().toUpperCase();
+  if (!emp.citizenStatus || citizenStr === '' || citizenStr === 'UNDEFINED') {
     missingWorkRights.push('Citizenship / Visa Status');
-  } else if (citizenStr.includes('VISA') || emp.citizenStatus === 'VISA_HOLDER') {
+  } else if (citizenStr.includes('VISA') || citizenStr.includes('TEMPORARY') || emp.citizenStatus === 'VISA_HOLDER') {
     if (!emp.visaType?.trim()) missingWorkRights.push('Visa Subclass');
     if (!emp.visaExpiryDate?.trim()) missingWorkRights.push('Visa Expiry Date');
+  }
+  if (!emp.visaStatusConfirmed) {
+    missingWorkRights.push('Work Rights Declaration Confirmation');
   }
   const isWorkRightsDone = missingWorkRights.length === 0;
 
@@ -71,8 +74,11 @@ export function getOnboardingProgress(emp: Employee | null | undefined): Onboard
   // 4. Banking & TFN
   const missingBanking: string[] = [];
   if (!emp.bankName?.trim()) missingBanking.push('Bank Name');
-  if (!emp.bsbMasked?.trim() && !emp.bsbEncrypted?.trim()) missingBanking.push('BSB Number');
-  if (!emp.accountNumberMasked?.trim() && !emp.accountNumberEncrypted?.trim()) missingBanking.push('Account Number');
+  if (!emp.accountName?.trim()) missingBanking.push('Account Name');
+  const bsb = (emp.bsbMasked || emp.bsbEncrypted || '').trim();
+  if (!bsb || bsb === '062-•••' || bsb === '•••-•••') missingBanking.push('BSB Number');
+  const acc = (emp.accountNumberMasked || emp.accountNumberEncrypted || '').trim();
+  if (!acc || acc === '•••••847' || acc === '••••••••') missingBanking.push('Account Number');
   const isBankingDone = missingBanking.length === 0;
 
   const sections: OnboardingSectionProgress[] = [

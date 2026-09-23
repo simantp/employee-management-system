@@ -207,8 +207,8 @@ export default function AdminSettingsHub({
           if (res.settings.expirySettings) {
             setExpiryForm(res.settings.expirySettings);
           }
-          if (res.settings.smtpSettings) {
-            setSmtpForm(res.settings.smtpSettings);
+          if (res.settings.effectiveSmtp || res.settings.smtpSettings) {
+            setSmtpForm(res.settings.effectiveSmtp || res.settings.smtpSettings);
           }
         }
       } catch (e) {}
@@ -1937,6 +1937,28 @@ export default function AdminSettingsHub({
                   </span>
                 </span>
               </div>
+
+              {/* Hostinger Server Environment Variables Banner */}
+              {smtpForm.isEnvConfigured && (
+                <div className="p-4 rounded-2xl bg-emerald-50/90 border-2 border-emerald-300 text-emerald-950 flex items-start gap-3.5 shadow-xs">
+                  <div className="w-9 h-9 rounded-xl bg-emerald-500 text-white flex items-center justify-center font-black text-sm shrink-0 mt-0.5 shadow-sm">
+                    ✓
+                  </div>
+                  <div className="space-y-1 text-xs">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <h4 className="font-black text-emerald-950 text-xs sm:text-sm">
+                        Configured via Hostinger Server Environment Variables (.env)
+                      </h4>
+                      <span className="px-2.5 py-0.5 rounded-full bg-emerald-200 text-emerald-950 text-[10px] font-extrabold uppercase tracking-wide border border-emerald-300">
+                        Active in Production
+                      </span>
+                    </div>
+                    <p className="text-emerald-800 text-[11px] leading-relaxed">
+                      Your Hostinger environment variables (Gateway: <strong className="font-mono">{smtpForm.host}:{smtpForm.port}</strong>, User: <strong className="font-mono">{smtpForm.user}</strong>) are automatically loaded by the server. Outbound emails will route directly through this configuration with no manual entry required.
+                    </p>
+                  </div>
+                </div>
+              )}
 
               {/* Master SMTP Toggle Card */}
               <div className={`p-4 sm:p-5 rounded-2xl border transition-all ${

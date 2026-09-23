@@ -385,6 +385,8 @@ export interface SmtpSettings {
   fromEmail?: string;
   fromName?: string;
   enableSmtp?: boolean;
+  isEnvConfigured?: boolean;
+  source?: 'ENV_VARS' | 'ADMIN_DATABASE';
 }
 
 export interface SecuritySettings {

@@ -13,7 +13,7 @@ function mapDbRowToEmployee(row: any, documents: EmployeeDocument[] = []): Emplo
     firstName: row.first_name,
     lastName: row.last_name,
     email: row.email,
-    mobilePhone: row.mobile_phone,
+    mobilePhone: row.mobile_phone || '',
     homePhone: row.home_phone || undefined,
     dateOfBirth: row.date_of_birth || '',
     startDate: row.start_date || '',
@@ -35,12 +35,12 @@ function mapDbRowToEmployee(row: any, documents: EmployeeDocument[] = []): Emplo
     profileCompletedAt: row.profile_completed_at || undefined,
     workingHours: Number(row.working_hours) || 38,
     workingHoursConfirmed: Boolean(row.working_hours_confirmed),
-    citizenStatus: (row.citizen_status as any) || 'CITIZEN',
+    citizenStatus: (row.citizen_status as any) || undefined,
     visaType: row.visa_type || undefined,
     visaExpiryDate: row.visa_expiry_date || undefined,
     visaStatusConfirmed: Boolean(row.visa_status_confirmed),
     hasDriverLicense: Boolean(row.has_driver_license),
-    licenseCountry: row.license_country || 'NSW (Australia)',
+    licenseCountry: row.license_country || '',
     licenseNumber: row.license_number || '',
     licenseExpiryDate: row.license_expiry_date || '',
     emergencyNextOfKin: row.emergency_next_of_kin || '',
@@ -54,20 +54,20 @@ function mapDbRowToEmployee(row: any, documents: EmployeeDocument[] = []): Emplo
     bankBranch: row.bank_branch || '',
     accountName: row.account_name || '',
     bsbEncrypted: row.bsb_encrypted || undefined,
-    bsbMasked: row.bsb_masked || '062-•••',
+    bsbMasked: row.bsb_masked || '',
     accountNumberEncrypted: row.account_number_encrypted || undefined,
-    accountNumberMasked: row.account_number_masked || '•••••847',
+    accountNumberMasked: row.account_number_masked || '',
     tfnEncrypted: row.tfn_encrypted || undefined,
-    tfnMasked: row.tfn_masked || '•••-•••-782',
+    tfnMasked: row.tfn_masked || '',
     superFundName: row.super_fund_name || '',
     superMemberNumber: row.super_member_number || '',
-    kioskPin: row.kiosk_pin || '4829',
+    kioskPin: row.kiosk_pin || '',
     clockState: row.clock_state || 'CLOCKED_OUT',
     lastClockIn: row.last_clock_in || undefined,
     lastClockOut: row.last_clock_out || undefined,
     clockInTimestamp: row.clock_in_timestamp ? Number(row.clock_in_timestamp) : undefined,
     currentShiftId: row.current_shift_id || undefined,
-    avatarUrl: row.avatar_url || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150',
+    avatarUrl: row.avatar_url || '',
     leaveBalance: {
       annual: Number(row.annual_leave_balance) || 20,
       sick: Number(row.sick_leave_balance) || 10,
@@ -197,13 +197,13 @@ export async function POST(req: Request) {
       passwordSetAt: body.passwordSetAt,
       profileCompletedAt: body.profileCompletedAt,
       workingHours: body.workingHours || 38.0,
-      workingHoursConfirmed: body.workingHoursConfirmed ?? true,
-      citizenStatus: body.citizenStatus || 'CITIZEN',
+      workingHoursConfirmed: body.workingHoursConfirmed ?? (body.status === 'Pending' ? false : true),
+      citizenStatus: body.citizenStatus || (body.status === 'Pending' ? undefined : 'CITIZEN'),
       visaType: body.visaType,
       visaExpiryDate: body.visaExpiryDate,
-      visaStatusConfirmed: body.visaStatusConfirmed ?? true,
-      hasDriverLicense: body.hasDriverLicense ?? true,
-      licenseCountry: body.licenseCountry || 'NSW (Australia)',
+      visaStatusConfirmed: body.visaStatusConfirmed ?? (body.status === 'Pending' ? false : true),
+      hasDriverLicense: body.hasDriverLicense ?? (body.status === 'Pending' ? false : true),
+      licenseCountry: body.licenseCountry || (body.status === 'Pending' ? '' : 'NSW (Australia)'),
       licenseNumber: body.licenseNumber,
       licenseExpiryDate: body.licenseExpiryDate,
       emergencyNextOfKin: body.emergencyNextOfKin || '',
@@ -213,20 +213,20 @@ export async function POST(req: Request) {
       emergencyState: body.emergencyState || 'NSW',
       emergencyPostcode: body.emergencyPostcode || '',
       emergencyMobile: body.emergencyMobile || '',
-      bankName: body.bankName,
-      bankBranch: body.bankBranch,
-      accountName: body.accountName,
+      bankName: body.bankName || '',
+      bankBranch: body.bankBranch || '',
+      accountName: body.accountName || '',
       bsbEncrypted: body.bsbEncrypted,
-      bsbMasked: body.bsbMasked || '062-•••',
+      bsbMasked: body.bsbMasked || '',
       accountNumberEncrypted: body.accountNumberEncrypted,
-      accountNumberMasked: body.accountNumberMasked || '•••••847',
+      accountNumberMasked: body.accountNumberMasked || '',
       tfnEncrypted: body.tfnEncrypted,
-      tfnMasked: body.tfnMasked || '•••-•••-782',
-      superFundName: body.superFundName,
-      superMemberNumber: body.superMemberNumber,
-      kioskPin: body.kioskPin || '4829',
+      tfnMasked: body.tfnMasked || '',
+      superFundName: body.superFundName || '',
+      superMemberNumber: body.superMemberNumber || '',
+      kioskPin: body.kioskPin || '',
       clockState: body.clockState || 'CLOCKED_OUT',
-      avatarUrl: body.avatarUrl || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150',
+      avatarUrl: body.avatarUrl || '',
       leaveBalance: body.leaveBalance || { annual: 20, sick: 10, carers: 2, longService: 0 },
       payslips: [],
       documents: body.documents || [],
@@ -257,13 +257,13 @@ export async function POST(req: Request) {
           id, empNumber, newEmp.firstName, newEmp.lastName, newEmp.email, newEmp.mobilePhone,
           newEmp.address, newEmp.suburb, newEmp.state, newEmp.postcode, newEmp.startDate, newEmp.department || null, newEmp.jobTitle,
           newEmp.workLocation, newEmp.reportsTo, newEmp.status, newEmp.workingHours, newEmp.workingHoursConfirmed ? 1 : 0,
-          newEmp.citizenStatus, newEmp.visaType || null, newEmp.visaExpiryDate || null, newEmp.visaStatusConfirmed ? 1 : 0,
-          newEmp.hasDriverLicense ? 1 : 0, newEmp.licenseCountry || 'NSW (Australia)', newEmp.licenseNumber || null, newEmp.licenseExpiryDate || null,
+          newEmp.citizenStatus || null, newEmp.visaType || null, newEmp.visaExpiryDate || null, newEmp.visaStatusConfirmed ? 1 : 0,
+          newEmp.hasDriverLicense ? 1 : 0, newEmp.licenseCountry || null, newEmp.licenseNumber || null, newEmp.licenseExpiryDate || null,
           newEmp.emergencyNextOfKin || null, newEmp.emergencyRelationship || null, newEmp.emergencyMobile || null,
           newEmp.bankName || null, newEmp.bankBranch || null, newEmp.accountName || null, newEmp.bsbEncrypted || null, newEmp.bsbMasked || null,
           newEmp.accountNumberEncrypted || null, newEmp.accountNumberMasked || null, newEmp.tfnEncrypted || null, newEmp.tfnMasked || null,
-          newEmp.superFundName || null, newEmp.superMemberNumber || null, newEmp.kioskPin || '4829', newEmp.clockState || 'CLOCKED_OUT',
-          newEmp.avatarUrl, newEmp.leaveBalance.annual, newEmp.leaveBalance.sick, newEmp.leaveBalance.carers, newEmp.leaveBalance.longService
+          newEmp.superFundName || null, newEmp.superMemberNumber || null, newEmp.kioskPin || null, newEmp.clockState || 'CLOCKED_OUT',
+          newEmp.avatarUrl || null, newEmp.leaveBalance.annual, newEmp.leaveBalance.sick, newEmp.leaveBalance.carers, newEmp.leaveBalance.longService
         ]);
       } catch (err: any) {
         console.warn('MySQL employee insert skipped:', err.message);
@@ -301,8 +301,27 @@ export async function PUT(req: Request) {
     }
 
     // Update disk JSON
-    const updated = stored.map(emp => emp.id === id ? { ...emp, ...updates } : emp);
+    let autoCompleted = false;
+    const nowIso = new Date().toISOString();
+    const updated = stored.map(emp => {
+      if (emp.id !== id) return emp;
+      const merged = { ...emp, ...updates };
+      const progress = getOnboardingProgress(merged);
+      if (merged.status === 'Pending' && progress.isComplete) {
+        merged.status = 'Active';
+        merged.onboardingStatus = 'COMPLETED';
+        merged.profileCompletedAt = merged.profileCompletedAt || nowIso;
+        autoCompleted = true;
+      }
+      return merged;
+    });
     await saveStoredEmployees(updated);
+
+    if (autoCompleted) {
+      updates.status = 'Active';
+      updates.onboardingStatus = 'COMPLETED';
+      updates.profileCompletedAt = nowIso;
+    }
 
     if (isDbConfigured) {
       try {

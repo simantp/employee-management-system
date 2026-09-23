@@ -7,20 +7,20 @@ export async function POST(req: Request) {
     body = await req.json();
     let { host, port, secure, user, pass, fromEmail, fromName, testRecipient } = body || {};
 
-    // If host or user or pass are not provided in request body, fallback to effective saved config
-    if (!host || !user || !pass) {
+    // If host or user or pass are not provided (or masked), fallback to effective saved config
+    if (!host || !user || !pass || pass === '••••••••') {
       const saved = await getEffectiveSmtpConfig();
       if (!saved.isConfigured) {
         return NextResponse.json({
           success: false,
-          message: 'No SMTP configuration provided or stored. Please enter your SMTP Host, Username, and Password.'
+          message: 'No SMTP configuration provided or stored. Please configure SMTP in your Hostinger environment variables (.env) or enter details.'
         }, { status: 400 });
       }
       host = host || saved.host;
       port = port || saved.port;
       secure = secure !== undefined ? secure : saved.secure;
       user = user || saved.user;
-      pass = pass || saved.pass;
+      pass = (!pass || pass === '••••••••') ? saved.pass : pass;
       fromEmail = fromEmail || saved.fromEmail;
       fromName = fromName || saved.fromName;
     }

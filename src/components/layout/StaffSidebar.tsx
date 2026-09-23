@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { useApp } from '@/lib/store';
+import { getOnboardingProgress } from '@/lib/onboarding';
 
 export default function StaffSidebar({ 
   activeTab = 'dashboard', 
@@ -11,6 +12,9 @@ export default function StaffSidebar({
   onSelectTab?: (tab: string) => void;
 }) {
   const { currentStaff } = useApp();
+
+  const progress = getOnboardingProgress(currentStaff);
+  const isIncomplete = currentStaff?.status === 'Pending' || !progress.isComplete;
 
   const navItems = [
     { id: 'dashboard', label: 'Dashboard' },
@@ -49,6 +53,7 @@ export default function StaffSidebar({
       <div className="flex-1 overflow-y-auto pt-2 space-y-1 scrollbar-none">
         {navItems.map(item => {
           const isActive = activeTab === item.id;
+          const isItemLocked = isIncomplete && item.id === 'timesheet';
           
           return (
             <div key={item.id} className="relative pl-3">
@@ -57,6 +62,8 @@ export default function StaffSidebar({
                 className={`w-full flex items-center justify-between px-4 py-3 text-xs transition-all duration-150 cursor-pointer ${
                   isActive
                     ? 'curved-active-tab font-bold text-[#453a6a]'
+                    : isItemLocked
+                    ? 'rounded-2xl text-purple-200/50 hover:text-purple-200 hover:bg-white/5 font-medium pr-4'
                     : 'rounded-2xl text-purple-200/75 hover:text-white hover:bg-white/10 font-medium pr-4'
                 }`}
               >
@@ -64,6 +71,11 @@ export default function StaffSidebar({
                   {isActive && <span className="w-2 h-2 rounded-full bg-[#453a6a] flex-shrink-0 animate-pulse" />}
                   <span className="truncate">{item.label}</span>
                 </div>
+                {isItemLocked && (
+                  <span className="text-[10px] text-amber-300 font-bold px-1.5 py-0.5 rounded bg-amber-500/20 border border-amber-400/30 flex items-center gap-1">
+                    🔒 Locked
+                  </span>
+                )}
               </button>
             </div>
           );
@@ -85,6 +97,11 @@ export default function StaffSidebar({
               {activeTab === 'profile' && <span className="w-2 h-2 rounded-full bg-[#453a6a] flex-shrink-0 animate-pulse" />}
               <span className="truncate">My Profile</span>
             </div>
+            {isIncomplete && (
+              <span className="text-[10px] font-mono font-bold px-1.5 py-0.5 rounded bg-amber-400/20 text-amber-300 border border-amber-400/30">
+                {progress.percent}%
+              </span>
+            )}
           </button>
         </div>
 
@@ -94,6 +111,8 @@ export default function StaffSidebar({
             className={`w-full flex items-center justify-between px-4 py-2.5 text-xs transition-all duration-150 cursor-pointer ${
               activeTab === 'leave'
                 ? 'curved-active-tab font-bold text-[#453a6a]'
+                : isIncomplete
+                ? 'rounded-2xl text-purple-200/50 hover:text-purple-200 hover:bg-white/5 font-medium pr-4'
                 : 'rounded-2xl text-purple-200/75 hover:text-white hover:bg-white/10 font-medium pr-4'
             }`}
           >
@@ -101,6 +120,11 @@ export default function StaffSidebar({
               {activeTab === 'leave' && <span className="w-2 h-2 rounded-full bg-[#453a6a] flex-shrink-0 animate-pulse" />}
               <span className="truncate">Leave Management</span>
             </div>
+            {isIncomplete && (
+              <span className="text-[10px] text-amber-300 font-bold px-1.5 py-0.5 rounded bg-amber-500/20 border border-amber-400/30 flex items-center gap-1">
+                🔒
+              </span>
+            )}
           </button>
         </div>
 
@@ -126,6 +150,8 @@ export default function StaffSidebar({
             className={`w-full flex items-center justify-between px-4 py-2.5 text-xs transition-all duration-150 cursor-pointer ${
               activeTab === 'resignation'
                 ? 'curved-active-tab font-bold text-[#453a6a]'
+                : isIncomplete
+                ? 'rounded-2xl text-purple-200/50 hover:text-purple-200 hover:bg-white/5 font-medium pr-4'
                 : 'rounded-2xl text-purple-200/75 hover:text-rose-300 hover:bg-rose-500/10 font-medium pr-4'
             }`}
           >
@@ -133,6 +159,11 @@ export default function StaffSidebar({
               {activeTab === 'resignation' && <span className="w-2 h-2 rounded-full bg-rose-600 flex-shrink-0 animate-pulse" />}
               <span className="truncate">Resignation Notice</span>
             </div>
+            {isIncomplete && (
+              <span className="text-[10px] text-amber-300 font-bold px-1.5 py-0.5 rounded bg-amber-500/20 border border-amber-400/30 flex items-center gap-1">
+                🔒
+              </span>
+            )}
           </button>
         </div>
       </div>
@@ -165,7 +196,10 @@ export default function StaffSidebar({
             </div>
           </div>
 
-          <div className="w-2 h-2 rounded-full bg-emerald-400 ring-2 ring-emerald-400/30 animate-pulse flex-shrink-0" title="Active Staff" />
+          <div 
+            className={`w-2 h-2 rounded-full ${isIncomplete ? 'bg-amber-400 ring-2 ring-amber-400/30 animate-pulse' : 'bg-emerald-400 ring-2 ring-emerald-400/30 animate-pulse'} flex-shrink-0`} 
+            title={isIncomplete ? `Profile Incomplete (${progress.percent}%)` : 'Active Staff'} 
+          />
         </div>
       </div>
 

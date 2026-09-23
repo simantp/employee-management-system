@@ -45,7 +45,7 @@ CREATE TABLE IF NOT EXISTS `employees` (
   `job_title` VARCHAR(100) NOT NULL DEFAULT 'Staff Member',
   `work_location` VARCHAR(100) DEFAULT 'Sydney, NSW',
   `reports_to` VARCHAR(100) DEFAULT 'Operations Lead',
-  `status` ENUM('Active', 'On Leave', 'Terminated', 'Probation', 'Archived') NOT NULL DEFAULT 'Active',
+  `status` ENUM('Active', 'On Leave', 'Terminated', 'Probation', 'Archived', 'Pending') NOT NULL DEFAULT 'Pending',
   `working_hours` DECIMAL(5,2) NOT NULL DEFAULT 38.00,
   `working_hours_confirmed` TINYINT(1) NOT NULL DEFAULT 1,
   `citizen_status` VARCHAR(64) DEFAULT 'Australian Citizen',

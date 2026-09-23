@@ -28,11 +28,27 @@ export interface SmtpConfigResult {
   source: 'SETTINGS_DB' | 'ENV_VARS' | 'NONE';
 }
 
+import { getEnvSmtpConfig } from './smtpConfig';
+
 export async function getEffectiveSmtpConfig(): Promise<SmtpConfigResult> {
+  // 1. Check environment variables (.env, .env.local, .env.production, and process.env)
+  const envSmtp = getEnvSmtpConfig();
+  if (envSmtp && envSmtp.isConfigured) {
+    return envSmtp;
+  }
+
+  // 2. Fallback to Admin Settings stored in Database or settings.json
   try {
     const settings = await getStoredSettings();
     const smtp = settings?.smtpSettings;
-    if (smtp && smtp.enableSmtp !== false && smtp.host && smtp.user && smtp.pass) {
+    if (
+      smtp && 
+      smtp.enableSmtp !== false && 
+      smtp.host?.trim() && 
+      smtp.user?.trim() && 
+      smtp.pass?.trim() &&
+      smtp.user !== 'admin@company.com.au'
+    ) {
       const port = Number(smtp.port) || 587;
       return {
         host: smtp.host.trim(),
@@ -48,25 +64,6 @@ export async function getEffectiveSmtpConfig(): Promise<SmtpConfigResult> {
     }
   } catch (e) {
     console.error('Error fetching stored SMTP settings in emailService:', e);
-  }
-
-  // Fallback to process.env
-  const envHost = process.env.SMTP_HOST;
-  const envUser = process.env.SMTP_USER;
-  const envPass = process.env.SMTP_PASS;
-  if (envHost && envUser && envPass) {
-    const port = parseInt(process.env.SMTP_PORT || '587', 10);
-    return {
-      host: envHost,
-      port: port,
-      secure: process.env.SMTP_SECURE === 'true' || port === 465,
-      user: envUser,
-      pass: envPass,
-      fromEmail: process.env.EMAIL_FROM || envUser,
-      fromName: process.env.EMAIL_FROM_NAME || 'HsCreations Sydney',
-      isConfigured: true,
-      source: 'ENV_VARS',
-    };
   }
 
   return {

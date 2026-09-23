@@ -559,8 +559,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           if (setRes.value.settings.ipLockSettings) {
             setIpLockSettings(prev => ({ ...prev, ...setRes.value.settings.ipLockSettings }));
           }
-          if (setRes.value.settings.smtpSettings) {
-            setSmtpSettings(prev => ({ ...prev, ...setRes.value.settings.smtpSettings }));
+          if (setRes.value.settings.effectiveSmtp || setRes.value.settings.smtpSettings) {
+            setSmtpSettings(prev => ({ ...prev, ...(setRes.value.settings.effectiveSmtp || setRes.value.settings.smtpSettings) }));
           }
           if (setRes.value.settings.securitySettings) {
             const sec = setRes.value.settings.securitySettings;
@@ -1835,7 +1835,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       workingHoursConfirmed: false,
       visaStatusConfirmed: false,
       hasDriverLicense: false,
-      licenseCountry: 'Australia',
+      licenseCountry: '',
       licenseNumber: '',
       licenseExpiryDate: '',
       emergencyNextOfKin: '',
@@ -1851,7 +1851,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       superMemberNumber: '',
       bankName: '',
       bankBranch: '',
-      accountName: `${cleanFirstName} ${cleanLastName}`,
+      accountName: '',
       bsbMasked: '',
       bsbEncrypted: '',
       accountNumberMasked: '',
@@ -3804,6 +3804,23 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       return { success: false, message: 'Your staff account has been archived. Clock-in access is disabled.' };
     }
 
+    const onboarding = getOnboardingProgress(emp);
+    if (emp.status === 'Pending' || !onboarding.isComplete) {
+      addToast('Profile Incomplete', `Your profile is only ${onboarding.percent}% complete. Please complete 100% of your onboarding before clocking in.`, 'error');
+      addAudit(
+        'CLOCK_IN_BLOCKED_INCOMPLETE_PROFILE',
+        'Employee',
+        emp.id,
+        `${emp.firstName} ${emp.lastName} attempted shift punch with incomplete profile (${onboarding.percent}% complete, missing: ${onboarding.missingSectionTitles.join(', ')}). Punch rejected.`,
+        `${emp.firstName} ${emp.lastName}`,
+        'Staff'
+      );
+      return { 
+        success: false, 
+        message: `Shift Clock Locked: Your profile is ${onboarding.percent}% complete (Missing: ${onboarding.missingSectionTitles.join(', ')}). You must complete 100% of your profile in the Staff Portal before clocking in.` 
+      };
+    }
+
     if (emp.clockState === 'CLOCKED_IN') {
       addToast('Already Clocked In', `${emp.firstName} is currently on shift. Please select Clock Out.`, 'warning');
       return { success: false, message: `${emp.firstName} is already clocked in.`, employee: emp };
@@ -3955,6 +3972,15 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         'Unknown'
       );
       return { success: false, message: 'Invalid Username or 4-digit PIN.' };
+    }
+
+    const onboarding = getOnboardingProgress(emp);
+    if (emp.status === 'Pending' || !onboarding.isComplete) {
+      addToast('Profile Incomplete', `Your profile is only ${onboarding.percent}% complete. Please complete 100% of your onboarding before clocking out.`, 'error');
+      return { 
+        success: false, 
+        message: `Shift Clock Locked: Your profile is ${onboarding.percent}% complete. You must complete 100% of your onboarding profile.` 
+      };
     }
 
     if (emp.clockState !== 'CLOCKED_IN') {

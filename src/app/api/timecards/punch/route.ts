@@ -13,6 +13,7 @@ import {
   appendStoredNotification
 } from '@/lib/serverData';
 import { getClientIpFromRequest, getAuthenticatedUserFromRequest } from '@/lib/session';
+import { getOnboardingProgress } from '@/lib/onboarding';
 
 function evaluateServerIpAccess(
   clientIp: string,
@@ -177,6 +178,32 @@ export async function POST(req: Request) {
 
       return NextResponse.json(
         { success: false, message: 'Your staff account has been archived. Shift punch access is disabled.' },
+        { status: 403 }
+      );
+    }
+
+    // 3b. Check if Profile is Complete (100%) and not Pending
+    const onboarding = getOnboardingProgress(emp);
+    if (emp.status === 'Pending' || !onboarding.isComplete) {
+      const incompleteAudit: AuditLog = {
+        id: `aud-${nowMs}`,
+        timestamp: nowAest,
+        actorId: emp.id,
+        actorName: `${emp.firstName} ${emp.lastName}`,
+        actorRole: 'STAFF',
+        action: 'CLOCK_IN_BLOCKED_INCOMPLETE_PROFILE',
+        targetType: 'Employee',
+        targetId: emp.id,
+        details: `Staff member ${emp.firstName} ${emp.lastName} attempted shift punch with incomplete profile (${onboarding.percent}% complete, missing: ${onboarding.missingSectionTitles.join(', ')}). Punch rejected.`,
+        ipAddress: effectiveIp,
+      };
+      await appendStoredAuditLog(incompleteAudit);
+
+      return NextResponse.json(
+        { 
+          success: false, 
+          message: `Shift Clock Locked: Your profile is ${onboarding.percent}% complete (Missing: ${onboarding.missingSectionTitles.join(', ')}). You must complete 100% of your profile in the Staff Portal before clocking in.` 
+        },
         { status: 403 }
       );
     }

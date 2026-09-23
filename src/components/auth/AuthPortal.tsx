@@ -7,6 +7,7 @@ import confetti from 'canvas-confetti';
 import ForgotPasswordModal from './ForgotPasswordModal';
 import ResetPasswordModal from './ResetPasswordModal';
 import { detectWorkstationIp } from '@/lib/ipUtils';
+import { getOnboardingProgress } from '@/lib/onboarding';
 
 export default function AuthPortal() {
   const { 
@@ -268,11 +269,21 @@ export default function AuthPortal() {
     return matchUser && matchPin;
   });
 
+  // Calculate onboarding progress of matched employee
+  const matchedStaffProgress = matchedStaff ? getOnboardingProgress(matchedStaff) : null;
+  const isMatchedStaffIncomplete = matchedStaff ? (matchedStaff.status === 'Pending' || !matchedStaffProgress?.isComplete) : false;
+
   const handleClockIn = () => {
     if (!clockUsername.trim() || !clockPin.trim()) return;
     setPunchError(null);
     const user = clockUsername.trim();
     const pin = clockPin.trim();
+
+    if (matchedStaff && isMatchedStaffIncomplete) {
+      setPunchError(`Shift Clock Locked: Your profile is ${matchedStaffProgress?.percent}% complete (Missing: ${matchedStaffProgress?.missingSectionTitles.join(', ')}). You must complete 100% of your profile in the Staff Portal before clocking in.`);
+      return;
+    }
+
     // Clear the input fields immediately once used
     setClockUsername('');
     setClockPin('');
@@ -305,6 +316,12 @@ export default function AuthPortal() {
     setPunchError(null);
     const user = clockUsername.trim();
     const pin = clockPin.trim();
+
+    if (matchedStaff && isMatchedStaffIncomplete) {
+      setPunchError(`Shift Clock Locked: Your profile is ${matchedStaffProgress?.percent}% complete. You must complete 100% of your profile in the Staff Portal before clocking out.`);
+      return;
+    }
+
     // Clear the input fields immediately once used
     setClockUsername('');
     setClockPin('');
@@ -764,6 +781,11 @@ export default function AuthPortal() {
                               <span className="w-1.5 h-1.5 rounded-full bg-purple-600" />
                               ACCOUNT ARCHIVED (Punch Disabled)
                             </span>
+                          ) : isMatchedStaffIncomplete ? (
+                            <span className="px-3 py-1 rounded-full bg-amber-100 text-amber-900 font-bold text-[11px] border border-amber-300 flex items-center gap-1.5">
+                              <span className="w-1.5 h-1.5 rounded-full bg-amber-600 animate-pulse" />
+                              PROFILE INCOMPLETE ({matchedStaffProgress?.percent}%)
+                            </span>
                           ) : matchedStaff.clockState === 'CLOCKED_IN' ? (
                             <span className="px-3 py-1 rounded-full bg-rose-100 text-rose-800 font-bold text-[11px] border border-rose-300 flex items-center gap-1.5">
                               <span className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-pulse" />
@@ -776,6 +798,21 @@ export default function AuthPortal() {
                             </span>
                           )}
                         </div>
+
+                        {/* Profile Incomplete Warning Banner */}
+                        {isMatchedStaffIncomplete && (
+                          <div className="p-2.5 rounded-xl bg-amber-100/70 border border-amber-300 text-[11px] text-amber-950 leading-snug space-y-1">
+                            <div className="font-bold flex items-center gap-1.5 text-amber-900">
+                              <span>⚠️ Shift Punching Locked</span>
+                              <span className="text-[10px] px-1.5 py-0.2 bg-amber-200 rounded font-mono">
+                                {matchedStaffProgress?.percent}% Complete
+                              </span>
+                            </div>
+                            <p className="text-amber-800 text-[10px]">
+                              Missing: {matchedStaffProgress?.missingSectionTitles.join(', ')}. Please sign in above to complete 100% of your profile.
+                            </p>
+                          </div>
+                        )}
                       </div>
                     ) : (
                       clockUsername.trim().length >= 2 && clockPin.trim().length === 4 && (
@@ -792,10 +829,10 @@ export default function AuthPortal() {
                   {/* Clock In Button */}
                   <button
                     type="button"
-                    disabled={!clockUsername.trim() || clockPin.trim().length !== 4 || matchedStaff?.clockState === 'CLOCKED_IN' || matchedStaff?.status === 'Archived'}
+                    disabled={!clockUsername.trim() || clockPin.trim().length !== 4 || matchedStaff?.clockState === 'CLOCKED_IN' || matchedStaff?.status === 'Archived' || isMatchedStaffIncomplete}
                     onClick={handleClockIn}
                     className={`py-3.5 px-4 rounded-xl font-bold text-xs flex flex-col items-center justify-center gap-1 transition-all ${
-                      clockUsername.trim() && clockPin.trim().length === 4 && matchedStaff?.clockState !== 'CLOCKED_IN' && matchedStaff?.status !== 'Archived'
+                      clockUsername.trim() && clockPin.trim().length === 4 && matchedStaff?.clockState !== 'CLOCKED_IN' && matchedStaff?.status !== 'Archived' && !isMatchedStaffIncomplete
                         ? 'bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-slate-950 shadow-lg shadow-emerald-500/25 hover:scale-[1.02] cursor-pointer'
                         : 'bg-slate-100 border border-slate-200 text-slate-400 opacity-60 cursor-not-allowed'
                     }`}
@@ -804,17 +841,23 @@ export default function AuthPortal() {
                       Clock IN
                     </span>
                     <span className="text-[10px] font-semibold opacity-80">
-                      {matchedStaff?.status === 'Archived' ? 'Account Archived' : matchedStaff?.clockState === 'CLOCKED_IN' ? 'Already on shift' : 'Start Shift'}
+                      {matchedStaff?.status === 'Archived' 
+                        ? 'Account Archived' 
+                        : isMatchedStaffIncomplete
+                        ? `Profile Incomplete (${matchedStaffProgress?.percent}%)`
+                        : matchedStaff?.clockState === 'CLOCKED_IN' 
+                        ? 'Already on shift' 
+                        : 'Start Shift'}
                     </span>
                   </button>
 
                   {/* Clock Out Button */}
                   <button
                     type="button"
-                    disabled={!clockUsername.trim() || clockPin.trim().length !== 4 || (matchedStaff && matchedStaff.clockState !== 'CLOCKED_IN') || matchedStaff?.status === 'Archived'}
+                    disabled={!clockUsername.trim() || clockPin.trim().length !== 4 || (matchedStaff && matchedStaff.clockState !== 'CLOCKED_IN') || matchedStaff?.status === 'Archived' || isMatchedStaffIncomplete}
                     onClick={handleClockOut}
                     className={`py-3.5 px-4 rounded-xl font-bold text-xs flex flex-col items-center justify-center gap-1 transition-all ${
-                      clockUsername.trim() && clockPin.trim().length === 4 && (!matchedStaff || matchedStaff.clockState === 'CLOCKED_IN') && matchedStaff?.status !== 'Archived'
+                      clockUsername.trim() && clockPin.trim().length === 4 && (!matchedStaff || matchedStaff.clockState === 'CLOCKED_IN') && matchedStaff?.status !== 'Archived' && !isMatchedStaffIncomplete
                         ? 'bg-gradient-to-r from-rose-500 to-red-500 hover:from-rose-400 hover:to-red-400 text-white shadow-lg shadow-rose-500/25 hover:scale-[1.02] cursor-pointer'
                         : 'bg-slate-100 border border-slate-200 text-slate-400 opacity-60 cursor-not-allowed'
                     }`}
@@ -823,7 +866,13 @@ export default function AuthPortal() {
                       Clock OUT
                     </span>
                     <span className="text-[10px] font-semibold opacity-80">
-                      {matchedStaff?.status === 'Archived' ? 'Account Archived' : (matchedStaff && matchedStaff.clockState !== 'CLOCKED_IN') ? 'Not clocked in' : 'End Shift'}
+                      {matchedStaff?.status === 'Archived' 
+                        ? 'Account Archived' 
+                        : isMatchedStaffIncomplete
+                        ? `Profile Incomplete (${matchedStaffProgress?.percent}%)`
+                        : (matchedStaff && matchedStaff.clockState !== 'CLOCKED_IN') 
+                        ? 'Not clocked in' 
+                        : 'End Shift'}
                     </span>
                   </button>
                 </div>

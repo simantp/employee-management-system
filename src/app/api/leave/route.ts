@@ -1,8 +1,9 @@
 import { NextResponse } from 'next/server';
 import { query, isDbConfigured } from '@/lib/db';
 import { LeaveRequest, NotificationItem } from '@/types';
-import { getStoredLeaveRequests, saveStoredLeaveRequests, appendStoredNotification } from '@/lib/serverData';
+import { getStoredLeaveRequests, saveStoredLeaveRequests, appendStoredNotification, getStoredEmployees } from '@/lib/serverData';
 import { getAuthenticatedUserFromRequest } from '@/lib/session';
+import { getOnboardingProgress } from '@/lib/onboarding';
 
 function mapRowToLeave(row: any): LeaveRequest {
   return {
@@ -59,6 +60,25 @@ export async function GET(req: Request) {
 export async function POST(req: Request) {
   try {
     const r: LeaveRequest = await req.json();
+    if (!r.employeeId) {
+      return NextResponse.json({ success: false, message: 'Employee ID required' }, { status: 400 });
+    }
+
+    const employees = await getStoredEmployees();
+    const emp = employees.find(e => e.id === r.employeeId);
+    if (emp) {
+      const progress = getOnboardingProgress(emp);
+      if (emp.status === 'Pending' || !progress.isComplete) {
+        return NextResponse.json(
+          {
+            success: false,
+            message: `Leave application locked: Your profile is ${progress.percent}% complete (Missing: ${progress.missingSectionTitles.join(', ')}). Please complete 100% of your onboarding profile in the Staff Portal before applying for leave.`,
+          },
+          { status: 403 }
+        );
+      }
+    }
+
     const id = r.id || `leave-${Date.now()}`;
     const newReq: LeaveRequest = { ...r, id };
 
