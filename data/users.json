@@ -4,7 +4,7 @@
     "name": "Super Admin",
     "username": "admin",
     "email": "admin@company.com.au",
-    "passwordHash": "$2b$12$bN.7nPulnuCX1j07w.IKluOugftjPG4LkSAv.ZZ9AMraOMKytAEWW",
+    "passwordHash": "$2b$12$DmgOZPv9/QcfSQo9rhKab.RGEpUI1UcrR1zux5ba4PcumzErsuu8q",
     "role": "SUPER_ADMIN",
     "isEmailVerified": true,
     "avatarUrl": "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150",

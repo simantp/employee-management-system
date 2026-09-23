@@ -1,5 +1,29 @@
 [
   {
+    "id": "aud-1790159859651",
+    "action": "USER_LOGOUT",
+    "targetType": "User",
+    "targetId": "usr-1",
+    "details": "User Super Admin logged out",
+    "actorId": "usr-1",
+    "actorName": "Super Admin",
+    "actorRole": "SUPER_ADMIN",
+    "timestamp": "23/09/2026, 8:37:39 pm AEST",
+    "ipAddress": "127.0.0.1 (Localhost)"
+  },
+  {
+    "id": "aud-1790159856658",
+    "action": "USER_LOGIN_SUCCESS",
+    "targetType": "User",
+    "targetId": "usr-1",
+    "details": "User Super Admin successfully authenticated with role SUPER_ADMIN.",
+    "actorId": "usr-1",
+    "actorName": "Super Admin",
+    "actorRole": "SUPER_ADMIN",
+    "timestamp": "23/09/2026, 8:37:36 pm AEST",
+    "ipAddress": "127.0.0.1 (Localhost)"
+  },
+  {
     "id": "aud-1790152366358",
     "action": "SESSION_AUTO_LOGOUT_INACTIVITY",
     "targetType": "User",

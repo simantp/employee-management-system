@@ -309,19 +309,6 @@ export default function AuthPortal() {
     }
   };
 
-  const handleQuickLogin = (email: string) => {
-    setErrorMessage(null);
-    // Clear input fields immediately once used
-    setLoginEmail('');
-    setLoginPassword('');
-    const success = login(email);
-    if (!success) {
-      const emp = employees.find(e => e.email.toLowerCase() === email.trim().toLowerCase());
-      if (emp?.status === 'Archived') {
-        setErrorMessage('This staff account has been archived by administration. Login and Shift Clock punch access are disabled. Please contact your manager or HR.');
-      }
-    }
-  };
 
   const handleOtpChange = (index: number, val: string) => {
     const cleanVal = val.replace(/[^0-9]/g, '');
@@ -781,39 +768,6 @@ export default function AuthPortal() {
                   </button>
                 </div>
 
-                {/* Quick Demo Test Employee Credentials Chips */}
-                <div className="pt-4 border-t border-slate-100">
-                  <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block mb-2.5">
-                    1-Click Demo Shift Credentials:
-                  </span>
-                  <div className="flex flex-wrap gap-2">
-                    {employees.filter(e => e.status !== 'Archived').slice(0, 4).map(emp => {
-                      const effectiveUser = emp.username || (emp.email ? emp.email.split('@')[0] : `${emp.firstName}.${emp.lastName}`.toLowerCase());
-                      const effectivePin = emp.kioskPin || (emp.id === 'emp-42' ? '4829' : emp.id === 'emp-41' ? '1234' : emp.id === 'emp-40' ? '5678' : '9988');
-                      const isSelected = clockUsername.toLowerCase() === effectiveUser.toLowerCase() && clockPin === effectivePin;
-                      return (
-                        <button
-                          key={emp.id}
-                          type="button"
-                          onClick={() => {
-                            setClockUsername(effectiveUser);
-                            setClockPin(effectivePin);
-                          }}
-                          className={`px-3 py-1.5 rounded-xl text-[11px] font-bold border transition flex items-center gap-1.5 cursor-pointer ${
-                            isSelected
-                              ? 'bg-emerald-50 text-emerald-800 border-emerald-300 shadow-xs'
-                              : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100 hover:text-slate-900'
-                          }`}
-                        >
-                          <span>{emp.firstName}:</span>
-                          <span className="font-mono text-blue-600 font-semibold">@{effectiveUser}</span>
-                          <span className="font-mono text-emerald-700 font-bold">• {effectivePin}</span>
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-
               </div>
             )}
 
@@ -917,27 +871,6 @@ export default function AuthPortal() {
                     Sign In to HsCreations
                   </button>
                 </form>
-
-                {/* 1-Click Instant Demo Credentials */}
-                <div className="pt-3 border-t border-slate-100 space-y-2">
-                  <div className="text-slate-400 font-bold uppercase tracking-wider text-[10px]">
-                    Instant 1-Click Test Access:
-                  </div>
-
-                  <div className="grid grid-cols-1 gap-2.5">
-                    <button
-                      type="button"
-                      onClick={() => handleQuickLogin('admin@company.com.au')}
-                      className="p-3 rounded-xl border border-slate-200 bg-slate-50 hover:bg-slate-100 hover:border-orange-400 text-left transition-all flex items-center justify-between group cursor-pointer shadow-xs"
-                    >
-                      <div>
-                        <span className="block text-xs font-bold text-slate-900 group-hover:text-orange-600">Super Admin</span>
-                        <span className="text-[10px] text-orange-600 font-semibold">Admin &amp; HR Portal</span>
-                      </div>
-                      <span className="text-xs font-bold text-slate-400 group-hover:text-orange-600">Enter →</span>
-                    </button>
-                  </div>
-                </div>
 
                 {/* Staff Invitation Link Trigger */}
                 <div className="pt-2 text-center border-t border-slate-100">

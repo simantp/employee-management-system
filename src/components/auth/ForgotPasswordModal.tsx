@@ -185,23 +185,6 @@ export default function ForgotPasswordModal({
                   Back to Sign In
                 </button>
               </div>
-
-              {/* Quick Select Registered Accounts for Testing */}
-              <div className="pt-3 border-t border-slate-100 space-y-2">
-                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
-                  Quick Select Account:
-                </span>
-                <div className="grid grid-cols-1 gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setEmail('admin@company.com.au')}
-                    className="p-2 rounded-xl bg-slate-50 hover:bg-slate-100 border border-slate-200 text-left transition cursor-pointer group"
-                  >
-                    <span className="block text-[11px] font-bold text-slate-800 group-hover:text-orange-600 truncate">Super Admin</span>
-                    <span className="text-[9px] text-slate-500 truncate block">admin@company.com.au</span>
-                  </button>
-                </div>
-              </div>
             </form>
           ) : (
             /* VIEW 2: SUCCESS WITH 5-MINUTE LIVE COUNTDOWN & INSTANT ACCESS */

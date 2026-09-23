@@ -59,12 +59,6 @@ export default function AuthModal({ onClose }: { onClose: () => void }) {
     if (success) onClose();
   };
 
-  const handleQuickLogin = (email: string) => {
-    setLoginEmail('');
-    setLoginPassword('');
-    const success = login(email);
-    if (success) onClose();
-  };
 
   const handleRegisterSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -194,26 +188,6 @@ export default function AuthModal({ onClose }: { onClose: () => void }) {
                 Sign In to Portal
               </button>
             </form>
-
-            {/* Quick 1-Click Demo Logins */}
-            <div className="pt-3 border-t border-slate-100 space-y-2">
-              <div className="text-slate-400 font-bold uppercase tracking-wider text-[10px]">
-                1-Click Test Accounts:
-              </div>
-              <div className="grid grid-cols-1 gap-2">
-                <button
-                  type="button"
-                  onClick={() => handleQuickLogin('admin@company.com.au')}
-                  className="p-2 rounded-xl border border-blue-200 bg-blue-50/60 hover:bg-blue-100 text-blue-900 font-bold text-left transition flex items-center justify-between cursor-pointer"
-                >
-                  <div>
-                    <span className="block text-[11px]">Super Admin</span>
-                    <span className="text-[9px] text-blue-600 font-normal">Admin Dashboard</span>
-                  </div>
-                  <span className="text-xs font-bold text-blue-600">Enter →</span>
-                </button>
-              </div>
-            </div>
 
             {/* Switch to Register */}
             <div className="text-center pt-2 text-slate-500 text-[11px]">
