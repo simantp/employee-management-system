@@ -92,18 +92,40 @@ export default function AuthPortal() {
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const searchParams = new URLSearchParams(window.location.search);
-      const inviteParam = searchParams.get('invite');
+      const inviteParam = searchParams.get('invite') || searchParams.get('token') || searchParams.get('inviteToken');
       const resetParam = searchParams.get('resetToken') || searchParams.get('reset');
       const email = searchParams.get('email');
 
       if (resetParam) {
         setResetToken(resetParam);
         if (email) setResetEmail(decodeURIComponent(email));
-      } else if (inviteParam) {
-        setUrlInviteToken(inviteParam);
-        setInviteTokenInput(inviteParam);
-        if (email) setUrlEmail(decodeURIComponent(email));
+      } else if (inviteParam || email) {
+        if (inviteParam) {
+          setUrlInviteToken(inviteParam);
+          setInviteTokenInput(inviteParam);
+        }
+        if (email) {
+          setUrlEmail(decodeURIComponent(email));
+        }
         setShowInviteModal(true);
+
+        // Fetch employee details directly from server for instant accuracy
+        const queryToken = inviteParam ? encodeURIComponent(inviteParam) : '';
+        const queryEmail = email ? encodeURIComponent(decodeURIComponent(email)) : '';
+        fetch(`/api/auth/activate-invite?token=${queryToken}&email=${queryEmail}`)
+          .then(r => r.json())
+          .then(data => {
+            if (data?.success && data?.employee) {
+              setInviteMatchedEmp(data.employee);
+              setInviteUsername(data.employee.username || `${data.employee.firstName}.${data.employee.lastName}`.toLowerCase().replace(/[^a-z0-9._-]/g, ''));
+              setInvitePin(data.employee.kioskPin || '4829');
+              setIsTokenExpired(Boolean(data.expired));
+              if (data.expired) {
+                setInviteError('This invitation link has expired (1-hour validity). Please ask your manager or HR administrator to resend an invitation email.');
+              }
+            }
+          })
+          .catch(() => {});
       }
     }
   }, []);
@@ -157,17 +179,20 @@ export default function AuthPortal() {
         } else {
           setInviteError(null);
         }
-      } else if (employees.length === 0) {
-        // Fallback fetch if state has not hydrated yet from server
-        fetch('/api/employees')
+      } else {
+        // Fetch from server
+        const qToken = cleanToken ? encodeURIComponent(cleanToken) : '';
+        const qEmail = emailToSearch ? encodeURIComponent(emailToSearch) : '';
+        fetch(`/api/auth/activate-invite?token=${qToken}&email=${qEmail}`)
           .then(r => r.json())
           .then(data => {
-            if (data?.employees && Array.isArray(data.employees)) {
-              const serverMatch = findMatch(data.employees);
-              if (serverMatch) {
-                setInviteMatchedEmp(serverMatch);
-                setInviteUsername(prev => prev || serverMatch.username || `${serverMatch.firstName}.${serverMatch.lastName}`.toLowerCase().replace(/[^a-z0-9._-]/g, ''));
-                setInvitePin(prev => prev || serverMatch.kioskPin || '');
+            if (data?.success && data?.employee) {
+              setInviteMatchedEmp(data.employee);
+              setInviteUsername(prev => prev || data.employee.username || `${data.employee.firstName}.${data.employee.lastName}`.toLowerCase().replace(/[^a-z0-9._-]/g, ''));
+              setInvitePin(prev => prev || data.employee.kioskPin || '');
+              setIsTokenExpired(Boolean(data.expired));
+              if (data.expired) {
+                setInviteError('This invitation link has expired (1-hour validity). Please ask your manager or HR administrator to resend an invitation email.');
               }
             }
           })
@@ -431,7 +456,7 @@ export default function AuthPortal() {
     }
   };
 
-  const handleInviteSubmit = (e: React.FormEvent) => {
+  const handleInviteSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setInviteError(null);
 
@@ -464,29 +489,36 @@ export default function AuthPortal() {
       return;
     }
 
-    const res = setPasswordFromInvite(effectiveToken, invitePassword, inviteUsername.trim() || undefined, invitePin.trim() || undefined);
-    if (res.success) {
-      try {
-        confetti({
-          particleCount: 120,
-          spread: 80,
-          origin: { y: 0.6 }
-        });
-      } catch (err) {}
-      setShowInviteModal(false);
-      setInvitePassword('');
-      setInviteConfirmPassword('');
-      setInviteTokenInput('');
-      setUrlInviteToken('');
-      setUrlEmail('');
-      setInviteMatchedEmp(null);
-      setIsTokenExpired(false);
-      // Clean query string from browser address bar
-      if (typeof window !== 'undefined') {
-        window.history.replaceState(null, '', window.location.pathname);
+    setIsSubmitting(true);
+    try {
+      const res = await setPasswordFromInvite(effectiveToken, invitePassword, inviteUsername.trim() || undefined, invitePin.trim() || undefined);
+      if (res.success) {
+        try {
+          confetti({
+            particleCount: 120,
+            spread: 80,
+            origin: { y: 0.6 }
+          });
+        } catch (err) {}
+        setShowInviteModal(false);
+        setInvitePassword('');
+        setInviteConfirmPassword('');
+        setInviteTokenInput('');
+        setUrlInviteToken('');
+        setUrlEmail('');
+        setInviteMatchedEmp(null);
+        setIsTokenExpired(false);
+        // Clean query string from browser address bar
+        if (typeof window !== 'undefined') {
+          window.history.replaceState(null, '', window.location.pathname);
+        }
+      } else {
+        setInviteError(res.message);
       }
-    } else {
-      setInviteError(res.message);
+    } catch (err: any) {
+      setInviteError(err.message || 'Failed to activate account. Please try again.');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -1177,6 +1209,11 @@ export default function AuthPortal() {
                     className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-300 text-slate-900 font-medium focus:border-orange-500 focus:bg-white focus:outline-none"
                   />
                 </div>
+              </div>
+
+              {/* Helpful Login Notice */}
+              <div className="p-2.5 rounded-xl bg-blue-50/80 border border-blue-200 text-blue-800 text-[11px]">
+                <span>💡 <strong>Sign In Info:</strong> Once activated, you can log in anytime from the main page using your email (<strong>{inviteMatchedEmp?.email || urlEmail || 'your email'}</strong>) and this password.</span>
               </div>
 
               {/* Action Buttons */}

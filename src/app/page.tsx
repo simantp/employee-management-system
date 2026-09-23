@@ -25,17 +25,22 @@ export default function AppHome() {
     }
   }, []);
 
-  // If an invite or password reset link is opened while an existing user session is active, sign out to display the setup modal
+  // If an invite or password reset link is opened on initial page load, clear old conflicting sessions
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const searchParams = new URLSearchParams(window.location.search);
-      const hasInvite = searchParams.has('invite');
-      const hasReset = searchParams.has('resetToken') || searchParams.has('reset');
-      if ((hasInvite || hasReset) && currentUser) {
-        logout();
+      const inviteParam = searchParams.get('invite') || searchParams.get('token');
+      const resetParam = searchParams.get('resetToken') || searchParams.get('reset');
+      const emailParam = searchParams.get('email');
+      
+      if (inviteParam || resetParam) {
+        // If an existing user session is logged in with a DIFFERENT account than the invite, log out
+        if (currentUser && emailParam && currentUser.email.toLowerCase() !== decodeURIComponent(emailParam).toLowerCase()) {
+          logout();
+        }
       }
     }
-  }, [currentUser]);
+  }, []); // Run on initial mount only
 
   // Whenever admin or staff logs in, automatically select and display the dashboard tab
   useEffect(() => {

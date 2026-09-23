@@ -133,7 +133,7 @@ interface AppContextType {
   updateAdminCredentials: (userId: string, updates: { name?: string; email?: string; username?: string; password?: string }) => void;
   deleteAdminUser: (userId: string) => void;
   promoteUserRole: (userId: string, newRole: UserRole) => void;
-  setPasswordFromInvite: (inviteToken: string, newPassword: string, customUsername?: string, customPin?: string) => { success: boolean; message: string; user?: AuthUser };
+  setPasswordFromInvite: (inviteToken: string, newPassword: string, customUsername?: string, customPin?: string) => Promise<{ success: boolean; message: string; user?: AuthUser }>;
 
   // 5-Minute Expiring Forgot Password & Reset System
   passwordResetTokens: PasswordResetToken[];
@@ -2059,7 +2059,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   };
 
   // 3. Staff Sets Password from Invite Link
-  const setPasswordFromInvite = (inviteToken: string, newPassword: string, customUsername?: string, customPin?: string) => {
+  const setPasswordFromInvite = async (inviteToken: string, newPassword: string, customUsername?: string, customPin?: string): Promise<{ success: boolean; message: string; user?: AuthUser }> => {
     const rawInput = (inviteToken || '').trim();
     let actualToken = rawInput;
     let targetEmail = '';
@@ -2077,7 +2077,55 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       }
     }
 
-    // Match employee robustly by inviteToken, full raw string, email, or employee id
+    // Call server-side API first for persistent DB & session auth
+    try {
+      const apiRes = await fetch('/api/auth/activate-invite', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          token: actualToken,
+          email: targetEmail,
+          password: newPassword,
+          username: customUsername,
+          kioskPin: customPin,
+        }),
+      });
+      const data = await apiRes.json();
+      if (data.success && data.user && data.employee) {
+        const verifiedUser: AuthUser = data.user;
+        const activatedEmp: Employee = data.employee;
+
+        setEmployees(prev => {
+          const exists = prev.some(e => e.id === activatedEmp.id);
+          if (exists) {
+            return prev.map(e => e.id === activatedEmp.id ? { ...e, ...activatedEmp } : e);
+          }
+          return [activatedEmp, ...prev];
+        });
+
+        setUsers(prev => {
+          const filtered = prev.filter(u => u.email.toLowerCase() !== verifiedUser.email.toLowerCase() && u.id !== verifiedUser.id);
+          return [verifiedUser, ...filtered];
+        });
+
+        setCurrentStaffId(activatedEmp.id);
+        setCurrentUser(verifiedUser);
+        setActivePortal('STAFF');
+        setShowAuthModal(false);
+
+        addAudit('STAFF_PASSWORD_SET', 'User', verifiedUser.id, `Staff member ${activatedEmp.firstName} ${activatedEmp.lastName} set account password via invite link.`);
+        addToast('Password Created & Signed In', `Welcome, ${activatedEmp.firstName}! Please complete your staff profile to activate your account.`, 'success');
+
+        return { success: true, message: 'Password set successfully. Welcome to HsCreations!', user: verifiedUser };
+      } else if (!data.success && data.message) {
+        addToast('Activation Failed', data.message, 'error');
+        return { success: false, message: data.message };
+      }
+    } catch (err) {
+      console.warn('Backend activation fallback to memory:', err);
+    }
+
+    // Fallback in-memory matching if server is offline
     const emp = employees.find(e => 
       (e.inviteToken && (e.inviteToken === actualToken || actualToken.includes(e.inviteToken))) || 
       (e.inviteToken && e.inviteToken === rawInput) ||
