@@ -57,7 +57,7 @@ export default function BankDetailsModal({ onClose }: { onClose: () => void }) {
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-6 space-y-4 text-xs">
+        <form onSubmit={handleSubmit} autoComplete="off" data-lpignore="true" data-form-type="other" className="p-6 space-y-4 text-xs">
           <div className="p-3.5 rounded-xl bg-cyan-50 border border-cyan-200 text-cyan-900 flex items-start gap-2.5">
             <p className="text-[11px] leading-relaxed">
               Your banking details are encrypted on the server before being saved into the database. Updates trigger an instant real-time notification to the Payroll Admin.
@@ -70,6 +70,8 @@ export default function BankDetailsModal({ onClose }: { onClose: () => void }) {
               <input
                 type="text"
                 required
+                autoComplete="off"
+                data-lpignore="true"
                 value={form.bankName}
                 onChange={e => setForm({...form, bankName: e.target.value})}
                 className="w-full p-2.5 border rounded-xl bg-slate-50 font-semibold focus:bg-white focus:outline-none"
@@ -79,6 +81,8 @@ export default function BankDetailsModal({ onClose }: { onClose: () => void }) {
               <label className="font-bold text-slate-700 block mb-1">Bank Branch</label>
               <input
                 type="text"
+                autoComplete="off"
+                data-lpignore="true"
                 value={form.bankBranch}
                 onChange={e => setForm({...form, bankBranch: e.target.value})}
                 className="w-full p-2.5 border rounded-xl bg-slate-50 font-semibold focus:bg-white focus:outline-none"
@@ -91,6 +95,8 @@ export default function BankDetailsModal({ onClose }: { onClose: () => void }) {
             <input
               type="text"
               required
+              autoComplete="off"
+              data-lpignore="true"
               value={form.accountName}
               onChange={e => setForm({...form, accountName: e.target.value})}
               className="w-full p-2.5 border rounded-xl bg-slate-50 font-semibold focus:bg-white focus:outline-none"
@@ -103,6 +109,8 @@ export default function BankDetailsModal({ onClose }: { onClose: () => void }) {
               <input
                 type="text"
                 required
+                autoComplete="off"
+                data-lpignore="true"
                 placeholder="062-184"
                 value={form.bsb}
                 onChange={e => setForm({...form, bsb: e.target.value})}
@@ -116,6 +124,8 @@ export default function BankDetailsModal({ onClose }: { onClose: () => void }) {
               <input
                 type="text"
                 required
+                autoComplete="off"
+                data-lpignore="true"
                 placeholder="••••••••"
                 value={form.accountNumber}
                 onChange={e => setForm({...form, accountNumber: e.target.value})}
@@ -128,6 +138,8 @@ export default function BankDetailsModal({ onClose }: { onClose: () => void }) {
             <label className="font-bold text-slate-700 block mb-1">Tax File Number (TFN)</label>
             <input
               type="text"
+              autoComplete="off"
+              data-lpignore="true"
               placeholder="e.g. 123 456 789"
               value={form.tfn}
               onChange={e => setForm({...form, tfn: e.target.value})}
@@ -143,6 +155,8 @@ export default function BankDetailsModal({ onClose }: { onClose: () => void }) {
                 <label className="font-bold text-slate-700 block mb-1">Super Fund Name</label>
                 <input
                   type="text"
+                  autoComplete="off"
+                  data-lpignore="true"
                   value={form.superFund}
                   onChange={e => setForm({...form, superFund: e.target.value})}
                   className="w-full p-2.5 border rounded-xl bg-slate-50 font-semibold"
@@ -152,6 +166,8 @@ export default function BankDetailsModal({ onClose }: { onClose: () => void }) {
                 <label className="font-bold text-slate-700 block mb-1">Member Number</label>
                 <input
                   type="text"
+                  autoComplete="off"
+                  data-lpignore="true"
                   value={form.superNumber}
                   onChange={e => setForm({...form, superNumber: e.target.value})}
                   className="w-full p-2.5 border rounded-xl bg-slate-50 font-semibold"

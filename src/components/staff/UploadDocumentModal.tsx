@@ -140,7 +140,7 @@ export default function UploadDocumentModal({
           </p>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-6 space-y-4 max-h-[78vh] overflow-y-auto">
+        <form onSubmit={handleSubmit} autoComplete="off" data-lpignore="true" data-form-type="other" className="p-6 space-y-4 max-h-[78vh] overflow-y-auto">
           
           {/* Source Toggle: Computer vs Mobile */}
           <div>
@@ -198,6 +198,8 @@ export default function UploadDocumentModal({
             <input
               type="text"
               required
+              autoComplete="off"
+              data-lpignore="true"
               value={docName}
               onChange={(e) => setDocName(e.target.value)}
               placeholder="e.g. Australian Passport (Renewed 2026)"
@@ -211,6 +213,8 @@ export default function UploadDocumentModal({
               <label className="font-bold text-slate-700 block mb-1.5">Document / License No.</label>
               <input
                 type="text"
+                autoComplete="off"
+                data-lpignore="true"
                 value={documentNumber}
                 onChange={(e) => setDocumentNumber(e.target.value)}
                 placeholder="e.g. N1234567"
@@ -222,6 +226,8 @@ export default function UploadDocumentModal({
               <label className="font-bold text-slate-700 block mb-1.5">New Expiry Date (if applicable)</label>
               <input
                 type="date"
+                autoComplete="off"
+                data-lpignore="true"
                 value={expiryDate}
                 onChange={(e) => setExpiryDate(e.target.value)}
                 className="w-full px-3.5 py-3 rounded-2xl border border-slate-300 font-medium text-slate-800 focus:outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 transition"

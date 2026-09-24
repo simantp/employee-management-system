@@ -738,6 +738,9 @@ export default function AuthPortal({ onInviteCompleted }: { onInviteCompleted?: 
                       </span>
                       <input
                         type="text"
+                        name="shift_username"
+                        autoComplete="off"
+                        data-lpignore="true"
                         placeholder="e.g. username"
                         value={clockUsername}
                         onChange={e => setClockUsername(e.target.value.toLowerCase().replace(/\s+/g, ''))}
@@ -753,6 +756,9 @@ export default function AuthPortal({ onInviteCompleted }: { onInviteCompleted?: 
                     </div>
                     <input
                       type="password"
+                      name="shift_pin"
+                      autoComplete="off"
+                      data-lpignore="true"
                       maxLength={4}
                       inputMode="numeric"
                       placeholder="••••"
@@ -954,11 +960,13 @@ export default function AuthPortal({ onInviteCompleted }: { onInviteCompleted?: 
             {/* 1. LOGIN FORM */}
             {rightMode === 'LOGIN' && (
               <div className="space-y-4">
-                <form onSubmit={handleLoginSubmit} className="space-y-4">
+                <form onSubmit={handleLoginSubmit} autoComplete="on" className="space-y-4">
                   <div>
                     <label className="font-bold text-slate-700 block mb-1.5 text-xs">Work or Personal Email *</label>
                     <input
                       type="text"
+                      name="username"
+                      autoComplete="username"
                       required
                       placeholder="admin@company.com.au or username"
                       value={loginEmail}
@@ -983,6 +991,8 @@ export default function AuthPortal({ onInviteCompleted }: { onInviteCompleted?: 
                     </div>
                     <input
                       type="password"
+                      name="password"
+                      autoComplete="current-password"
                       placeholder="••••••••"
                       value={loginPassword}
                       onChange={e => setLoginPassword(e.target.value)}
@@ -1204,7 +1214,7 @@ export default function AuthPortal({ onInviteCompleted }: { onInviteCompleted?: 
             )}
 
             {/* Set Password Form */}
-            <form onSubmit={handleInviteSubmit} className="space-y-4 text-xs">
+            <form onSubmit={handleInviteSubmit} autoComplete="off" data-lpignore="true" data-form-type="other" className="space-y-4 text-xs">
               
               {/* Username & PIN Pre-configuration */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -1214,6 +1224,8 @@ export default function AuthPortal({ onInviteCompleted }: { onInviteCompleted?: 
                     <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 font-mono text-xs font-bold">@</span>
                     <input
                       type="text"
+                      autoComplete="off"
+                      data-lpignore="true"
                       placeholder="e.g. suman.thapa"
                       value={inviteUsername}
                       onChange={e => setInviteUsername(e.target.value.toLowerCase().replace(/\s+/g, ''))}
@@ -1226,6 +1238,8 @@ export default function AuthPortal({ onInviteCompleted }: { onInviteCompleted?: 
                   <label className="font-bold text-slate-700 block mb-1 text-xs">Shift Clock PIN (4 Digits)</label>
                   <input
                     type="password"
+                    autoComplete="off"
+                    data-lpignore="true"
                     maxLength={4}
                     inputMode="numeric"
                     placeholder="••••"
@@ -1253,6 +1267,7 @@ export default function AuthPortal({ onInviteCompleted }: { onInviteCompleted?: 
                     type={inviteShowPassword ? 'text' : 'password'}
                     required
                     minLength={6}
+                    autoComplete="new-password"
                     placeholder="Minimum 6 characters"
                     value={invitePassword}
                     onChange={e => setInvitePassword(e.target.value)}
@@ -1266,6 +1281,7 @@ export default function AuthPortal({ onInviteCompleted }: { onInviteCompleted?: 
                     type={inviteShowPassword ? 'text' : 'password'}
                     required
                     minLength={6}
+                    autoComplete="new-password"
                     placeholder="Re-enter your password"
                     value={inviteConfirmPassword}
                     onChange={e => setInviteConfirmPassword(e.target.value)}

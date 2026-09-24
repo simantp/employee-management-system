@@ -86,7 +86,7 @@ export default function ApplyLeaveModal({ onClose }: { onClose: () => void }) {
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-6 space-y-4 text-xs">
+        <form onSubmit={handleSubmit} autoComplete="off" data-lpignore="true" data-form-type="other" className="p-6 space-y-4 text-xs">
           <div>
             <label className="font-bold text-slate-700 block mb-1">Leave Type</label>
             <select
@@ -107,6 +107,8 @@ export default function ApplyLeaveModal({ onClose }: { onClose: () => void }) {
               <label className="font-bold text-slate-700 block mb-1">Start Date (DD/MM/YYYY)</label>
               <input
                 type="text"
+                autoComplete="off"
+                data-lpignore="true"
                 value={startDate}
                 onChange={e => setStartDate(e.target.value)}
                 className="w-full p-2.5 border rounded-xl bg-slate-50 font-semibold focus:bg-white focus:outline-none"
@@ -116,6 +118,8 @@ export default function ApplyLeaveModal({ onClose }: { onClose: () => void }) {
               <label className="font-bold text-slate-700 block mb-1">End Date (DD/MM/YYYY)</label>
               <input
                 type="text"
+                autoComplete="off"
+                data-lpignore="true"
                 value={endDate}
                 onChange={e => setEndDate(e.target.value)}
                 className="w-full p-2.5 border rounded-xl bg-slate-50 font-semibold focus:bg-white focus:outline-none"
@@ -129,6 +133,8 @@ export default function ApplyLeaveModal({ onClose }: { onClose: () => void }) {
               type="number"
               min={1}
               max={30}
+              autoComplete="off"
+              data-lpignore="true"
               value={totalDays}
               onChange={e => setTotalDays(parseInt(e.target.value, 10) || 1)}
               className="w-full p-2.5 border rounded-xl bg-slate-50 font-bold text-slate-900 focus:bg-white focus:outline-none"
@@ -152,6 +158,8 @@ export default function ApplyLeaveModal({ onClose }: { onClose: () => void }) {
             <textarea
               rows={3}
               required
+              autoComplete="off"
+              data-lpignore="true"
               placeholder="e.g. Annual family vacation or medical appointment..."
               value={reason}
               onChange={e => setReason(e.target.value)}

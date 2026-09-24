@@ -125,7 +125,7 @@ export default function ForgotPasswordModal({
           
           {/* VIEW 1: EMAIL INPUT FORM */}
           {!successData ? (
-            <form onSubmit={handleSubmit} className="space-y-4">
+            <form onSubmit={handleSubmit} autoComplete="off" data-lpignore="true" className="space-y-4">
               <p className="text-slate-600 text-xs leading-relaxed">
                 Enter your registered work email address below. We'll send you a secure password reset link valid for <strong>5 minutes</strong>.
               </p>
@@ -145,6 +145,8 @@ export default function ForgotPasswordModal({
                     type="email"
                     required
                     autoFocus
+                    autoComplete="off"
+                    data-lpignore="true"
                     placeholder="e.g. admin@company.com.au or staff email"
                     value={email}
                     onChange={e => setEmail(e.target.value)}

@@ -61,7 +61,7 @@ export default function EditWorkRightsModal({ onClose }: { onClose: () => void }
         </div>
 
         {/* Modal Form */}
-        <form onSubmit={handleSubmit} className="p-6 space-y-4 text-xs">
+        <form onSubmit={handleSubmit} autoComplete="off" data-lpignore="true" data-form-type="other" className="p-6 space-y-4 text-xs">
           
           {/* Citizenship Status Selector */}
           <div>
@@ -103,6 +103,8 @@ export default function EditWorkRightsModal({ onClose }: { onClose: () => void }
                   max="60"
                   step="0.5"
                   required
+                  autoComplete="off"
+                  data-lpignore="true"
                   value={form.workingHours}
                   onChange={e => setForm({...form, workingHours: parseFloat(e.target.value) || 0})}
                   placeholder="e.g. 38.0"
@@ -147,6 +149,8 @@ export default function EditWorkRightsModal({ onClose }: { onClose: () => void }
                   <input
                     type="date"
                     required={isVisaHolder}
+                    autoComplete="off"
+                    data-lpignore="true"
                     value={form.visaExpiryDate}
                     onChange={e => setForm({...form, visaExpiryDate: e.target.value})}
                     className="w-full p-2.5 border border-amber-300 rounded-lg bg-white focus:ring-2 focus:ring-amber-500/20 font-medium"
@@ -209,6 +213,8 @@ export default function EditWorkRightsModal({ onClose }: { onClose: () => void }
                   <label className="font-semibold text-slate-700 block mb-1">License Number</label>
                   <input
                     type="text"
+                    autoComplete="off"
+                    data-lpignore="true"
                     placeholder="e.g. DL-8849201"
                     value={form.licenseNumber}
                     onChange={e => setForm({...form, licenseNumber: e.target.value})}
@@ -219,6 +225,8 @@ export default function EditWorkRightsModal({ onClose }: { onClose: () => void }
                   <label className="font-semibold text-slate-700 block mb-1">License Expiry Date</label>
                   <input
                     type="date"
+                    autoComplete="off"
+                    data-lpignore="true"
                     value={form.licenseExpiryDate}
                     onChange={e => setForm({...form, licenseExpiryDate: e.target.value})}
                     className="w-full p-2 border border-slate-200 rounded-lg bg-white"

@@ -45,7 +45,7 @@ export default function EditPersonalInfoModal({ onClose }: { onClose: () => void
         </div>
 
         {/* Modal Form */}
-        <form onSubmit={handleSubmit} className="p-6 space-y-4 text-xs">
+        <form onSubmit={handleSubmit} autoComplete="off" data-lpignore="true" data-form-type="other" className="p-6 space-y-4 text-xs">
           
           {/* Names */}
           <div className="grid grid-cols-2 gap-3.5">
@@ -54,6 +54,8 @@ export default function EditPersonalInfoModal({ onClose }: { onClose: () => void
               <input
                 type="text"
                 required
+                autoComplete="off"
+                data-lpignore="true"
                 value={form.firstName}
                 onChange={e => setForm({...form, firstName: e.target.value})}
                 className="w-full p-2.5 border border-slate-200 rounded-xl bg-slate-50/50 focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition"
@@ -64,6 +66,8 @@ export default function EditPersonalInfoModal({ onClose }: { onClose: () => void
               <input
                 type="text"
                 required
+                autoComplete="off"
+                data-lpignore="true"
                 value={form.lastName}
                 onChange={e => setForm({...form, lastName: e.target.value})}
                 className="w-full p-2.5 border border-slate-200 rounded-xl bg-slate-50/50 focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition"
@@ -78,6 +82,8 @@ export default function EditPersonalInfoModal({ onClose }: { onClose: () => void
               <input
                 type="date"
                 required
+                autoComplete="off"
+                data-lpignore="true"
                 value={form.dateOfBirth}
                 onChange={e => setForm({...form, dateOfBirth: e.target.value})}
                 className="w-full p-2.5 border border-slate-200 rounded-xl bg-slate-50/50 focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition"
@@ -105,6 +111,8 @@ export default function EditPersonalInfoModal({ onClose }: { onClose: () => void
               <input
                 type="text"
                 required
+                autoComplete="off"
+                data-lpignore="true"
                 placeholder="0412 345 678"
                 value={form.mobilePhone}
                 onChange={e => setForm({...form, mobilePhone: e.target.value})}
@@ -115,6 +123,8 @@ export default function EditPersonalInfoModal({ onClose }: { onClose: () => void
               <label className="font-bold text-slate-700 block mb-1">Home Phone (Optional)</label>
               <input
                 type="text"
+                autoComplete="off"
+                data-lpignore="true"
                 placeholder="02 9876 5432"
                 value={form.homePhone}
                 onChange={e => setForm({...form, homePhone: e.target.value})}
@@ -134,6 +144,8 @@ export default function EditPersonalInfoModal({ onClose }: { onClose: () => void
               <input
                 type="text"
                 required
+                autoComplete="off"
+                data-lpignore="true"
                 placeholder="e.g. 142 Belmore Road"
                 value={form.address}
                 onChange={e => setForm({...form, address: e.target.value})}
@@ -147,6 +159,8 @@ export default function EditPersonalInfoModal({ onClose }: { onClose: () => void
                 <input
                   type="text"
                   required
+                  autoComplete="off"
+                  data-lpignore="true"
                   placeholder="Riverwood"
                   value={form.suburb}
                   onChange={e => setForm({...form, suburb: e.target.value})}
@@ -175,6 +189,8 @@ export default function EditPersonalInfoModal({ onClose }: { onClose: () => void
                 <input
                   type="text"
                   required
+                  autoComplete="off"
+                  data-lpignore="true"
                   maxLength={4}
                   placeholder="2210"
                   value={form.postcode}

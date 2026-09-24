@@ -274,7 +274,7 @@ export default function AddEmployeeModal({ onClose }: { onClose: () => void }) {
           /* ========================================================================= */
           /* 1. QUICK INVITE FORM (FIRST NAME, LAST NAME, EMAIL) */
           /* ========================================================================= */
-          <form onSubmit={handleQuickSubmit} className="p-6 space-y-4">
+          <form onSubmit={handleQuickSubmit} autoComplete="off" data-lpignore="true" data-form-type="other" className="p-6 space-y-4">
             <div className="p-3.5 bg-orange-50 border border-orange-200 rounded-2xl flex items-start gap-3">
               <div className="text-[11px] text-orange-950 leading-relaxed">
                 <strong>Self-Onboarding Workflow:</strong> Enter the staff member&apos;s basic information. They will be added as <strong className="text-amber-800">Pending</strong> in your employee directory. An invitation link will be created for the staff to set their password and complete their profile in the Staff Portal.
@@ -287,6 +287,8 @@ export default function AddEmployeeModal({ onClose }: { onClose: () => void }) {
                 <input
                   type="text"
                   required
+                  autoComplete="off"
+                  data-lpignore="true"
                   placeholder="e.g. Ramesh"
                   value={quickForm.firstName}
                   onChange={e => setQuickForm({ ...quickForm, firstName: e.target.value })}
@@ -299,6 +301,8 @@ export default function AddEmployeeModal({ onClose }: { onClose: () => void }) {
                 <input
                   type="text"
                   required
+                  autoComplete="off"
+                  data-lpignore="true"
                   placeholder="e.g. Sharma"
                   value={quickForm.lastName}
                   onChange={e => setQuickForm({ ...quickForm, lastName: e.target.value })}
@@ -312,6 +316,8 @@ export default function AddEmployeeModal({ onClose }: { onClose: () => void }) {
               <input
                 type="email"
                 required
+                autoComplete="off"
+                data-lpignore="true"
                 placeholder="ramesh.sharma@company.com"
                 value={quickForm.email}
                 onChange={e => setQuickForm({ ...quickForm, email: e.target.value })}
@@ -340,6 +346,8 @@ export default function AddEmployeeModal({ onClose }: { onClose: () => void }) {
                 <label className="font-bold text-slate-700 block mb-1">Job Title</label>
                 <input
                   type="text"
+                  autoComplete="off"
+                  data-lpignore="true"
                   placeholder="e.g. Production Associate"
                   value={quickForm.jobTitle}
                   onChange={e => setQuickForm({ ...quickForm, jobTitle: e.target.value })}
@@ -368,7 +376,7 @@ export default function AddEmployeeModal({ onClose }: { onClose: () => void }) {
           /* ========================================================================= */
           /* 2. FULL MANUAL ENTRY FORM */
           /* ========================================================================= */
-          <form onSubmit={handleFullSubmit} className="p-6 space-y-5 max-h-[75vh] overflow-y-auto">
+          <form onSubmit={handleFullSubmit} autoComplete="off" data-lpignore="true" data-form-type="other" className="p-6 space-y-5 max-h-[75vh] overflow-y-auto">
             <div>
               <h4 className="font-bold text-slate-900 border-b pb-1 mb-3 uppercase tracking-wider text-blue-600">
                 1. Personal &amp; Identity
@@ -379,6 +387,8 @@ export default function AddEmployeeModal({ onClose }: { onClose: () => void }) {
                   <input
                     type="text"
                     required
+                    autoComplete="off"
+                    data-lpignore="true"
                     placeholder="Liam"
                     value={fullForm.firstName}
                     onChange={e => setFullForm({...fullForm, firstName: e.target.value})}
@@ -390,6 +400,8 @@ export default function AddEmployeeModal({ onClose }: { onClose: () => void }) {
                   <input
                     type="text"
                     required
+                    autoComplete="off"
+                    data-lpignore="true"
                     placeholder="Wilson"
                     value={fullForm.lastName}
                     onChange={e => setFullForm({...fullForm, lastName: e.target.value})}
@@ -401,6 +413,8 @@ export default function AddEmployeeModal({ onClose }: { onClose: () => void }) {
                   <input
                     type="email"
                     required
+                    autoComplete="off"
+                    data-lpignore="true"
                     placeholder="liam.wilson@company.com"
                     value={fullForm.email}
                     onChange={e => setFullForm({...fullForm, email: e.target.value})}
@@ -411,6 +425,8 @@ export default function AddEmployeeModal({ onClose }: { onClose: () => void }) {
                   <label className="font-bold text-slate-700 block mb-1">Mobile *</label>
                   <input
                     type="text"
+                    autoComplete="off"
+                    data-lpignore="true"
                     placeholder="0412 345 678"
                     value={fullForm.mobilePhone}
                     onChange={e => setFullForm({...fullForm, mobilePhone: e.target.value})}
@@ -429,6 +445,8 @@ export default function AddEmployeeModal({ onClose }: { onClose: () => void }) {
                   <label className="font-bold text-slate-700 block mb-1">Street Address</label>
                   <input
                     type="text"
+                    autoComplete="off"
+                    data-lpignore="true"
                     value={fullForm.address}
                     onChange={e => setFullForm({...fullForm, address: e.target.value})}
                     className="w-full p-2 border rounded-lg bg-slate-50"
@@ -438,6 +456,8 @@ export default function AddEmployeeModal({ onClose }: { onClose: () => void }) {
                   <label className="font-bold text-slate-700 block mb-1">Suburb</label>
                   <input
                     type="text"
+                    autoComplete="off"
+                    data-lpignore="true"
                     value={fullForm.suburb}
                     onChange={e => setFullForm({...fullForm, suburb: e.target.value})}
                     className="w-full p-2 border rounded-lg bg-slate-50"
@@ -478,6 +498,8 @@ export default function AddEmployeeModal({ onClose }: { onClose: () => void }) {
                   <label className="font-bold text-slate-700 block mb-1">Postcode</label>
                   <input
                     type="text"
+                    autoComplete="off"
+                    data-lpignore="true"
                     value={fullForm.postcode}
                     onChange={e => setFullForm({...fullForm, postcode: e.target.value})}
                     className="w-full p-2 border rounded-lg bg-slate-50"
@@ -495,6 +517,8 @@ export default function AddEmployeeModal({ onClose }: { onClose: () => void }) {
                   <label className="font-bold text-slate-700 block mb-1">Emergency Next of Kin</label>
                   <input
                     type="text"
+                    autoComplete="off"
+                    data-lpignore="true"
                     value={fullForm.emergencyNextOfKin}
                     onChange={e => setFullForm({...fullForm, emergencyNextOfKin: e.target.value})}
                     className="w-full p-2 border rounded-lg bg-slate-50"
@@ -504,6 +528,8 @@ export default function AddEmployeeModal({ onClose }: { onClose: () => void }) {
                   <label className="font-bold text-slate-700 block mb-1">Emergency Mobile</label>
                   <input
                     type="text"
+                    autoComplete="off"
+                    data-lpignore="true"
                     value={fullForm.emergencyMobile}
                     onChange={e => setFullForm({...fullForm, emergencyMobile: e.target.value})}
                     className="w-full p-2 border rounded-lg bg-slate-50"
@@ -513,6 +539,8 @@ export default function AddEmployeeModal({ onClose }: { onClose: () => void }) {
                   <label className="font-bold text-slate-700 block mb-1">Bank Name</label>
                   <input
                     type="text"
+                    autoComplete="off"
+                    data-lpignore="true"
                     value={fullForm.bankName}
                     onChange={e => setFullForm({...fullForm, bankName: e.target.value})}
                     className="w-full p-2 border rounded-lg bg-slate-50"
@@ -523,6 +551,8 @@ export default function AddEmployeeModal({ onClose }: { onClose: () => void }) {
                   <div className="grid grid-cols-2 gap-2">
                     <input
                       type="text"
+                      autoComplete="off"
+                      data-lpignore="true"
                       placeholder="062-184"
                       value={fullForm.bsb}
                       onChange={e => setFullForm({...fullForm, bsb: e.target.value})}
@@ -530,6 +560,8 @@ export default function AddEmployeeModal({ onClose }: { onClose: () => void }) {
                     />
                     <input
                       type="text"
+                      autoComplete="off"
+                      data-lpignore="true"
                       placeholder="10482910"
                       value={fullForm.accountNumber}
                       onChange={e => setFullForm({...fullForm, accountNumber: e.target.value})}

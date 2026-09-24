@@ -273,7 +273,7 @@ export default function EmployeeDetailModal({
         </div>
 
         {/* Content Body Form */}
-        <form onSubmit={handleSaveAll}>
+        <form onSubmit={handleSaveAll} autoComplete="off" data-lpignore="true" data-form-type="other">
           <div className="p-6 space-y-6 max-h-[62vh] overflow-y-auto text-xs">
             
             {/* Self-Onboarding Status Info Banner */}
@@ -392,6 +392,8 @@ export default function EmployeeDetailModal({
                     <input
                       type="date"
                       disabled={!isEditing}
+                      autoComplete="off"
+                      data-lpignore="true"
                       value={startDate}
                       onChange={e => setStartDate(e.target.value)}
                       className="w-full p-2.5 border border-slate-300 rounded-xl bg-white disabled:bg-slate-50 font-bold text-slate-900 focus:ring-2 focus:ring-orange-500/20"
@@ -423,6 +425,8 @@ export default function EmployeeDetailModal({
                     <input
                       type="text"
                       disabled={!isEditing}
+                      autoComplete="off"
+                      data-lpignore="true"
                       value={jobTitle}
                       onChange={e => setJobTitle(e.target.value)}
                       className="w-full p-2.5 border border-slate-300 rounded-xl bg-white disabled:bg-slate-50 font-bold text-slate-900"
@@ -439,6 +443,8 @@ export default function EmployeeDetailModal({
                       <input
                         type="text"
                         disabled={!isEditing}
+                        autoComplete="off"
+                        data-lpignore="true"
                         value={username}
                         onChange={e => setUsername(e.target.value.toLowerCase().replace(/\s+/g, ''))}
                         className="w-full pl-7 pr-3 p-2.5 border border-slate-300 rounded-xl bg-white disabled:bg-slate-50 font-mono font-bold text-slate-900 text-xs"
@@ -458,6 +464,8 @@ export default function EmployeeDetailModal({
                       maxLength={4}
                       inputMode="numeric"
                       disabled={!isEditing}
+                      autoComplete="off"
+                      data-lpignore="true"
                       value={kioskPin}
                       onChange={e => setKioskPin(e.target.value.replace(/\D/g, '').slice(0, 4))}
                       className="w-full p-2.5 border border-slate-300 rounded-xl bg-white disabled:bg-slate-50 font-mono font-black text-orange-600 tracking-widest text-center text-sm"
@@ -488,6 +496,8 @@ export default function EmployeeDetailModal({
                       type="number"
                       step="0.5"
                       disabled={!isEditing}
+                      autoComplete="off"
+                      data-lpignore="true"
                       value={workingHours}
                       onChange={e => setWorkingHours(parseFloat(e.target.value) || 0)}
                       className="w-full p-2.5 border border-slate-300 rounded-xl bg-white disabled:bg-slate-50 font-bold text-slate-900"
@@ -499,6 +509,8 @@ export default function EmployeeDetailModal({
                     <input
                       type="text"
                       disabled={!isEditing}
+                      autoComplete="off"
+                      data-lpignore="true"
                       value={workLocation}
                       onChange={e => setWorkLocation(e.target.value)}
                       className="w-full p-2.5 border border-slate-300 rounded-xl bg-white disabled:bg-slate-50 font-bold text-slate-900"
@@ -510,6 +522,8 @@ export default function EmployeeDetailModal({
                     <input
                       type="text"
                       disabled={!isEditing}
+                      autoComplete="off"
+                      data-lpignore="true"
                       value={reportsTo}
                       onChange={e => setReportsTo(e.target.value)}
                       className="w-full p-2.5 border border-slate-300 rounded-xl bg-white disabled:bg-slate-50 font-bold text-slate-900"
@@ -534,6 +548,8 @@ export default function EmployeeDetailModal({
                       type="text"
                       required
                       disabled={!isEditing}
+                      autoComplete="off"
+                      data-lpignore="true"
                       value={firstName}
                       onChange={e => setFirstName(e.target.value)}
                       className="w-full p-2.5 border border-slate-300 rounded-xl bg-white disabled:bg-slate-50 font-bold text-slate-900"
@@ -546,6 +562,8 @@ export default function EmployeeDetailModal({
                       type="text"
                       required
                       disabled={!isEditing}
+                      autoComplete="off"
+                      data-lpignore="true"
                       value={lastName}
                       onChange={e => setLastName(e.target.value)}
                       className="w-full p-2.5 border border-slate-300 rounded-xl bg-white disabled:bg-slate-50 font-bold text-slate-900"
@@ -558,6 +576,8 @@ export default function EmployeeDetailModal({
                       type="email"
                       required
                       disabled={!isEditing}
+                      autoComplete="off"
+                      data-lpignore="true"
                       value={email}
                       onChange={e => setEmail(e.target.value)}
                       className="w-full p-2.5 border border-slate-300 rounded-xl bg-white disabled:bg-slate-50 font-bold text-slate-900"
@@ -569,6 +589,8 @@ export default function EmployeeDetailModal({
                     <input
                       type="text"
                       disabled={!isEditing}
+                      autoComplete="off"
+                      data-lpignore="true"
                       value={mobilePhone}
                       onChange={e => setMobilePhone(e.target.value)}
                       className="w-full p-2.5 border border-slate-300 rounded-xl bg-white disabled:bg-slate-50 font-bold text-slate-900"
@@ -580,6 +602,8 @@ export default function EmployeeDetailModal({
                     <input
                       type="text"
                       disabled={!isEditing}
+                      autoComplete="off"
+                      data-lpignore="true"
                       value={address}
                       onChange={e => setAddress(e.target.value)}
                       className="w-full p-2.5 border border-slate-300 rounded-xl bg-white disabled:bg-slate-50 font-bold text-slate-900"
@@ -592,6 +616,8 @@ export default function EmployeeDetailModal({
                     <input
                       type="text"
                       disabled={!isEditing}
+                      autoComplete="off"
+                      data-lpignore="true"
                       value={suburb}
                       onChange={e => setSuburb(e.target.value)}
                       className="w-full p-2.5 border border-slate-300 rounded-xl bg-white disabled:bg-slate-50 font-bold text-slate-900"
@@ -605,6 +631,8 @@ export default function EmployeeDetailModal({
                       <input
                         type="text"
                         disabled={!isEditing}
+                        autoComplete="off"
+                        data-lpignore="true"
                         value={state}
                         onChange={e => setState(e.target.value)}
                         className="w-full p-2.5 border border-slate-300 rounded-xl bg-white disabled:bg-slate-50 font-bold text-slate-900"
@@ -615,6 +643,8 @@ export default function EmployeeDetailModal({
                       <input
                         type="text"
                         disabled={!isEditing}
+                        autoComplete="off"
+                        data-lpignore="true"
                         value={postcode}
                         onChange={e => setPostcode(e.target.value)}
                         className="w-full p-2.5 border border-slate-300 rounded-xl bg-white disabled:bg-slate-50 font-bold text-slate-900"
@@ -658,6 +688,8 @@ export default function EmployeeDetailModal({
                       <input
                         type="text"
                         disabled={!isEditing || citizenStatus === 'Australian Citizen' || citizenStatus === 'Permanent Resident'}
+                        autoComplete="off"
+                        data-lpignore="true"
                         value={visaType}
                         onChange={e => setVisaType(e.target.value)}
                         className="w-full p-2.5 border border-slate-300 rounded-xl bg-white disabled:bg-slate-50 font-bold text-slate-900"
@@ -670,6 +702,8 @@ export default function EmployeeDetailModal({
                       <input
                         type="date"
                         disabled={!isEditing || citizenStatus === 'Australian Citizen' || citizenStatus === 'Permanent Resident'}
+                        autoComplete="off"
+                        data-lpignore="true"
                         value={visaExpiryDate}
                         onChange={e => setVisaExpiryDate(e.target.value)}
                         className="w-full p-2.5 border border-slate-300 rounded-xl bg-white disabled:bg-slate-50 font-bold text-slate-900"
@@ -704,6 +738,8 @@ export default function EmployeeDetailModal({
                       <input
                         type="text"
                         disabled={!isEditing || !hasDriverLicense}
+                        autoComplete="off"
+                        data-lpignore="true"
                         value={licenseNumber}
                         onChange={e => setLicenseNumber(e.target.value)}
                         placeholder="e.g. 9482910"
@@ -716,6 +752,8 @@ export default function EmployeeDetailModal({
                       <input
                         type="text"
                         disabled={!isEditing || !hasDriverLicense}
+                        autoComplete="off"
+                        data-lpignore="true"
                         value={licenseCountry}
                         onChange={e => setLicenseCountry(e.target.value)}
                         placeholder="e.g. NSW (Australia)"
@@ -728,6 +766,8 @@ export default function EmployeeDetailModal({
                       <input
                         type="date"
                         disabled={!isEditing || !hasDriverLicense}
+                        autoComplete="off"
+                        data-lpignore="true"
                         value={licenseExpiryDate}
                         onChange={e => setLicenseExpiryDate(e.target.value)}
                         className="w-full p-2.5 border border-slate-300 rounded-xl bg-white disabled:bg-slate-50 font-bold text-slate-900"
@@ -749,6 +789,8 @@ export default function EmployeeDetailModal({
                       <input
                         type="text"
                         disabled={!isEditing}
+                        autoComplete="off"
+                        data-lpignore="true"
                         value={emergencyNextOfKin}
                         onChange={e => setEmergencyNextOfKin(e.target.value)}
                         className="w-full p-2.5 border border-slate-300 rounded-xl bg-white disabled:bg-slate-50 font-bold text-slate-900"
@@ -760,6 +802,8 @@ export default function EmployeeDetailModal({
                       <input
                         type="text"
                         disabled={!isEditing}
+                        autoComplete="off"
+                        data-lpignore="true"
                         value={emergencyRelationship}
                         onChange={e => setEmergencyRelationship(e.target.value)}
                         className="w-full p-2.5 border border-slate-300 rounded-xl bg-white disabled:bg-slate-50 font-bold text-slate-900"
@@ -771,6 +815,8 @@ export default function EmployeeDetailModal({
                       <input
                         type="text"
                         disabled={!isEditing}
+                        autoComplete="off"
+                        data-lpignore="true"
                         value={emergencyMobile}
                         onChange={e => setEmergencyMobile(e.target.value)}
                         className="w-full p-2.5 border border-slate-300 rounded-xl bg-white disabled:bg-slate-50 font-bold text-slate-900"
@@ -809,6 +855,8 @@ export default function EmployeeDetailModal({
                     <input
                       type="text"
                       disabled={!isEditing}
+                      autoComplete="off"
+                      data-lpignore="true"
                       value={showEncrypted || isEditing ? tfnInput : employee.tfnMasked || '•••-•••-782'}
                       onChange={e => setTfnInput(e.target.value)}
                       className="w-full p-2.5 border border-slate-300 rounded-xl bg-white disabled:bg-slate-50 font-mono font-bold text-slate-900"
@@ -820,6 +868,8 @@ export default function EmployeeDetailModal({
                     <input
                       type="text"
                       disabled={!isEditing}
+                      autoComplete="off"
+                      data-lpignore="true"
                       value={bankName}
                       onChange={e => setBankName(e.target.value)}
                       className="w-full p-2.5 border border-slate-300 rounded-xl bg-white disabled:bg-slate-50 font-bold text-slate-900"
@@ -831,6 +881,8 @@ export default function EmployeeDetailModal({
                     <input
                       type="text"
                       disabled={!isEditing}
+                      autoComplete="off"
+                      data-lpignore="true"
                       value={bankBranch}
                       onChange={e => setBankBranch(e.target.value)}
                       className="w-full p-2.5 border border-slate-300 rounded-xl bg-white disabled:bg-slate-50 font-bold text-slate-900"
@@ -842,6 +894,8 @@ export default function EmployeeDetailModal({
                     <input
                       type="text"
                       disabled={!isEditing}
+                      autoComplete="off"
+                      data-lpignore="true"
                       value={accountName}
                       onChange={e => setAccountName(e.target.value)}
                       className="w-full p-2.5 border border-slate-300 rounded-xl bg-white disabled:bg-slate-50 font-bold text-slate-900"
@@ -853,6 +907,8 @@ export default function EmployeeDetailModal({
                     <input
                       type="text"
                       disabled={!isEditing}
+                      autoComplete="off"
+                      data-lpignore="true"
                       value={showEncrypted || isEditing ? bsbInput : employee.bsbMasked || '062-•••'}
                       onChange={e => setBsbInput(e.target.value)}
                       className="w-full p-2.5 border border-slate-300 rounded-xl bg-white disabled:bg-slate-50 font-mono font-bold text-slate-900"
@@ -864,6 +920,8 @@ export default function EmployeeDetailModal({
                     <input
                       type="text"
                       disabled={!isEditing}
+                      autoComplete="off"
+                      data-lpignore="true"
                       value={isEditing ? accInput : (employee.accountNumber || employee.accountNumberMasked || '')}
                       onChange={e => setAccInput(e.target.value)}
                       className="w-full p-2.5 border border-slate-300 rounded-xl bg-white disabled:bg-slate-50 font-mono font-bold text-slate-900"
@@ -875,6 +933,8 @@ export default function EmployeeDetailModal({
                     <input
                       type="text"
                       disabled={!isEditing}
+                      autoComplete="off"
+                      data-lpignore="true"
                       value={superFundName}
                       onChange={e => setSuperFundName(e.target.value)}
                       className="w-full p-2.5 border border-slate-300 rounded-xl bg-white disabled:bg-slate-50 font-bold text-slate-900"
@@ -886,6 +946,8 @@ export default function EmployeeDetailModal({
                     <input
                       type="text"
                       disabled={!isEditing}
+                      autoComplete="off"
+                      data-lpignore="true"
                       value={superMemberNumber}
                       onChange={e => setSuperMemberNumber(e.target.value)}
                       className="w-full p-2.5 border border-slate-300 rounded-xl bg-white disabled:bg-slate-50 font-mono font-bold text-slate-900"

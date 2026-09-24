@@ -43,7 +43,7 @@ export default function EditEmergencyContactModal({ onClose }: { onClose: () => 
         </div>
 
         {/* Modal Form */}
-        <form onSubmit={handleSubmit} className="p-6 space-y-4 text-xs">
+        <form onSubmit={handleSubmit} autoComplete="off" data-lpignore="true" data-form-type="other" className="p-6 space-y-4 text-xs">
           
           {/* Kin Name & Relationship */}
           <div className="grid grid-cols-2 gap-3.5">
@@ -52,6 +52,8 @@ export default function EditEmergencyContactModal({ onClose }: { onClose: () => 
               <input
                 type="text"
                 required
+                autoComplete="off"
+                data-lpignore="true"
                 placeholder="e.g. Sarah Jenkins"
                 value={form.emergencyNextOfKin}
                 onChange={e => setForm({...form, emergencyNextOfKin: e.target.value})}
@@ -83,6 +85,8 @@ export default function EditEmergencyContactModal({ onClose }: { onClose: () => 
               <input
                 type="text"
                 required
+                autoComplete="off"
+                data-lpignore="true"
                 placeholder="0412 999 888"
                 value={form.emergencyMobile}
                 onChange={e => setForm({...form, emergencyMobile: e.target.value})}
@@ -93,6 +97,8 @@ export default function EditEmergencyContactModal({ onClose }: { onClose: () => 
               <label className="font-semibold text-slate-700 block mb-1">Home / Work Phone (Optional)</label>
               <input
                 type="text"
+                autoComplete="off"
+                data-lpignore="true"
                 placeholder="02 9123 4567"
                 value={form.emergencyHomePhone}
                 onChange={e => setForm({...form, emergencyHomePhone: e.target.value})}
@@ -111,6 +117,8 @@ export default function EditEmergencyContactModal({ onClose }: { onClose: () => 
               <label className="font-semibold text-slate-700 block mb-1">Street Address</label>
               <input
                 type="text"
+                autoComplete="off"
+                data-lpignore="true"
                 placeholder="e.g. 58 Canterbury Road"
                 value={form.emergencyAddress}
                 onChange={e => setForm({...form, emergencyAddress: e.target.value})}
@@ -123,6 +131,8 @@ export default function EditEmergencyContactModal({ onClose }: { onClose: () => 
                 <label className="font-semibold text-slate-700 block mb-1">Suburb</label>
                 <input
                   type="text"
+                  autoComplete="off"
+                  data-lpignore="true"
                   placeholder="Canterbury"
                   value={form.emergencySuburb}
                   onChange={e => setForm({...form, emergencySuburb: e.target.value})}
@@ -150,6 +160,8 @@ export default function EditEmergencyContactModal({ onClose }: { onClose: () => 
                 <label className="font-semibold text-slate-700 block mb-1">Postcode</label>
                 <input
                   type="text"
+                  autoComplete="off"
+                  data-lpignore="true"
                   maxLength={4}
                   placeholder="2193"
                   value={form.emergencyPostcode}

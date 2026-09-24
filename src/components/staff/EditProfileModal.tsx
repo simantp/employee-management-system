@@ -41,13 +41,15 @@ export default function EditProfileModal({ onClose }: { onClose: () => void }) {
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-6 space-y-4 text-xs">
+        <form onSubmit={handleSubmit} autoComplete="off" data-lpignore="true" data-form-type="other" className="p-6 space-y-4 text-xs">
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="font-semibold text-slate-700 block mb-1">Mobile Phone *</label>
               <input
                 type="text"
                 required
+                autoComplete="off"
+                data-lpignore="true"
                 value={form.mobilePhone}
                 onChange={e => setForm({...form, mobilePhone: e.target.value})}
                 className="w-full p-2.5 border border-slate-200 rounded-lg bg-slate-50/50 focus:bg-white focus:ring-2 focus:ring-slate-900/10 focus:border-slate-900 transition"
@@ -57,6 +59,8 @@ export default function EditProfileModal({ onClose }: { onClose: () => void }) {
               <label className="font-semibold text-slate-700 block mb-1">Home Phone (Optional)</label>
               <input
                 type="text"
+                autoComplete="off"
+                data-lpignore="true"
                 value={form.homePhone}
                 onChange={e => setForm({...form, homePhone: e.target.value})}
                 className="w-full p-2.5 border border-slate-200 rounded-lg bg-slate-50/50 focus:bg-white focus:ring-2 focus:ring-slate-900/10 focus:border-slate-900 transition"
@@ -69,6 +73,8 @@ export default function EditProfileModal({ onClose }: { onClose: () => void }) {
             <input
               type="text"
               required
+              autoComplete="off"
+              data-lpignore="true"
               value={form.address}
               onChange={e => setForm({...form, address: e.target.value})}
               className="w-full p-2.5 border border-slate-200 rounded-lg bg-slate-50/50 focus:bg-white focus:ring-2 focus:ring-slate-900/10 focus:border-slate-900 transition"
@@ -80,6 +86,8 @@ export default function EditProfileModal({ onClose }: { onClose: () => void }) {
               <label className="font-semibold text-slate-700 block mb-1">Suburb</label>
               <input
                 type="text"
+                autoComplete="off"
+                data-lpignore="true"
                 value={form.suburb}
                 onChange={e => setForm({...form, suburb: e.target.value})}
                 className="w-full p-2.5 border border-slate-200 rounded-lg bg-slate-50/50 focus:bg-white focus:ring-2 focus:ring-slate-900/10 focus:border-slate-900 transition"
@@ -104,6 +112,8 @@ export default function EditProfileModal({ onClose }: { onClose: () => void }) {
               <label className="font-semibold text-slate-700 block mb-1">Postcode</label>
               <input
                 type="text"
+                autoComplete="off"
+                data-lpignore="true"
                 value={form.postcode}
                 onChange={e => setForm({...form, postcode: e.target.value})}
                 className="w-full p-2.5 border border-slate-200 rounded-lg bg-slate-50/50 focus:bg-white font-mono"
@@ -118,6 +128,8 @@ export default function EditProfileModal({ onClose }: { onClose: () => void }) {
                 <label className="font-semibold text-slate-700 block mb-1">Contact Name</label>
                 <input
                   type="text"
+                  autoComplete="off"
+                  data-lpignore="true"
                   value={form.emergencyNextOfKin}
                   onChange={e => setForm({...form, emergencyNextOfKin: e.target.value})}
                   className="w-full p-2.5 border border-slate-200 rounded-lg bg-slate-50/50 focus:bg-white focus:ring-2 focus:ring-slate-900/10 focus:border-slate-900 transition"
@@ -127,6 +139,8 @@ export default function EditProfileModal({ onClose }: { onClose: () => void }) {
                 <label className="font-semibold text-slate-700 block mb-1">Emergency Mobile</label>
                 <input
                   type="text"
+                  autoComplete="off"
+                  data-lpignore="true"
                   value={form.emergencyMobile}
                   onChange={e => setForm({...form, emergencyMobile: e.target.value})}
                   className="w-full p-2.5 border border-slate-200 rounded-lg bg-slate-50/50 focus:bg-white focus:ring-2 focus:ring-slate-900/10 focus:border-slate-900 transition"

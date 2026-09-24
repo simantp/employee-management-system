@@ -154,11 +154,13 @@ export default function AuthModal({ onClose }: { onClose: () => void }) {
         {/* VIEW 1: LOGIN */}
         {mode === 'LOGIN' && (
           <div className="p-6 space-y-4 text-xs">
-            <form onSubmit={handleLoginSubmit} className="space-y-3.5">
+            <form onSubmit={handleLoginSubmit} autoComplete="on" className="space-y-3.5">
               <div>
                 <label className="font-bold text-slate-700 block mb-1">Work Email Address</label>
                 <input
                   type="email"
+                  name="username"
+                  autoComplete="username"
                   required
                   placeholder="e.g. admin@company.com.au or staff email"
                   value={loginEmail}
@@ -174,6 +176,8 @@ export default function AuthModal({ onClose }: { onClose: () => void }) {
                 </div>
                 <input
                   type="password"
+                  name="password"
+                  autoComplete="current-password"
                   placeholder="••••••••"
                   value={loginPassword}
                   onChange={e => setLoginPassword(e.target.value)}
@@ -212,13 +216,15 @@ export default function AuthModal({ onClose }: { onClose: () => void }) {
               </p>
             </div>
 
-            <form onSubmit={handleRegisterSubmit} className="space-y-3">
+            <form onSubmit={handleRegisterSubmit} autoComplete="off" data-lpignore="true" data-form-type="other" className="space-y-3">
               <div className="grid grid-cols-2 gap-2.5">
                 <div>
                   <label className="font-bold text-slate-700 block mb-1">First Name *</label>
                   <input
                     type="text"
                     required
+                    autoComplete="off"
+                    data-lpignore="true"
                     placeholder="Liam"
                     value={regForm.firstName}
                     onChange={e => setRegForm({...regForm, firstName: e.target.value})}
@@ -230,6 +236,8 @@ export default function AuthModal({ onClose }: { onClose: () => void }) {
                   <input
                     type="text"
                     required
+                    autoComplete="off"
+                    data-lpignore="true"
                     placeholder="Wilson"
                     value={regForm.lastName}
                     onChange={e => setRegForm({...regForm, lastName: e.target.value})}
@@ -243,6 +251,8 @@ export default function AuthModal({ onClose }: { onClose: () => void }) {
                 <input
                   type="email"
                   required
+                  autoComplete="off"
+                  data-lpignore="true"
                   placeholder="liam.wilson@company.com"
                   value={regForm.email}
                   onChange={e => setRegForm({...regForm, email: e.target.value})}
@@ -255,6 +265,8 @@ export default function AuthModal({ onClose }: { onClose: () => void }) {
                 <input
                   type="text"
                   required
+                  autoComplete="off"
+                  data-lpignore="true"
                   placeholder="0412 345 678"
                   value={regForm.mobilePhone}
                   onChange={e => setRegForm({...regForm, mobilePhone: e.target.value})}
@@ -267,6 +279,7 @@ export default function AuthModal({ onClose }: { onClose: () => void }) {
                 <input
                   type="password"
                   required
+                  autoComplete="new-password"
                   placeholder="••••••••"
                   value={regForm.password}
                   onChange={e => setRegForm({...regForm, password: e.target.value})}

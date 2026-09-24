@@ -69,7 +69,7 @@ export default function SickLeaveModal({ onClose }: { onClose: () => void }) {
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-6 space-y-4 text-xs">
+        <form onSubmit={handleSubmit} autoComplete="off" data-lpignore="true" data-form-type="other" className="p-6 space-y-4 text-xs">
           {/* Time Check Widget */}
           <div className={`p-3.5 rounded-xl border flex items-center justify-between ${
             timeInfo.isBefore7AM ? 'bg-emerald-50 border-emerald-200 text-emerald-800' : 'bg-amber-50 border-amber-200 text-amber-800'
@@ -88,6 +88,8 @@ export default function SickLeaveModal({ onClose }: { onClose: () => void }) {
               type="number"
               min={1}
               max={5}
+              autoComplete="off"
+              data-lpignore="true"
               value={totalDays}
               onChange={e => setTotalDays(parseInt(e.target.value, 10) || 1)}
               className="w-full p-2.5 border rounded-xl bg-slate-50 font-bold text-slate-900"
@@ -99,6 +101,8 @@ export default function SickLeaveModal({ onClose }: { onClose: () => void }) {
             <textarea
               rows={2}
               required
+              autoComplete="off"
+              data-lpignore="true"
               value={reason}
               onChange={e => setReason(e.target.value)}
               className="w-full p-2.5 border rounded-xl bg-slate-50"

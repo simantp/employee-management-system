@@ -215,7 +215,7 @@ export default function ChangePasswordModal({
               </div>
             </div>
           ) : (
-            <form onSubmit={handleSubmit} className="space-y-4">
+            <form onSubmit={handleSubmit} autoComplete="off" data-lpignore="true" className="space-y-4">
               {errorMessage && (
                 <div className="p-3.5 rounded-2xl bg-rose-50 border border-rose-200 text-rose-800 text-xs font-semibold flex items-start gap-2.5 animate-in fade-in">
                   <span className="leading-relaxed">{errorMessage}</span>
@@ -233,6 +233,7 @@ export default function ChangePasswordModal({
                   <div className="relative">
                     <input
                       type={showCurrentPassword ? 'text' : 'password'}
+                      autoComplete="current-password"
                       value={currentPassword}
                       onChange={(e) => setCurrentPassword(e.target.value)}
                       placeholder="Enter current password"
@@ -267,6 +268,7 @@ export default function ChangePasswordModal({
                 <div className="relative">
                   <input
                     type={showNewPassword ? 'text' : 'password'}
+                    autoComplete="new-password"
                     value={newPassword}
                     onChange={(e) => setNewPassword(e.target.value)}
                     placeholder="Min. 6 characters"
@@ -321,6 +323,7 @@ export default function ChangePasswordModal({
                 <div className="relative">
                   <input
                     type={showConfirmPassword ? 'text' : 'password'}
+                    autoComplete="new-password"
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
                     placeholder="Re-enter new password"

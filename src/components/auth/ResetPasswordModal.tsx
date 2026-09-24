@@ -235,7 +235,7 @@ export default function ResetPasswordModal({
 
           {/* CASE 3: ACTIVE RESET FORM */}
           {!isExpired && !isSuccess && (
-            <form onSubmit={handleSubmit} className="space-y-4">
+            <form onSubmit={handleSubmit} autoComplete="off" data-lpignore="true" className="space-y-4">
               
               {/* Top Banner with Account & Live 5-Minute Timer */}
               <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200 flex items-center justify-between">
@@ -284,6 +284,7 @@ export default function ResetPasswordModal({
                   type={showPassword ? 'text' : 'password'}
                   required
                   autoFocus
+                  autoComplete="new-password"
                   placeholder="At least 6 characters"
                   value={password}
                   onChange={e => setPassword(e.target.value)}
@@ -297,6 +298,7 @@ export default function ResetPasswordModal({
                 <input
                   type={showPassword ? 'text' : 'password'}
                   required
+                  autoComplete="new-password"
                   placeholder="Re-enter identical password"
                   value={confirmPassword}
                   onChange={e => setConfirmPassword(e.target.value)}
