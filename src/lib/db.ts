@@ -67,9 +67,14 @@ export function getDbConfig(): DbConfig {
   }
   const rawPort = getEnvVar(env, 'DB_PORT', 'DATABASE_PORT', 'MYSQL_PORT', 'MYSQLPORT');
   if (rawPort) {
-    const p = parseInt(rawPort, 10);
+    const p = parseInt(rawPort.trim(), 10);
     if (!isNaN(p) && p > 0) port = p;
   }
+
+  host = host.trim();
+  user = user.trim();
+  password = password.trim();
+  database = database.trim();
 
   // 3. CRITICAL LINUX SOCKET FIX FOR HOSTINGER:
   // On Linux/Hostinger containers, 'localhost' causes mysql2 to try connecting via Unix socket (/var/run/mysqld/mysqld.sock).
@@ -206,19 +211,33 @@ export function getPool(): mysql.Pool | null {
 
   if (!global._mysqlPool) {
     try {
+      const isLocal = ['127.0.0.1', 'localhost'].includes(cfg.host.toLowerCase());
+      const isCloudProvider = !isLocal ||
+        cfg.host.includes('aivencloud.com') ||
+        cfg.host.includes('rds.amazonaws.com') ||
+        cfg.host.includes('digitalocean.com') ||
+        cfg.host.includes('planetscale') ||
+        cfg.host.includes('tidbcloud.com') ||
+        cfg.host.includes('cleardb') ||
+        process.env.MYSQL_SSL === 'true' ||
+        process.env.DB_SSL === 'true';
+
+      const sslConfig = isCloudProvider ? { rejectUnauthorized: false } : undefined;
+
       global._mysqlPool = mysql.createPool({
         host: cfg.host,
         port: cfg.port,
         user: cfg.user,
         password: cfg.password,
         database: cfg.database,
+        ssl: sslConfig,
         waitForConnections: true,
         connectionLimit: 10,
         queueLimit: 0,
         enableKeepAlive: true,
         keepAliveInitialDelay: 10000,
         charset: 'utf8mb4',
-        connectTimeout: 10000,
+        connectTimeout: 15000,
       });
 
       // Trigger asynchronous background schema verification
@@ -345,12 +364,26 @@ export async function testConnection(): Promise<{
     };
   } catch (err: any) {
     let friendly = err.message || 'Unknown MySQL connection error';
-    if (err.code === 'ECONNREFUSED' || err.code === 'ENOTFOUND') {
-      friendly = `Connection refused at ${cfg.host}:${cfg.port}. Please verify that the MySQL host is set to 127.0.0.1 and port is 3306.`;
+    const isLocal = ['127.0.0.1', 'localhost'].includes(cfg.host.toLowerCase());
+
+    if (err.code === 'ENOTFOUND') {
+      friendly = `DNS lookup failed for host '${cfg.host}' (ENOTFOUND). The hostname does not exist in DNS. If using Aiven Cloud: 1) Verify the exact 'Host' copied from the Aiven Console Overview tab; 2) Ensure the Aiven service status is 'Running' (new services take 2-3 minutes to become ready).`;
+    } else if (err.code === 'ECONNREFUSED') {
+      if (cfg.host.includes('aivencloud.com')) {
+        friendly = `Connection refused at ${cfg.host}:${cfg.port} (ECONNREFUSED). 1) In Aiven Console, ensure your MySQL service state is 'Running' (not stopped/rebuilding); 2) Check 'IP Filter' (Allowed IP addresses) in Aiven Service Settings and ensure 0.0.0.0/0 is allowed so Hostinger can reach it; 3) Verify port is set to ${cfg.port}.`;
+      } else if (isLocal) {
+        friendly = `Connection refused at ${cfg.host}:${cfg.port}. Please verify that local MySQL is running on port 3306.`;
+      } else {
+        friendly = `Connection refused at ${cfg.host}:${cfg.port}. The server actively rejected the connection. Check that the port is correct and any IP firewall allows connections.`;
+      }
+    } else if (err.code === 'ETIMEDOUT') {
+      friendly = `Connection timed out to ${cfg.host}:${cfg.port}. The server did not respond. Check firewall and IP whitelist settings on your database provider.`;
     } else if (err.code === 'ER_ACCESS_DENIED_ERROR') {
-      friendly = `Access denied for user '${cfg.user}'@'${cfg.host}'. Please double-check your database username and password in Hostinger.`;
+      friendly = `Access denied for user '${cfg.user}'@'${cfg.host}'. Please double-check your database username and password in Hostinger environment variables.`;
     } else if (err.code === 'ER_BAD_DB_ERROR') {
-      friendly = `Database '${cfg.database}' does not exist on MySQL server. Please create the database in Hostinger hPanel -> MySQL Databases.`;
+      friendly = `Database '${cfg.database}' does not exist on MySQL server. In Aiven, the default database is usually 'defaultdb'.`;
+    } else if (err.message && (err.message.includes('SSL') || err.message.includes('handshake'))) {
+      friendly = `SSL/TLS Handshake error with ${cfg.host}: ${err.message}. Managed Cloud MySQL requires SSL (automatically enabled).`;
     }
 
     return {
