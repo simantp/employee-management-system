@@ -1,48 +1,36 @@
 import { NextResponse } from 'next/server';
-import { query, isDbConfigured, testConnection } from '@/lib/db';
+import { query, getIsDbConfigured, testConnection, getPool, ensureDatabaseSchema } from '@/lib/db';
 import fs from 'fs';
 import path from 'path';
 
 export async function GET() {
-  if (!isDbConfigured) {
-    return NextResponse.json({
-      success: false,
-      configured: false,
-      message: 'Database environment variables (DB_USER, DB_NAME) are not configured.',
-    });
-  }
-
+  const isConfigured = getIsDbConfigured();
   const conn = await testConnection();
-  if (!conn.success) {
-    return NextResponse.json({
-      success: false,
-      configured: true,
-      message: conn.message,
-    });
-  }
 
-  try {
-    const tables = await query<{ Tables_in_db?: string }[]>('SHOW TABLES');
-    return NextResponse.json({
-      success: true,
-      configured: true,
-      tablesCount: tables.length,
-      message: `Database connected successfully with ${tables.length} tables found.`,
-    });
-  } catch (err: any) {
-    return NextResponse.json({
-      success: false,
-      message: err.message,
-    }, { status: 500 });
-  }
+  return NextResponse.json({
+    success: conn.success,
+    configured: isConfigured,
+    message: conn.message,
+    details: conn.details,
+    error: conn.error,
+  });
 }
 
 export async function POST() {
-  if (!isDbConfigured) {
+  const isConfigured = getIsDbConfigured();
+  if (!isConfigured) {
     return NextResponse.json({
       success: false,
-      message: 'Database is not configured. Please define DB_USER and DB_NAME in .env.local',
+      message: 'Database is not configured. Please define DB_USER and DB_NAME (or MYSQL_USER / MYSQL_DATABASE) in Hostinger environment variables.',
     }, { status: 400 });
+  }
+
+  const pool = getPool();
+  if (!pool) {
+    return NextResponse.json({
+      success: false,
+      message: 'Failed to create database connection pool. Please verify host and credentials in Hostinger.',
+    }, { status: 500 });
   }
 
   try {
@@ -50,7 +38,7 @@ export async function POST() {
     if (!fs.existsSync(schemaPath)) {
       return NextResponse.json({
         success: false,
-        message: 'database/schema.sql file not found.',
+        message: 'database/schema.sql file not found on server.',
       }, { status: 404 });
     }
 
@@ -63,13 +51,32 @@ export async function POST() {
       .map(st => st.trim())
       .filter(st => st.length > 0);
 
+    let executed = 0;
+    const warnings: string[] = [];
+
     for (const statement of statements) {
-      await query(statement);
+      try {
+        await query(statement);
+        executed++;
+      } catch (err: any) {
+        warnings.push(`Notice: ${err.message}`);
+      }
     }
+
+    // Force schema column checks
+    await ensureDatabaseSchema(pool);
+
+    const [tableRows] = await pool.query<any[]>('SHOW TABLES');
+    const tableNames = Array.isArray(tableRows)
+      ? tableRows.map(r => Object.values(r)[0] as string)
+      : [];
 
     return NextResponse.json({
       success: true,
-      message: `Database schema and seed data successfully initialized (${statements.length} queries executed).`,
+      message: `Database schema and seed data successfully initialized (${executed} queries executed). Found ${tableNames.length} tables.`,
+      tablesCount: tableNames.length,
+      tables: tableNames,
+      warnings: warnings.slice(0, 5),
     });
   } catch (err: any) {
     console.error('Database migration error:', err);

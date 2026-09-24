@@ -47,10 +47,50 @@ export async function GET(req: Request) {
       );
     }
 
-    const employees = await getStoredEmployees();
+    let employees = await getStoredEmployees();
+    if (isDbConfigured) {
+      try {
+        const rows = await query<any[]>('SELECT * FROM employees');
+        if (Array.isArray(rows) && rows.length > 0) {
+          const empMap = new Map<string, Employee>();
+          employees.forEach(e => empMap.set(e.id, e));
+          rows.forEach(r => {
+            const existing = empMap.get(r.id) || ({} as any);
+            empMap.set(r.id, {
+              ...existing,
+              id: r.id,
+              employeeNumber: r.employee_number || existing.employeeNumber,
+              username: r.username || existing.username,
+              firstName: r.first_name || existing.firstName,
+              lastName: r.last_name || existing.lastName,
+              email: r.email || existing.email,
+              mobilePhone: r.mobile_phone || existing.mobilePhone,
+              status: r.status || existing.status,
+              onboardingStatus: r.onboarding_status || existing.onboardingStatus,
+              inviteToken: r.invite_token || existing.inviteToken,
+              inviteSentAt: r.invite_sent_at || existing.inviteSentAt,
+              inviteExpiresAt: r.invite_expires_at || existing.inviteExpiresAt,
+              passwordSetAt: r.password_set_at || existing.passwordSetAt,
+              department: r.department || existing.department,
+              jobTitle: r.job_title || existing.jobTitle,
+              kioskPin: r.kiosk_pin || existing.kioskPin,
+            });
+          });
+          employees = Array.from(empMap.values());
+        }
+      } catch (err: any) {
+        console.warn('MySQL employee fetch in activate-invite GET warning:', err.message);
+      }
+    }
+
+    const cleanTokenLower = cleanToken.toLowerCase();
     const match = employees.find(e => 
-      (cleanToken && e.inviteToken && (e.inviteToken === cleanToken || cleanToken.includes(e.inviteToken) || e.inviteToken.includes(cleanToken))) ||
-      (cleanToken && e.id === cleanToken) ||
+      (cleanToken && e.inviteToken && (
+        e.inviteToken.toLowerCase() === cleanTokenLower ||
+        cleanTokenLower.includes(e.inviteToken.toLowerCase()) ||
+        e.inviteToken.toLowerCase().includes(cleanTokenLower)
+      )) ||
+      (cleanToken && e.id.toLowerCase() === cleanTokenLower) ||
       (rawEmail && e.email.toLowerCase() === rawEmail)
     );
 
@@ -117,10 +157,50 @@ export async function POST(req: Request) {
       );
     }
 
-    const employees = await getStoredEmployees();
+    let employees = await getStoredEmployees();
+    if (isDbConfigured) {
+      try {
+        const rows = await query<any[]>('SELECT * FROM employees');
+        if (Array.isArray(rows) && rows.length > 0) {
+          const empMap = new Map<string, Employee>();
+          employees.forEach(e => empMap.set(e.id, e));
+          rows.forEach(r => {
+            const existing = empMap.get(r.id) || ({} as any);
+            empMap.set(r.id, {
+              ...existing,
+              id: r.id,
+              employeeNumber: r.employee_number || existing.employeeNumber,
+              username: r.username || existing.username,
+              firstName: r.first_name || existing.firstName,
+              lastName: r.last_name || existing.lastName,
+              email: r.email || existing.email,
+              mobilePhone: r.mobile_phone || existing.mobilePhone,
+              status: r.status || existing.status,
+              onboardingStatus: r.onboarding_status || existing.onboardingStatus,
+              inviteToken: r.invite_token || existing.inviteToken,
+              inviteSentAt: r.invite_sent_at || existing.inviteSentAt,
+              inviteExpiresAt: r.invite_expires_at || existing.inviteExpiresAt,
+              passwordSetAt: r.password_set_at || existing.passwordSetAt,
+              department: r.department || existing.department,
+              jobTitle: r.job_title || existing.jobTitle,
+              kioskPin: r.kiosk_pin || existing.kioskPin,
+            });
+          });
+          employees = Array.from(empMap.values());
+        }
+      } catch (err: any) {
+        console.warn('MySQL employee fetch in activate-invite POST warning:', err.message);
+      }
+    }
+
+    const cleanTokenLower = cleanToken.toLowerCase();
     const match = employees.find(e => 
-      (cleanToken && e.inviteToken && (e.inviteToken === cleanToken || cleanToken.includes(e.inviteToken) || e.inviteToken.includes(cleanToken))) ||
-      (cleanToken && e.id === cleanToken) ||
+      (cleanToken && e.inviteToken && (
+        e.inviteToken.toLowerCase() === cleanTokenLower ||
+        cleanTokenLower.includes(e.inviteToken.toLowerCase()) ||
+        e.inviteToken.toLowerCase().includes(cleanTokenLower)
+      )) ||
+      (cleanToken && e.id.toLowerCase() === cleanTokenLower) ||
       (cleanEmail && e.email.toLowerCase() === cleanEmail)
     );
 

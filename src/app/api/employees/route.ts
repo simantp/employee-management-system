@@ -241,25 +241,31 @@ export async function POST(req: Request) {
       try {
         const sql = `
           INSERT INTO employees (
-            id, employee_number, first_name, last_name, email, mobile_phone,
+            id, employee_number, username, first_name, last_name, email, mobile_phone,
             address, suburb, state, postcode, start_date, department, job_title,
-            work_location, reports_to, status, working_hours, working_hours_confirmed,
+            work_location, reports_to, status, onboarding_status,
+            invite_token, invite_sent_at, invite_expires_at, password_set_at, profile_completed_at,
+            working_hours, working_hours_confirmed,
             citizen_status, visa_type, visa_expiry_date, visa_status_confirmed,
             has_driver_license, license_country, license_number, license_expiry_date,
             emergency_next_of_kin, emergency_relationship, emergency_mobile,
+            emergency_address, emergency_suburb, emergency_state, emergency_postcode,
             bank_name, bank_branch, account_name, bsb_encrypted, bsb_masked,
             account_number_encrypted, account_number_masked, tfn_encrypted, tfn_masked,
             super_fund_name, super_member_number, kiosk_pin, clock_state, avatar_url,
             annual_leave_balance, sick_leave_balance, carers_leave_balance, long_service_balance
-          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         `;
         await query(sql, [
-          id, empNumber, newEmp.firstName, newEmp.lastName, newEmp.email, newEmp.mobilePhone,
+          id, empNumber, newEmp.username || null, newEmp.firstName, newEmp.lastName, newEmp.email, newEmp.mobilePhone,
           newEmp.address, newEmp.suburb, newEmp.state, newEmp.postcode, newEmp.startDate, newEmp.department || null, newEmp.jobTitle,
-          newEmp.workLocation, newEmp.reportsTo, newEmp.status, newEmp.workingHours, newEmp.workingHoursConfirmed ? 1 : 0,
+          newEmp.workLocation, newEmp.reportsTo, newEmp.status, newEmp.onboardingStatus || 'INVITED',
+          newEmp.inviteToken || null, newEmp.inviteSentAt || null, newEmp.inviteExpiresAt || null, newEmp.passwordSetAt || null, newEmp.profileCompletedAt || null,
+          newEmp.workingHours, newEmp.workingHoursConfirmed ? 1 : 0,
           newEmp.citizenStatus || null, newEmp.visaType || null, newEmp.visaExpiryDate || null, newEmp.visaStatusConfirmed ? 1 : 0,
           newEmp.hasDriverLicense ? 1 : 0, newEmp.licenseCountry || null, newEmp.licenseNumber || null, newEmp.licenseExpiryDate || null,
           newEmp.emergencyNextOfKin || null, newEmp.emergencyRelationship || null, newEmp.emergencyMobile || null,
+          newEmp.emergencyAddress || null, newEmp.emergencySuburb || null, newEmp.emergencyState || 'NSW', newEmp.emergencyPostcode || null,
           newEmp.bankName || null, newEmp.bankBranch || null, newEmp.accountName || null, newEmp.bsbEncrypted || null, newEmp.bsbMasked || null,
           newEmp.accountNumberEncrypted || null, newEmp.accountNumberMasked || null, newEmp.tfnEncrypted || null, newEmp.tfnMasked || null,
           newEmp.superFundName || null, newEmp.superMemberNumber || null, newEmp.kioskPin || null, newEmp.clockState || 'CLOCKED_OUT',
@@ -339,7 +345,9 @@ export async function PUT(req: Request) {
           visaStatusConfirmed: 'visa_status_confirmed', hasDriverLicense: 'has_driver_license',
           licenseCountry: 'license_country', licenseNumber: 'license_number', licenseExpiryDate: 'license_expiry_date',
           emergencyNextOfKin: 'emergency_next_of_kin', emergencyRelationship: 'emergency_relationship',
-          emergencyMobile: 'emergency_mobile', bankName: 'bank_name', bankBranch: 'bank_branch',
+          emergencyMobile: 'emergency_mobile', emergencyAddress: 'emergency_address',
+          emergencySuburb: 'emergency_suburb', emergencyState: 'emergency_state', emergencyPostcode: 'emergency_postcode',
+          bankName: 'bank_name', bankBranch: 'bank_branch',
           accountName: 'account_name', bsbEncrypted: 'bsb_encrypted', bsbMasked: 'bsb_masked',
           accountNumberEncrypted: 'account_number_encrypted', accountNumberMasked: 'account_number_masked',
           tfnEncrypted: 'tfn_encrypted', tfnMasked: 'tfn_masked', superFundName: 'super_fund_name',

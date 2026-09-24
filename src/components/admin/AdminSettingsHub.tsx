@@ -169,6 +169,55 @@ export default function AdminSettingsHub({
   const [smtpTestResult, setSmtpTestResult] = useState<{ success: boolean; message: string } | null>(null);
   const [isSavingSmtp, setIsSavingSmtp] = useState(false);
 
+  // 9. Hostinger MySQL Database Live State
+  const [dbStatus, setDbStatus] = useState<{
+    success?: boolean;
+    configured?: boolean;
+    message?: string;
+    details?: any;
+    error?: string;
+  } | null>(null);
+  const [isLoadingDbStatus, setIsLoadingDbStatus] = useState(false);
+  const [isRunningDbMigration, setIsRunningDbMigration] = useState(false);
+
+  const checkDatabaseStatus = async () => {
+    setIsLoadingDbStatus(true);
+    try {
+      const res = await fetch('/api/setup-db').then(r => r.json());
+      setDbStatus(res);
+    } catch (e: any) {
+      setDbStatus({ success: false, message: e.message || 'Failed to check database status' });
+    } finally {
+      setIsLoadingDbStatus(false);
+    }
+  };
+
+  const handleRunMigration = async () => {
+    if (!window.confirm('Run database schema migration now? This will create any missing tables (employees, users, timecards, etc.) and columns in your Hostinger MySQL database.')) {
+      return;
+    }
+    setIsRunningDbMigration(true);
+    try {
+      const res = await fetch('/api/setup-db', { method: 'POST' }).then(r => r.json());
+      if (res.success) {
+        addToast('Database Migrated', res.message || 'Database schema successfully initialized.', 'success');
+      } else {
+        addToast('Migration Error', res.message || 'Failed to initialize database schema.', 'error');
+      }
+      await checkDatabaseStatus();
+    } catch (e: any) {
+      addToast('Migration Failed', e.message || 'Network error running migration.', 'error');
+    } finally {
+      setIsRunningDbMigration(false);
+    }
+  };
+
+  useEffect(() => {
+    if (activeTab === 'BACKUP') {
+      checkDatabaseStatus();
+    }
+  }, [activeTab]);
+
   useEffect(() => {
     if (smtpSettings) {
       setSmtpForm(smtpSettings);
@@ -226,7 +275,7 @@ export default function AdminSettingsHub({
 
     const timer = setTimeout(async () => {
       try {
-        const payload = {
+        const payload: Record<string, any> = {
           companyForm,
           shiftRules,
           leavePolicy,
@@ -234,12 +283,14 @@ export default function AdminSettingsHub({
           notifPreferences,
           expirySettings: expiryForm,
           auditRetentionDays: retentionDaysInput,
-          smtpSettings: smtpForm,
         };
-        localStorage.setItem('ems_settings_hub', JSON.stringify(payload));
+        // Only include smtpSettings if explicitly filled by admin, never wiping server env vars
+        if (smtpForm.host?.trim() && smtpForm.user?.trim() && smtpForm.pass?.trim()) {
+          payload.smtpSettings = smtpForm;
+        }
+        localStorage.setItem('ems_settings_hub', JSON.stringify({ ...payload, smtpSettings: smtpForm }));
         localStorage.setItem('ems_audit_retention_days_v1', JSON.stringify(retentionDaysInput));
         localStorage.setItem('ems_expiry_settings_v1', JSON.stringify(expiryForm));
-        localStorage.setItem('ems_smtp_settings_v1', JSON.stringify(smtpForm));
         localStorage.setItem('ems_security_settings_v1', JSON.stringify(securitySettings));
 
         const res = await fetch('/api/settings', {
@@ -2297,9 +2348,111 @@ export default function AdminSettingsHub({
           {/* TAB 6: DATA & MAINTENANCE */}
           {activeTab === 'BACKUP' && (
             <div className="space-y-5">
-              <div className="border-b border-slate-100 pb-3">
-                <h3 className="font-bold text-sm text-slate-900">System Data Management &amp; Disaster Recovery</h3>
-                <p className="text-slate-500 text-[11px]">Export JSON snapshot backups, export audit ledgers, or reset demo state</p>
+              <div className="border-b border-slate-100 pb-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                <div>
+                  <h3 className="font-bold text-sm text-slate-900">System Data Management &amp; Disaster Recovery</h3>
+                  <p className="text-slate-500 text-[11px]">Database health diagnostics, schema migration, and JSON snapshot backups</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={checkDatabaseStatus}
+                  disabled={isLoadingDbStatus}
+                  className="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs transition cursor-pointer self-start sm:self-auto flex items-center gap-1.5"
+                >
+                  <span className={`w-2 h-2 rounded-full ${isLoadingDbStatus ? 'bg-amber-500 animate-spin' : 'bg-slate-400'}`} />
+                  <span>{isLoadingDbStatus ? 'Checking Database...' : 'Refresh Status'}</span>
+                </button>
+              </div>
+
+              {/* Hostinger MySQL Live Diagnostic Card */}
+              <div className={`p-5 rounded-2xl border transition-all ${
+                dbStatus?.success
+                  ? 'bg-gradient-to-br from-emerald-50/80 via-teal-50/40 to-slate-50 border-emerald-300 shadow-xs'
+                  : dbStatus?.configured
+                  ? 'bg-gradient-to-br from-rose-50/80 via-red-50/40 to-slate-50 border-rose-300 shadow-xs'
+                  : 'bg-slate-50 border-slate-200'
+              }`}>
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-200/70 pb-3.5 mb-3.5">
+                  <div className="flex items-center gap-2.5">
+                    <span className={`w-3 h-3 rounded-full shrink-0 ${
+                      dbStatus?.success ? 'bg-emerald-500 animate-pulse' : dbStatus?.configured ? 'bg-rose-500 animate-pulse' : 'bg-amber-400'
+                    }`} />
+                    <div>
+                      <h4 className="font-black text-xs text-slate-900">
+                        Hostinger MySQL Database Connection
+                      </h4>
+                      <p className="text-[11px] text-slate-600">
+                        {dbStatus?.message || 'Checking database connection...'}
+                      </p>
+                    </div>
+                  </div>
+
+                  <span className={`px-2.5 py-1 rounded-full text-[10px] font-extrabold uppercase tracking-wide border font-mono self-start sm:self-auto ${
+                    dbStatus?.success
+                      ? 'bg-emerald-100 text-emerald-800 border-emerald-300'
+                      : dbStatus?.configured
+                      ? 'bg-rose-100 text-rose-800 border-rose-300'
+                      : 'bg-amber-100 text-amber-800 border-amber-300'
+                  }`}>
+                    {dbStatus?.success ? 'LIVE MYSQL CONNECTED' : dbStatus?.configured ? 'CONNECTION FAILED' : 'NOT CONFIGURED'}
+                  </span>
+                </div>
+
+                {/* Connection Details Grid */}
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs mb-3.5">
+                  <div className="p-2.5 rounded-xl bg-white/80 border border-slate-200/80">
+                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Host &amp; Port</span>
+                    <span className="font-mono font-bold text-slate-800">
+                      {dbStatus?.details?.host || '127.0.0.1'}:{dbStatus?.details?.port || 3306}
+                    </span>
+                  </div>
+
+                  <div className="p-2.5 rounded-xl bg-white/80 border border-slate-200/80">
+                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Database Name</span>
+                    <span className="font-mono font-bold text-slate-800 truncate block">
+                      {dbStatus?.details?.database || 'Unset'}
+                    </span>
+                  </div>
+
+                  <div className="p-2.5 rounded-xl bg-white/80 border border-slate-200/80">
+                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Database User</span>
+                    <span className="font-mono font-bold text-slate-800 truncate block">
+                      {dbStatus?.details?.user || 'Unset'}
+                    </span>
+                  </div>
+
+                  <div className="p-2.5 rounded-xl bg-white/80 border border-slate-200/80">
+                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Tables in Database</span>
+                    <span className="font-mono font-black text-slate-900">
+                      {dbStatus?.details?.tablesCount !== undefined ? `${dbStatus.details.tablesCount} Tables` : '—'}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Migration Action Button */}
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-2 border-t border-slate-200/60">
+                  <p className="text-[11px] text-slate-600 leading-relaxed">
+                    {dbStatus?.success && (dbStatus.details?.tablesCount || 0) > 0
+                      ? `Schema verified with ${dbStatus.details?.tablesCount} operational tables (${(dbStatus.details?.tables || []).slice(0, 5).join(', ')}${(dbStatus.details?.tables?.length || 0) > 5 ? '...' : ''}).`
+                      : 'Run migration to auto-create and verify all tables (employees, users, timecards, audit_logs) in Hostinger MySQL.'}
+                  </p>
+
+                  <button
+                    type="button"
+                    disabled={isRunningDbMigration || !dbStatus?.configured}
+                    onClick={handleRunMigration}
+                    className="px-4 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs shadow-xs transition cursor-pointer disabled:opacity-50 shrink-0 flex items-center justify-center gap-2"
+                  >
+                    {isRunningDbMigration ? (
+                      <>
+                        <span className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                        <span>Running Migration...</span>
+                      </>
+                    ) : (
+                      <span>Verify / Run Database Schema Migration &rarr;</span>
+                    )}
+                  </button>
+                </div>
               </div>
 
               <div className="space-y-4">

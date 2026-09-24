@@ -18,6 +18,8 @@ export default function AppHome() {
 
   const [showGlobalLeaveModal, setShowGlobalLeaveModal] = useState(false);
 
+  const [hasInviteOrReset, setHasInviteOrReset] = useState(false);
+
   // Automatically remove any lingering URL hash (like #compliance) from the address bar
   useEffect(() => {
     if (typeof window !== 'undefined' && window.location.hash) {
@@ -25,22 +27,21 @@ export default function AppHome() {
     }
   }, []);
 
-  // If an invite or password reset link is opened on initial page load, clear old conflicting sessions
+  // If an invite or password reset link is opened on initial page load, clear conflicting sessions and show AuthPortal
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const searchParams = new URLSearchParams(window.location.search);
       const inviteParam = searchParams.get('invite') || searchParams.get('token');
       const resetParam = searchParams.get('resetToken') || searchParams.get('reset');
-      const emailParam = searchParams.get('email');
       
       if (inviteParam || resetParam) {
-        // If an existing user session is logged in with a DIFFERENT account than the invite, log out
-        if (currentUser && emailParam && currentUser.email.toLowerCase() !== decodeURIComponent(emailParam).toLowerCase()) {
+        setHasInviteOrReset(true);
+        if (currentUser) {
           logout();
         }
       }
     }
-  }, []); // Run on initial mount only
+  }, [currentUser]);
 
   // Whenever admin or staff logs in, automatically select and display the dashboard tab
   useEffect(() => {
@@ -50,8 +51,8 @@ export default function AppHome() {
     }
   }, [currentUser?.id, currentUser?.role]);
 
-  // 1. If not logged in -> Show ONLY the Full-Screen Login & Registration Portal!
-  if (!currentUser) {
+  // 1. If not logged in OR if opening an invite/reset link -> Show AuthPortal!
+  if (!currentUser || hasInviteOrReset) {
     return <AuthPortal />;
   }
 

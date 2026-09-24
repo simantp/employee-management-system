@@ -13,6 +13,7 @@ SET FOREIGN_KEY_CHECKS = 0;
 CREATE TABLE IF NOT EXISTS `users` (
   `id` VARCHAR(64) NOT NULL,
   `email` VARCHAR(191) NOT NULL,
+  `username` VARCHAR(100) NULL,
   `name` VARCHAR(191) NOT NULL,
   `role` ENUM('SUPER_ADMIN', 'ADMIN', 'HR_MANAGER', 'STAFF') NOT NULL DEFAULT 'STAFF',
   `password_hash` VARCHAR(255) NULL,
@@ -32,6 +33,7 @@ CREATE TABLE IF NOT EXISTS `users` (
 CREATE TABLE IF NOT EXISTS `employees` (
   `id` VARCHAR(64) NOT NULL,
   `employee_number` VARCHAR(32) NOT NULL,
+  `username` VARCHAR(100) NULL,
   `first_name` VARCHAR(100) NOT NULL,
   `last_name` VARCHAR(100) NOT NULL,
   `email` VARCHAR(191) NOT NULL,
@@ -46,6 +48,12 @@ CREATE TABLE IF NOT EXISTS `employees` (
   `work_location` VARCHAR(100) DEFAULT 'Sydney, NSW',
   `reports_to` VARCHAR(100) DEFAULT 'Operations Lead',
   `status` ENUM('Active', 'On Leave', 'Terminated', 'Probation', 'Archived', 'Pending') NOT NULL DEFAULT 'Pending',
+  `onboarding_status` VARCHAR(32) NOT NULL DEFAULT 'INVITED',
+  `invite_token` VARCHAR(128) NULL,
+  `invite_sent_at` VARCHAR(64) NULL,
+  `invite_expires_at` VARCHAR(64) NULL,
+  `password_set_at` VARCHAR(64) NULL,
+  `profile_completed_at` VARCHAR(64) NULL,
   `working_hours` DECIMAL(5,2) NOT NULL DEFAULT 38.00,
   `working_hours_confirmed` TINYINT(1) NOT NULL DEFAULT 1,
   `citizen_status` VARCHAR(64) DEFAULT 'Australian Citizen',
@@ -59,6 +67,10 @@ CREATE TABLE IF NOT EXISTS `employees` (
   `emergency_next_of_kin` VARCHAR(100) NULL,
   `emergency_relationship` VARCHAR(100) NULL,
   `emergency_mobile` VARCHAR(32) NULL,
+  `emergency_address` VARCHAR(255) NULL,
+  `emergency_suburb` VARCHAR(100) NULL,
+  `emergency_state` VARCHAR(16) DEFAULT 'NSW',
+  `emergency_postcode` VARCHAR(16) NULL,
   `bank_name` VARCHAR(100) NULL,
   `bank_branch` VARCHAR(100) NULL,
   `account_name` VARCHAR(100) NULL,
@@ -233,6 +245,21 @@ CREATE TABLE IF NOT EXISTS `audit_logs` (
   PRIMARY KEY (`id`),
   KEY `idx_audit_entity` (`target_entity`),
   KEY `idx_audit_action` (`action`)
+-- --------------------------------------------------------------------
+-- 9. Table: notifications
+-- In-app and system alerts
+-- --------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS `notifications` (
+  `id` VARCHAR(64) NOT NULL,
+  `recipient` VARCHAR(32) NOT NULL DEFAULT 'STAFF',
+  `recipient_id` VARCHAR(64) NULL,
+  `title` VARCHAR(191) NOT NULL,
+  `message` TEXT NOT NULL,
+  `type` VARCHAR(32) NOT NULL DEFAULT 'GENERAL',
+  `timestamp` VARCHAR(64) NOT NULL,
+  `read_status` TINYINT(1) NOT NULL DEFAULT 0,
+  `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 SET FOREIGN_KEY_CHECKS = 1;

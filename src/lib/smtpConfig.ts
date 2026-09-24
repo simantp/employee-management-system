@@ -78,74 +78,118 @@ export function getAllEnvironmentVariables(): Record<string, string> {
 }
 
 /**
+ * Case-insensitive environment variable lookup with multiple alias support
+ */
+export function getEnvVar(env: Record<string, string>, ...keys: string[]): string {
+  // First check exact matches
+  for (const k of keys) {
+    if (env[k] !== undefined && env[k] !== '') {
+      return env[k].trim();
+    }
+  }
+
+  // Second check case-insensitive and stripped underscores/hyphens
+  const normalizedEnv: Record<string, string> = {};
+  for (const [k, v] of Object.entries(env)) {
+    normalizedEnv[k.toLowerCase().replace(/[-_]/g, '')] = v;
+  }
+
+  for (const k of keys) {
+    const normKey = k.toLowerCase().replace(/[-_]/g, '');
+    if (normalizedEnv[normKey] !== undefined && normalizedEnv[normKey] !== '') {
+      return normalizedEnv[normKey].trim();
+    }
+  }
+
+  return '';
+}
+
+/**
  * Resolves SMTP configuration from environment variables (.env files and process.env)
  * with support for all standard aliases (Hostinger, cPanel, Docker, Next.js).
  */
 export function getEnvSmtpConfig(): SmtpResolvedConfig | null {
   const env = getAllEnvironmentVariables();
 
-  // 1. Host aliases
-  const host = (
-    env.SMTP_HOST ||
-    env.EMAIL_HOST ||
-    env.MAIL_HOST ||
-    env.SMTP_SERVER ||
-    ''
-  ).trim();
+  // 1. Host aliases (Hostinger default is smtp.hostinger.com)
+  const host = getEnvVar(
+    env,
+    'SMTP_HOST',
+    'EMAIL_HOST',
+    'MAIL_HOST',
+    'SMTP_SERVER',
+    'MAIL_SERVER',
+    'SMTPHOST'
+  );
 
-  // 2. User / Username aliases
-  const user = (
-    env.SMTP_USER ||
-    env.SMTP_USERNAME ||
-    env.EMAIL_USER ||
-    env.EMAIL_USERNAME ||
-    env.MAIL_USER ||
-    env.MAIL_USERNAME ||
-    ''
-  ).trim();
+  // 2. User / Username aliases (usually the full email address)
+  const user = getEnvVar(
+    env,
+    'SMTP_USER',
+    'SMTP_USERNAME',
+    'EMAIL_USER',
+    'EMAIL_USERNAME',
+    'MAIL_USER',
+    'MAIL_USERNAME',
+    'SMTPUSER'
+  );
 
   // 3. Password aliases
-  const pass = (
-    env.SMTP_PASS ||
-    env.SMTP_PASSWORD ||
-    env.EMAIL_PASS ||
-    env.EMAIL_PASSWORD ||
-    env.MAIL_PASS ||
-    env.MAIL_PASSWORD ||
-    ''
-  ).trim();
+  const pass = getEnvVar(
+    env,
+    'SMTP_PASS',
+    'SMTP_PASSWORD',
+    'EMAIL_PASS',
+    'EMAIL_PASSWORD',
+    'MAIL_PASS',
+    'MAIL_PASSWORD',
+    'SMTPPASSWORD',
+    'SMTP_KEY'
+  );
 
   if (!host || !user || !pass) {
     return null;
   }
 
   // 4. Port aliases
-  const rawPort = env.SMTP_PORT || env.EMAIL_PORT || env.MAIL_PORT || '465';
-  const port = parseInt(rawPort, 10) || (host.includes('hostinger') ? 465 : 587);
+  const rawPort = getEnvVar(env, 'SMTP_PORT', 'EMAIL_PORT', 'MAIL_PORT', 'SMTPPORT');
+  const port = parseInt(rawPort, 10) || (host.toLowerCase().includes('hostinger') ? 465 : 587);
 
-  // 5. Secure (SSL/TLS)
-  const rawSecure = env.SMTP_SECURE || env.EMAIL_SECURE || env.MAIL_SECURE || env.SMTP_SSL;
+  // 5. Secure (SSL/TLS): Port 465 is direct SSL, 587 is STARTTLS
+  const rawSecure = getEnvVar(env, 'SMTP_SECURE', 'EMAIL_SECURE', 'MAIL_SECURE', 'SMTP_SSL', 'MAIL_ENCRYPTION');
   let secure = port === 465;
-  if (rawSecure !== undefined) {
-    secure = rawSecure === 'true' || rawSecure === '1' || rawSecure === 'yes' || port === 465;
+  if (rawSecure) {
+    const s = rawSecure.toLowerCase();
+    if (s === 'true' || s === '1' || s === 'yes' || s === 'ssl') {
+      secure = true;
+    } else if (s === 'false' || s === '0' || s === 'no' || s === 'tls' || s === 'starttls') {
+      secure = false;
+    }
   }
 
   // 6. From Email & Name
-  const fromEmail = (
-    env.EMAIL_FROM ||
-    env.SMTP_FROM ||
-    env.MAIL_FROM ||
-    env.SMTP_FROM_EMAIL ||
-    env.EMAIL_FROM_ADDRESS ||
-    user
-  ).trim();
+  let fromEmail = getEnvVar(
+    env,
+    'EMAIL_FROM',
+    'SMTP_FROM',
+    'MAIL_FROM',
+    'SMTP_FROM_EMAIL',
+    'EMAIL_FROM_ADDRESS',
+    'MAIL_FROM_ADDRESS'
+  );
 
-  const fromName = (
-    env.EMAIL_FROM_NAME ||
-    env.SMTP_FROM_NAME ||
-    env.MAIL_FROM_NAME ||
-    'HsCreations Sydney'
-  ).trim();
+  // If fromEmail is not set, or contains generic dummy domain, default to the authenticated user email
+  if (!fromEmail || fromEmail.includes('company.com.au') || !fromEmail.includes('@')) {
+    fromEmail = user;
+  }
+
+  const fromName = getEnvVar(
+    env,
+    'EMAIL_FROM_NAME',
+    'SMTP_FROM_NAME',
+    'MAIL_FROM_NAME',
+    'FROM_NAME'
+  ) || 'HsCreations Sydney';
 
   return {
     host,

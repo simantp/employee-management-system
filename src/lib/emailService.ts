@@ -80,14 +80,25 @@ export async function getEffectiveSmtpConfig(): Promise<SmtpConfigResult> {
 }
 
 export function createNodemailerTransporter(smtp: { host: string; port: number; secure: boolean; user: string; pass: string }) {
+  const port = Number(smtp.port) || (smtp.host.toLowerCase().includes('hostinger') ? 465 : 587);
+  // Port 465 is direct SSL/TLS; Port 587 or 25 is STARTTLS
+  const secure = port === 465 ? true : (port === 587 || port === 25 ? false : Boolean(smtp.secure));
+
   return nodemailer.createTransport({
-    host: smtp.host,
-    port: smtp.port,
-    secure: smtp.secure,
+    host: smtp.host.trim(),
+    port: port,
+    secure: secure,
     auth: {
-      user: smtp.user,
+      user: smtp.user.trim(),
       pass: smtp.pass,
     },
+    tls: {
+      rejectUnauthorized: false,
+      minVersion: 'TLSv1.2',
+    },
+    connectionTimeout: 15000,
+    greetingTimeout: 15000,
+    socketTimeout: 20000,
   });
 }
 
@@ -106,7 +117,10 @@ async function logEmail(entry: Omit<EmailLog, 'id' | 'timestamp'>) {
 
 export async function sendOTPEmail({ email, firstName, code }: SendOTPParams): Promise<SendEmailResult> {
   const smtp = await getEffectiveSmtpConfig();
-  const fromEmail = `"${smtp.fromName || 'Australian Employee Portal'}" <${smtp.fromEmail}>`;
+  const senderEmail = (smtp.fromEmail && smtp.fromEmail.includes('@') && !smtp.fromEmail.includes('company.com.au'))
+    ? smtp.fromEmail.trim()
+    : smtp.user.trim();
+  const fromEmail = `"${smtp.fromName || 'Australian Employee Portal'}" <${senderEmail}>`;
 
   // 1. If real SMTP credentials are provided (from Admin Settings or .env)
   if (smtp.isConfigured) {
@@ -116,6 +130,10 @@ export async function sendOTPEmail({ email, firstName, code }: SendOTPParams): P
       const info = await transporter.sendMail({
         from: fromEmail,
         to: email,
+        envelope: {
+          from: smtp.user.trim(),
+          to: email,
+        },
         subject: `${code} is your Employee Portal Verification Code`,
         text: `Hi ${firstName},
 
@@ -740,16 +758,39 @@ export async function sendStaffInvitationEmail(params: SendInvitationEmailParams
   if (smtp.isConfigured) {
     try {
       const transporter = createNodemailerTransporter(smtp);
+      const senderEmail = (smtp.fromEmail && smtp.fromEmail.includes('@') && !smtp.fromEmail.includes('company.com.au')) 
+        ? smtp.fromEmail.trim() 
+        : smtp.user.trim();
+      const resolvedFrom = `"${smtp.fromName || 'HsCreations HR & Onboarding'}" <${senderEmail}>`;
 
       const info = await transporter.sendMail({
-        from: fromEmail,
+        from: resolvedFrom,
         to: params.email,
+        envelope: {
+          from: smtp.user.trim(),
+          to: params.email,
+        },
         subject: `Welcome to HsCreations! Set Up Your Staff Account (Valid for 1 Hour): ${fullName}`,
         text: `Hi ${params.firstName},\n\nYou have been invited to join HsCreations! Please set your password and complete onboarding here within 1 hour:\n\n${params.inviteUrl}\n\nNote: For security purposes, this link expires in 1 hour.\n\nHsCreations Sydney NSW`,
         html: htmlContent,
       });
 
       console.log(`[INVITE EMAIL SUCCESS] Real email sent to ${params.email} (Id: ${info.messageId})`);
+      await logEmail({
+        recipientEmail: params.email,
+        recipientName: fullName,
+        subject: `Welcome to HsCreations! Set Up Your Staff Account: ${fullName}`,
+        category: 'GENERAL',
+        status: 'SENT',
+        deliveryMode: 'REAL_SMTP',
+        messageId: info.messageId,
+        previewSnippet: `Dispatched staff onboarding invite with 1-hour activation link.`,
+        htmlContent: htmlContent,
+        details: `Real SMTP delivered onboarding invite email to ${params.email} via ${smtp.host}:${smtp.port}`,
+        actorId: 'admin',
+        actorName: 'Admin / System',
+      });
+
       return {
         success: true,
         messageId: info.messageId,
@@ -758,8 +799,20 @@ export async function sendStaffInvitationEmail(params: SendInvitationEmailParams
       };
     } catch (err: any) {
       console.error('[INVITE EMAIL ERROR] Real SMTP failed:', err);
+      await logEmail({
+        recipientEmail: params.email,
+        recipientName: fullName,
+        subject: `Welcome to HsCreations! Set Up Your Staff Account: ${fullName}`,
+        category: 'GENERAL',
+        status: 'FAILED',
+        deliveryMode: 'REAL_SMTP',
+        previewSnippet: `SMTP Delivery Error: ${err.message}`,
+        details: `Failed to deliver onboarding email via SMTP: ${err.message}`,
+        actorId: 'admin',
+        actorName: 'Admin / System',
+      });
       return {
-        success: true,
+        success: false,
         mode: 'SIMULATED',
         message: `SMTP Error (${err.message}). Invitation link is ready in system.`,
       };
@@ -986,7 +1039,10 @@ export interface SendPasswordResetEmailParams {
 
 export async function sendPasswordResetEmail(params: SendPasswordResetEmailParams): Promise<SendEmailResult> {
   const smtp = await getEffectiveSmtpConfig();
-  const fromEmail = `"${smtp.fromName || 'HsCreations Security Hub'}" <${smtp.fromEmail}>`;
+  const senderEmail = (smtp.fromEmail && smtp.fromEmail.includes('@') && !smtp.fromEmail.includes('company.com.au'))
+    ? smtp.fromEmail.trim()
+    : smtp.user.trim();
+  const fromEmail = `"${smtp.fromName || 'HsCreations Security Hub'}" <${senderEmail}>`;
 
   const expiresIn = params.expiresInMinutes || 5;
 
@@ -1080,6 +1136,10 @@ export async function sendPasswordResetEmail(params: SendPasswordResetEmailParam
       const info = await transporter.sendMail({
         from: fromEmail,
         to: params.email,
+        envelope: {
+          from: smtp.user.trim(),
+          to: params.email,
+        },
         subject: `Reset Your HsCreations Password (Valid for ${expiresIn} Minutes)`,
         text: `Hi ${params.userName},\n\nA password reset request was received for your HsCreations account. Please use this link within ${expiresIn} minutes to reset your password:\n\n${params.resetUrl}\n\nNote: For your security, this link expires strictly in ${expiresIn} minutes.\n\nHsCreations Sydney NSW`,
         html: htmlContent,
@@ -1310,8 +1370,6 @@ export interface SendTestSmtpParams {
 
 export async function sendTestSmtpEmail(params: SendTestSmtpParams): Promise<SendEmailResult> {
   const host = params.host?.trim();
-  const port = Number(params.port) || 587;
-  const secure = params.secure !== undefined ? Boolean(params.secure) : (port === 465);
   const user = params.user?.trim();
   const pass = params.pass;
   const fromEmail = params.fromEmail?.trim() || user;
@@ -1322,11 +1380,21 @@ export async function sendTestSmtpEmail(params: SendTestSmtpParams): Promise<Sen
     throw new Error('Host, port, username, password, and test recipient email are required.');
   }
 
+  const port = Number(params.port) || (host.toLowerCase().includes('hostinger') ? 465 : 587);
+  const secure = port === 465 ? true : (port === 587 || port === 25 ? false : Boolean(params.secure));
+
   const transporter = nodemailer.createTransport({
     host,
     port,
     secure,
     auth: { user, pass },
+    tls: {
+      rejectUnauthorized: false,
+      minVersion: 'TLSv1.2',
+    },
+    connectionTimeout: 15000,
+    greetingTimeout: 15000,
+    socketTimeout: 20000,
   });
 
   // Verify connection first
