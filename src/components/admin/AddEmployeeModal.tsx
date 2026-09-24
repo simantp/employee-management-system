@@ -28,6 +28,7 @@ export default function AddEmployeeModal({ onClose }: { onClose: () => void }) {
     inviteToken: string;
   } | null>(null);
   const [copied, setCopied] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Full Manual Entry Form State (Starts at 0% blank)
   const [fullForm, setFullForm] = useState({
@@ -74,22 +75,29 @@ export default function AddEmployeeModal({ onClose }: { onClose: () => void }) {
     accountNumber: '',
   });
 
-  const handleQuickSubmit = (e: React.FormEvent) => {
+  const handleQuickSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!quickForm.firstName.trim() || !quickForm.lastName.trim() || !quickForm.email.trim()) {
       alert('Please fill out First Name, Last Name, and Email.');
       return;
     }
 
-    const res = inviteEmployee({
-      firstName: quickForm.firstName,
-      lastName: quickForm.lastName,
-      email: quickForm.email,
-      department: quickForm.department,
-      jobTitle: quickForm.jobTitle,
-    });
+    setIsSubmitting(true);
+    try {
+      const res = await inviteEmployee({
+        firstName: quickForm.firstName,
+        lastName: quickForm.lastName,
+        email: quickForm.email,
+        department: quickForm.department,
+        jobTitle: quickForm.jobTitle,
+      });
 
-    setInviteResult(res);
+      setInviteResult(res);
+    } catch (err) {
+      console.error('Error submitting quick invite:', err);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleFullSubmit = (e: React.FormEvent) => {
@@ -368,9 +376,15 @@ export default function AddEmployeeModal({ onClose }: { onClose: () => void }) {
               </button>
               <button
                 type="submit"
-                className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-400 hover:to-amber-400 text-slate-950 font-black text-xs shadow-lg shadow-orange-500/25 transition-all hover:scale-[1.02] cursor-pointer"
+                disabled={isSubmitting}
+                className={`px-6 py-2.5 rounded-xl bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-400 hover:to-amber-400 text-slate-950 font-black text-xs shadow-lg shadow-orange-500/25 transition-all hover:scale-[1.02] cursor-pointer flex items-center gap-2 ${
+                  isSubmitting ? 'opacity-70 cursor-not-allowed' : ''
+                }`}
               >
-                Add Pending Staff &amp; Generate Invite Link
+                {isSubmitting && (
+                  <span className="w-3.5 h-3.5 border-2 border-slate-900 border-t-transparent rounded-full animate-spin"></span>
+                )}
+                <span>{isSubmitting ? 'Sending Onboarding Invite...' : 'Add Pending Staff & Generate Invite Link'}</span>
               </button>
             </div>
           </form>
@@ -578,8 +592,17 @@ export default function AddEmployeeModal({ onClose }: { onClose: () => void }) {
               <button type="button" onClick={onClose} className="px-4 py-2.5 border rounded-xl font-bold text-slate-700 hover:bg-slate-100 transition cursor-pointer">
                 Cancel
               </button>
-              <button type="submit" className="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow-md cursor-pointer">
-                Register &amp; Save Employee Directly
+              <button
+                type="submit"
+                disabled={isSubmitting}
+                className={`px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow-md cursor-pointer flex items-center gap-2 ${
+                  isSubmitting ? 'opacity-70 cursor-not-allowed' : ''
+                }`}
+              >
+                {isSubmitting && (
+                  <span className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
+                )}
+                <span>{isSubmitting ? 'Registering & Sending Invite...' : 'Register & Save Employee Directly'}</span>
               </button>
             </div>
           </form>

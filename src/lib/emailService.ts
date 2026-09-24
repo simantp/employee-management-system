@@ -30,11 +30,39 @@ export interface SmtpConfigResult {
 
 import { getEnvSmtpConfig } from './smtpConfig';
 
+/**
+ * Strips angle brackets and enclosing quotes to extract a pure, valid email address.
+ * E.g., '"HsCreations Portal" <admin@example.com>' -> 'admin@example.com'
+ */
+export function cleanSenderEmail(emailStr?: string): string {
+  if (!emailStr) return '';
+  const match = emailStr.match(/<([^>]+)>/);
+  if (match && match[1]) {
+    return match[1].trim();
+  }
+  return emailStr.replace(/["']/g, '').trim();
+}
+
+/**
+ * Builds a clean RFC 5322 "Display Name <email@domain.com>" string without nested brackets or malformed quotes.
+ */
+export function buildSenderAddress(name: string, rawEmail?: string, fallbackEmail?: string): string {
+  const pureEmail = cleanSenderEmail(rawEmail) || cleanSenderEmail(fallbackEmail);
+  const cleanName = (name || '').replace(/["']/g, '').trim() || 'HsCreations Sydney';
+  return pureEmail ? `"${cleanName}" <${pureEmail}>` : cleanName;
+}
+
 export async function getEffectiveSmtpConfig(): Promise<SmtpConfigResult> {
   // 1. Check environment variables (.env, .env.local, .env.production, and process.env)
   const envSmtp = getEnvSmtpConfig();
   if (envSmtp && envSmtp.isConfigured) {
-    return envSmtp;
+    const cleanFrom = cleanSenderEmail(envSmtp.fromEmail) || cleanSenderEmail(envSmtp.user);
+    const cleanUser = cleanSenderEmail(envSmtp.user) || envSmtp.user;
+    return {
+      ...envSmtp,
+      user: cleanUser,
+      fromEmail: cleanFrom,
+    };
   }
 
   // 2. Fallback to Admin Settings stored in Database or settings.json
@@ -50,13 +78,15 @@ export async function getEffectiveSmtpConfig(): Promise<SmtpConfigResult> {
       smtp.user !== 'admin@company.com.au'
     ) {
       const port = Number(smtp.port) || 587;
+      const cleanUser = cleanSenderEmail(smtp.user.trim()) || smtp.user.trim();
+      const cleanFrom = cleanSenderEmail(smtp.fromEmail?.trim()) || cleanUser;
       return {
         host: smtp.host.trim(),
         port: port,
         secure: smtp.secure !== undefined ? Boolean(smtp.secure) : (port === 465),
-        user: smtp.user.trim(),
+        user: cleanUser,
         pass: smtp.pass,
-        fromEmail: smtp.fromEmail?.trim() || smtp.user.trim(),
+        fromEmail: cleanFrom,
         fromName: smtp.fromName?.trim() || 'HsCreations Sydney',
         isConfigured: true,
         source: 'SETTINGS_DB',
@@ -117,10 +147,7 @@ async function logEmail(entry: Omit<EmailLog, 'id' | 'timestamp'>) {
 
 export async function sendOTPEmail({ email, firstName, code }: SendOTPParams): Promise<SendEmailResult> {
   const smtp = await getEffectiveSmtpConfig();
-  const senderEmail = (smtp.fromEmail && smtp.fromEmail.includes('@') && !smtp.fromEmail.includes('company.com.au'))
-    ? smtp.fromEmail.trim()
-    : smtp.user.trim();
-  const fromEmail = `"${smtp.fromName || 'Australian Employee Portal'}" <${senderEmail}>`;
+  const fromEmail = buildSenderAddress(smtp.fromName || 'Australian Employee Portal', smtp.fromEmail, smtp.user);
 
   // 1. If real SMTP credentials are provided (from Admin Settings or .env)
   if (smtp.isConfigured) {
@@ -131,7 +158,7 @@ export async function sendOTPEmail({ email, firstName, code }: SendOTPParams): P
         from: fromEmail,
         to: email,
         envelope: {
-          from: smtp.user.trim(),
+          from: cleanSenderEmail(smtp.user) || cleanSenderEmail(smtp.fromEmail),
           to: email,
         },
         subject: `${code} is your Employee Portal Verification Code`,
@@ -264,7 +291,7 @@ export type SendLeaveRequestEmailParams = SendLeaveEmailParams;
 
 export async function sendLeaveRequestEmailToAdmin(params: SendLeaveEmailParams): Promise<SendEmailResult> {
   const smtp = await getEffectiveSmtpConfig();
-  const fromEmail = `"${smtp.fromName || 'Leave Management Service'}" <${smtp.fromEmail}>`;
+  const fromEmail = buildSenderAddress(smtp.fromName || 'Leave Management Service', smtp.fromEmail, smtp.user);
   const adminEmail = params.adminEmail || process.env.ADMIN_NOTIFICATION_EMAIL || 'admin@company.com.au';
 
   const htmlContent = `
@@ -354,6 +381,10 @@ export async function sendLeaveRequestEmailToAdmin(params: SendLeaveEmailParams)
       const info = await transporter.sendMail({
         from: fromEmail,
         to: adminEmail,
+        envelope: {
+          from: cleanSenderEmail(smtp.user) || cleanSenderEmail(smtp.fromEmail),
+          to: adminEmail,
+        },
         subject: `Leave Request: ${params.employeeName} (${params.leaveType} - ${params.totalDays}d)`,
         text: `New ${params.leaveType} leave request from ${params.employeeName} (${params.startDate} to ${params.endDate}, ${params.totalDays} days). Reason: ${params.reason}`,
         html: htmlContent,
@@ -427,7 +458,7 @@ export interface SendExpiryEmailParams {
 
 export async function sendExpiryReminderEmail(params: SendExpiryEmailParams): Promise<SendEmailResult> {
   const smtp = await getEffectiveSmtpConfig();
-  const fromEmail = `"${smtp.fromName || 'HsCreations Compliance'}" <${smtp.fromEmail}>`;
+  const fromEmail = buildSenderAddress(smtp.fromName || 'HsCreations Compliance', smtp.fromEmail, smtp.user);
 
   const isCritical = params.severity === 'CRITICAL' || params.daysRemaining <= 30;
   const docLabel = params.documentType === 'VISA' ? 'Visa' : 'Driver License';
@@ -522,6 +553,10 @@ export async function sendExpiryReminderEmail(params: SendExpiryEmailParams): Pr
       const info = await transporter.sendMail({
         from: fromEmail,
         to: params.employeeEmail,
+        envelope: {
+          from: cleanSenderEmail(smtp.user) || cleanSenderEmail(smtp.fromEmail),
+          to: params.employeeEmail,
+        },
         subject: `[${params.severity}] ${docLabel} Expiry Reminder: ${params.employeeName} (${params.daysRemaining} days remaining)`,
         text: `Dear ${params.employeeName}, your ${params.documentName || docLabel} expires on ${params.expiryDate} (${params.daysRemaining} days remaining). Please update your records via the Staff Portal.`,
         html: htmlContent,
@@ -658,7 +693,7 @@ export interface SendInvitationEmailParams {
 
 export async function sendStaffInvitationEmail(params: SendInvitationEmailParams): Promise<SendEmailResult> {
   const smtp = await getEffectiveSmtpConfig();
-  const fromEmail = `"${smtp.fromName || 'HsCreations HR & Onboarding'}" <${smtp.fromEmail}>`;
+  const fromEmail = buildSenderAddress(smtp.fromName || 'HsCreations HR & Onboarding', smtp.fromEmail, smtp.user);
 
   const fullName = `${params.firstName} ${params.lastName}`.trim();
   const dept = params.department || 'Production & Creative Operations';
@@ -758,16 +793,13 @@ export async function sendStaffInvitationEmail(params: SendInvitationEmailParams
   if (smtp.isConfigured) {
     try {
       const transporter = createNodemailerTransporter(smtp);
-      const senderEmail = (smtp.fromEmail && smtp.fromEmail.includes('@') && !smtp.fromEmail.includes('company.com.au')) 
-        ? smtp.fromEmail.trim() 
-        : smtp.user.trim();
-      const resolvedFrom = `"${smtp.fromName || 'HsCreations HR & Onboarding'}" <${senderEmail}>`;
+      const resolvedFrom = fromEmail;
 
       const info = await transporter.sendMail({
         from: resolvedFrom,
         to: params.email,
         envelope: {
-          from: smtp.user.trim(),
+          from: cleanSenderEmail(smtp.user) || cleanSenderEmail(smtp.fromEmail),
           to: params.email,
         },
         subject: `Welcome to HsCreations! Set Up Your Staff Account (Valid for 1 Hour): ${fullName}`,
@@ -868,7 +900,7 @@ export interface SendProfileReminderEmailParams {
 
 export async function sendProfileCompletionReminderEmail(params: SendProfileReminderEmailParams): Promise<SendEmailResult> {
   const smtp = await getEffectiveSmtpConfig();
-  const fromEmail = `"${smtp.fromName || 'HsCreations HR & Compliance'}" <${smtp.fromEmail}>`;
+  const fromEmail = buildSenderAddress(smtp.fromName || 'HsCreations HR & Compliance', smtp.fromEmail, smtp.user);
 
   const fullName = `${params.firstName} ${params.lastName}`.trim();
   const dept = params.department || 'Production & Operations';
@@ -973,6 +1005,10 @@ export async function sendProfileCompletionReminderEmail(params: SendProfileRemi
       const info = await transporter.sendMail({
         from: fromEmail,
         to: params.email,
+        envelope: {
+          from: cleanSenderEmail(smtp.user) || cleanSenderEmail(smtp.fromEmail),
+          to: params.email,
+        },
         subject: `Reminder: Complete Your HsCreations Staff Profile (${params.completedCount}/${params.totalSections} Done)`,
         text: `Hi ${params.firstName},\n\nThis is a reminder to complete your staff profile on the HsCreations Workforce Portal.\n\nMissing Sections:\n${params.missingSections.map(s => `- ${s}`).join('\n')}\n\nPlease log in here to complete your details:\n${params.loginUrl}\n\nOnce complete, your account will be fully active.\n\nHsCreations Sydney NSW`,
         html: htmlContent,
@@ -1042,7 +1078,7 @@ export interface SendMissingDocumentsReminderEmailParams {
 
 export async function sendMissingDocumentsReminderEmail(params: SendMissingDocumentsReminderEmailParams): Promise<SendEmailResult> {
   const smtp = await getEffectiveSmtpConfig();
-  const fromEmail = `"${smtp.fromName || 'HsCreations HR & Compliance'}" <${smtp.fromEmail}>`;
+  const fromEmail = buildSenderAddress(smtp.fromName || 'HsCreations HR & Compliance', smtp.fromEmail, smtp.user);
 
   const docCount = params.missingDocuments.length;
   const docsListHtml = params.missingDocuments.map(doc => `
@@ -1127,6 +1163,10 @@ export async function sendMissingDocumentsReminderEmail(params: SendMissingDocum
       const info = await transporter.sendMail({
         from: fromEmail,
         to: params.email,
+        envelope: {
+          from: cleanSenderEmail(smtp.user) || cleanSenderEmail(smtp.fromEmail),
+          to: params.email,
+        },
         subject,
         text: textContent,
         html: htmlContent,
@@ -1191,10 +1231,7 @@ export interface SendPasswordResetEmailParams {
 
 export async function sendPasswordResetEmail(params: SendPasswordResetEmailParams): Promise<SendEmailResult> {
   const smtp = await getEffectiveSmtpConfig();
-  const senderEmail = (smtp.fromEmail && smtp.fromEmail.includes('@') && !smtp.fromEmail.includes('company.com.au'))
-    ? smtp.fromEmail.trim()
-    : smtp.user.trim();
-  const fromEmail = `"${smtp.fromName || 'HsCreations Security Hub'}" <${senderEmail}>`;
+  const fromEmail = buildSenderAddress(smtp.fromName || 'HsCreations Security Hub', smtp.fromEmail, smtp.user);
 
   const expiresIn = params.expiresInMinutes || 5;
 
@@ -1289,7 +1326,7 @@ export async function sendPasswordResetEmail(params: SendPasswordResetEmailParam
         from: fromEmail,
         to: params.email,
         envelope: {
-          from: smtp.user.trim(),
+          from: cleanSenderEmail(smtp.user) || cleanSenderEmail(smtp.fromEmail),
           to: params.email,
         },
         subject: `Reset Your HsCreations Password (Valid for ${expiresIn} Minutes)`,
@@ -1364,7 +1401,7 @@ export interface SendShiftIssueEmailParams {
 
 export async function sendShiftIssueEmailToAdmin(params: SendShiftIssueEmailParams): Promise<SendEmailResult> {
   const smtp = await getEffectiveSmtpConfig();
-  const fromEmail = `"${smtp.fromName || 'Timecard & Operations Alert'}" <${smtp.fromEmail}>`;
+  const fromEmail = buildSenderAddress(smtp.fromName || 'Timecard & Operations Alert', smtp.fromEmail, smtp.user);
   const adminEmail = params.adminEmail || process.env.ADMIN_NOTIFICATION_EMAIL || 'admin@company.com.au';
 
   const htmlContent = `
@@ -1452,6 +1489,10 @@ export async function sendShiftIssueEmailToAdmin(params: SendShiftIssueEmailPara
       const info = await transporter.sendMail({
         from: fromEmail,
         to: adminEmail,
+        envelope: {
+          from: cleanSenderEmail(smtp.user) || cleanSenderEmail(smtp.fromEmail),
+          to: adminEmail,
+        },
         subject: `Shift Note/Dispute: ${params.employeeName} (${params.shiftDate})`,
         text: `Shift note reported by ${params.employeeName} on ${params.shiftDate} (${params.clockIn} - ${params.clockOut || 'Active'}). Message: "${params.message}"`,
         html: htmlContent,
@@ -1522,11 +1563,11 @@ export interface SendTestSmtpParams {
 
 export async function sendTestSmtpEmail(params: SendTestSmtpParams): Promise<SendEmailResult> {
   const host = params.host?.trim();
-  const user = params.user?.trim();
+  const user = cleanSenderEmail(params.user?.trim()) || params.user?.trim();
   const pass = params.pass;
-  const fromEmail = params.fromEmail?.trim() || user;
+  const fromEmail = cleanSenderEmail(params.fromEmail?.trim()) || user;
   const fromName = params.fromName?.trim() || 'HsCreations Sydney';
-  const recipient = params.testRecipient?.trim();
+  const recipient = cleanSenderEmail(params.testRecipient?.trim()) || params.testRecipient?.trim();
 
   if (!host || !user || !pass || !recipient) {
     throw new Error('Host, port, username, password, and test recipient email are required.');
@@ -1633,6 +1674,10 @@ export async function sendTestSmtpEmail(params: SendTestSmtpParams): Promise<Sen
   const info = await transporter.sendMail({
     from: `"${fromName}" <${fromEmail}>`,
     to: recipient,
+    envelope: {
+      from: user,
+      to: recipient,
+    },
     subject: `[SMTP Test] HsCreations Email Gateway Verification Successful`,
     text: `Your SMTP configuration (${host}:${port}) has been verified and successfully delivered a test email to ${recipient} at ${formattedDate}.`,
     html: htmlContent,

@@ -178,18 +178,34 @@ export function getEnvSmtpConfig(): SmtpResolvedConfig | null {
     'MAIL_FROM_ADDRESS'
   );
 
-  // If fromEmail is not set, or contains generic dummy domain, default to the authenticated user email
-  if (!fromEmail || fromEmail.includes('company.com.au') || !fromEmail.includes('@')) {
-    fromEmail = user;
-  }
-
-  const fromName = getEnvVar(
+  let fromName = getEnvVar(
     env,
     'EMAIL_FROM_NAME',
     'SMTP_FROM_NAME',
     'MAIL_FROM_NAME',
     'FROM_NAME'
-  ) || 'HsCreations Sydney';
+  );
+
+  // If fromEmail contains format '"Display Name" <email@example.com>', extract both
+  if (fromEmail) {
+    const angleMatch = fromEmail.match(/<([^>]+)>/);
+    if (angleMatch) {
+      const namePart = fromEmail.substring(0, fromEmail.indexOf('<')).replace(/["']/g, '').trim();
+      if (namePart && !fromName) {
+        fromName = namePart;
+      }
+      fromEmail = angleMatch[1].trim();
+    }
+  }
+
+  // If fromEmail is not set, or contains generic dummy domain, default to the authenticated user email
+  if (!fromEmail || fromEmail.includes('company.com.au') || !fromEmail.includes('@')) {
+    fromEmail = user;
+  }
+
+  if (!fromName) {
+    fromName = 'HsCreations Sydney';
+  }
 
   return {
     host,

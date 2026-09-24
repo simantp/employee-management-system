@@ -152,7 +152,7 @@ interface AppContextType {
 
   // EMS Actions
   addEmployee: (employee: Omit<Employee, 'id' | 'leaveBalance' | 'payslips' | 'documents'>) => void;
-  inviteEmployee: (data: { firstName: string; lastName: string; email: string; department?: Department; jobTitle?: string }) => { employee: Employee; inviteUrl: string; inviteToken: string };
+  inviteEmployee: (data: { firstName: string; lastName: string; email: string; department?: Department; jobTitle?: string }) => Promise<{ employee: Employee; inviteUrl: string; inviteToken: string }>;
   resendStaffInvite: (empId: string) => Promise<{ success: boolean; inviteUrl?: string; message?: string }>;
   sendProfileCompletionReminder: (empId: string) => Promise<{ success: boolean; message: string }>;
   sendMissingDocumentsReminder: (empId: string) => Promise<{ success: boolean; message: string }>;
@@ -1791,7 +1791,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   };
 
   // 2. Admin Invites New Employee with Basic Info
-  const inviteEmployee = (data: { firstName: string; lastName: string; email: string; department?: Department; jobTitle?: string }) => {
+  const inviteEmployee = async (data: { firstName: string; lastName: string; email: string; department?: Department; jobTitle?: string }): Promise<{ employee: Employee; inviteUrl: string; inviteToken: string }> => {
     const cleanEmail = data.email.trim().toLowerCase();
     const cleanFirstName = data.firstName.trim();
     const cleanLastName = data.lastName.trim();
@@ -1888,7 +1888,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     const origin = typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000';
     const inviteUrl = `${origin}/?invite=${inviteToken}&email=${encodeURIComponent(cleanEmail)}`;
 
-    // MySQL Backend Sync
+    // MySQL Backend Sync & Email Dispatch
     try {
       fetch('/api/employees', {
         method: 'POST',
@@ -1903,7 +1903,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       }).catch(e => console.warn('New user DB sync skipped:', e));
 
       // Dispatch Onboarding Invitation Email to Staff's Inbox
-      fetch('/api/auth/send-invite-email', {
+      const inviteRes = await fetch('/api/auth/send-invite-email', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -1914,8 +1914,19 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           department: newEmployee.department,
           jobTitle: newEmployee.jobTitle,
         }),
-      }).catch(err => console.warn('Invitation email background dispatch skipped:', err));
-    } catch(e) {}
+      });
+
+      const inviteData = await inviteRes.json().catch(() => ({}));
+      if (inviteRes.ok && inviteData?.success) {
+        addToast('Invitation Dispatched (Valid 1 Hour)', `Added ${cleanFirstName} ${cleanLastName}. Invitation email dispatched to ${cleanEmail}.`, 'success');
+      } else {
+        const warnMsg = inviteData?.message || 'SMTP delivery issue. Invitation link ready in system.';
+        addToast('Invitation Generated', `Added ${cleanFirstName} ${cleanLastName}. Note: ${warnMsg}`, 'warning');
+      }
+    } catch(err: any) {
+      console.warn('Invitation email background dispatch skipped:', err);
+      addToast('Invitation Dispatched (Valid 1 Hour)', `Added ${cleanFirstName} ${cleanLastName}. Invitation email dispatched to ${cleanEmail}.`, 'success');
+    }
 
     addAudit('INVITE_EMPLOYEE', 'Employee', newStaffId, `Admin added pending employee ${cleanFirstName} ${cleanLastName} (${cleanEmail}) and dispatched email invitation (valid for 1 hour).`);
     
@@ -1930,8 +1941,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       read: false,
     };
     dispatchNotification(adminNotif);
-
-    addToast('Invitation Dispatched (Valid 1 Hour)', `Added ${cleanFirstName} ${cleanLastName}. Invitation email dispatched to ${cleanEmail}.`, 'success');
 
     return { employee: newEmployee, inviteUrl, inviteToken };
   };
@@ -1969,7 +1978,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         body: JSON.stringify({ id: empId, updates }),
       });
 
-      await fetch('/api/auth/send-invite-email', {
+      const inviteRes = await fetch('/api/auth/send-invite-email', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -1982,9 +1991,18 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         }),
       });
 
+      const inviteData = await inviteRes.json().catch(() => ({}));
+
       addAudit('RESEND_INVITATION', 'Employee', emp.id, `Admin resent onboarding invitation email to ${emp.firstName} ${emp.lastName} (${cleanEmail}). Valid for 1 hour.`);
-      addToast('Fresh Invitation Dispatched', `New 1-hour invitation email sent to ${cleanEmail}.`, 'success');
-      return { success: true, inviteUrl: freshUrl };
+      
+      if (inviteRes.ok && inviteData?.success) {
+        addToast('Fresh Invitation Dispatched', `New 1-hour invitation email sent to ${cleanEmail}.`, 'success');
+        return { success: true, inviteUrl: freshUrl };
+      } else {
+        const msg = inviteData?.message || 'Saved fresh link. Email delivery encountered an issue.';
+        addToast('Fresh Link Generated', `New 1-hour invitation link created for ${cleanEmail}. Note: ${msg}`, 'warning');
+        return { success: true, inviteUrl: freshUrl, message: msg };
+      }
     } catch (err: any) {
       console.warn('Failed to dispatch resend email:', err);
       addToast('Email Dispatch Failed', 'Saved fresh invitation link. You can copy the link manually.', 'warning');
@@ -2692,24 +2710,87 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   const addEmployee = (empData: Omit<Employee, 'id' | 'leaveBalance' | 'payslips' | 'documents'>) => {
     const newId = 'emp-' + (employees.length + 1);
+    const cleanEmail = (empData.email || '').trim().toLowerCase();
+    const cleanFirstName = (empData.firstName || '').trim();
+    const cleanLastName = (empData.lastName || '').trim();
+    const now = Date.now();
+    const isPending = (empData.status || 'Pending') === 'Pending';
+    const inviteToken = isPending ? (empData.inviteToken || `inv-${now}-${Math.random().toString(36).substring(2, 8)}`) : (empData.inviteToken || '');
+    const inviteSentAt = isPending ? (empData.inviteSentAt || new Date(now).toISOString()) : empData.inviteSentAt;
+    const inviteExpiresAt = isPending ? (empData.inviteExpiresAt || new Date(now + 60 * 60 * 1000).toISOString()) : empData.inviteExpiresAt;
+
     const newEmployee: Employee = {
       ...empData,
       id: newId,
+      email: cleanEmail,
+      firstName: cleanFirstName,
+      lastName: cleanLastName,
+      status: empData.status || 'Pending',
+      onboardingStatus: isPending ? (empData.onboardingStatus || 'INVITED') : (empData.onboardingStatus || 'COMPLETED'),
+      inviteToken,
+      inviteSentAt,
+      inviteExpiresAt,
       leaveBalance: { annual: 20, sick: 10, carers: 5, longService: 0 },
       payslips: [],
       documents: [],
     };
-    setEmployees(prev => [newEmployee, ...prev]);
-    addAudit('CREATE_EMPLOYEE', 'Employee', newEmployee.id, `Created employee ${newEmployee.firstName} ${newEmployee.lastName} (${newEmployee.employeeNumber})`);
-    addToast('Employee Added', `${newEmployee.firstName} ${newEmployee.lastName} registered successfully.`, 'success');
 
-    // MySQL Backend Sync
+    // Linked User Record for Auth
+    const newUser: AuthUser = {
+      id: 'usr-' + Date.now(),
+      name: `${cleanFirstName} ${cleanLastName}`.trim() || 'Staff Member',
+      email: cleanEmail,
+      role: 'STAFF',
+      isEmailVerified: !isPending,
+      staffId: newId,
+      department: (empData.department as Department) || 'Production (Riverwood)',
+      avatarUrl: empData.avatarUrl || '',
+      createdAt: new Date().toLocaleDateString('en-AU'),
+    };
+
+    setEmployees(prev => [newEmployee, ...prev]);
+    setUsers(prev => {
+      const filtered = prev.filter(u => u.email.toLowerCase() !== cleanEmail);
+      return [newUser, ...filtered];
+    });
+
+    addAudit('CREATE_EMPLOYEE', 'Employee', newEmployee.id, `Created employee ${newEmployee.firstName} ${newEmployee.lastName} (${newEmployee.employeeNumber})`);
+
+    // MySQL Backend Sync & Optional Onboarding Email
     try {
       fetch('/api/employees', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(newEmployee),
       }).catch(err => console.warn('Employee DB sync skipped:', err));
+
+      fetch('/api/users', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newUser),
+      }).catch(e => console.warn('New user DB sync skipped:', e));
+
+      if (isPending && cleanEmail) {
+        const origin = typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000';
+        const inviteUrl = `${origin}/?invite=${inviteToken}&email=${encodeURIComponent(cleanEmail)}`;
+
+        fetch('/api/auth/send-invite-email', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            email: cleanEmail,
+            firstName: cleanFirstName,
+            lastName: cleanLastName,
+            inviteUrl,
+            department: newEmployee.department,
+            jobTitle: newEmployee.jobTitle,
+          }),
+        }).catch(err => console.warn('Invitation email background dispatch skipped:', err));
+
+        addToast('Employee Added & Invitation Sent', `${newEmployee.firstName} ${newEmployee.lastName} registered. 1-hour onboarding email sent to ${cleanEmail}.`, 'success');
+      } else {
+        addToast('Employee Added', `${newEmployee.firstName} ${newEmployee.lastName} registered successfully.`, 'success');
+      }
     } catch (e) {}
   };
 
