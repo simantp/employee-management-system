@@ -9,7 +9,7 @@ import ResetPasswordModal from './ResetPasswordModal';
 import { detectWorkstationIp } from '@/lib/ipUtils';
 import { getOnboardingProgress } from '@/lib/onboarding';
 
-export default function AuthPortal() {
+export default function AuthPortal({ onInviteCompleted }: { onInviteCompleted?: () => void } = {}) {
   const { 
     login, 
     verifyOTP, 
@@ -508,7 +508,19 @@ export default function AuthPortal() {
 
     setIsSubmitting(true);
     try {
-      const res = await setPasswordFromInvite(effectiveToken, invitePassword, inviteUsername.trim() || undefined, invitePin.trim() || undefined);
+      // 1. Immediately clean query string from browser address bar so re-renders don't re-read invite query param
+      if (typeof window !== 'undefined') {
+        window.history.replaceState(null, '', window.location.pathname);
+      }
+
+      const res = await setPasswordFromInvite(
+        effectiveToken, 
+        invitePassword, 
+        inviteUsername.trim() || undefined, 
+        invitePin.trim() || undefined,
+        urlEmail || inviteMatchedEmp?.email || undefined
+      );
+
       if (res.success) {
         try {
           confetti({
@@ -525,9 +537,8 @@ export default function AuthPortal() {
         setUrlEmail('');
         setInviteMatchedEmp(null);
         setIsTokenExpired(false);
-        // Clean query string from browser address bar
-        if (typeof window !== 'undefined') {
-          window.history.replaceState(null, '', window.location.pathname);
+        if (onInviteCompleted) {
+          onInviteCompleted();
         }
       } else {
         setInviteError(res.message);
@@ -548,6 +559,9 @@ export default function AuthPortal() {
     setInviteMatchedEmp(null);
     if (typeof window !== 'undefined' && window.location.search.includes('invite')) {
       window.history.replaceState(null, '', window.location.pathname);
+    }
+    if (onInviteCompleted) {
+      onInviteCompleted();
     }
   };
 
@@ -1313,10 +1327,21 @@ export default function AuthPortal() {
         <ResetPasswordModal
           token={resetToken}
           email={resetEmail}
-          onClose={() => setResetToken(null)}
+          onClose={() => {
+            setResetToken(null);
+            if (typeof window !== 'undefined' && window.location.search.includes('reset')) {
+              window.history.replaceState(null, '', window.location.pathname);
+            }
+            if (onInviteCompleted) onInviteCompleted();
+          }}
           onSuccessLogin={(email) => {
             setResetToken(null);
+            if (typeof window !== 'undefined' && window.location.search.includes('reset')) {
+              window.history.replaceState(null, '', window.location.pathname);
+            }
+            if (onInviteCompleted) onInviteCompleted();
             setLoginEmail(email);
+            setShowLoginModal(true);
           }}
           onRequestNewLink={() => {
             setResetToken(null);

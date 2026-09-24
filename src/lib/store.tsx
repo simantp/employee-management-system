@@ -133,7 +133,7 @@ interface AppContextType {
   updateAdminCredentials: (userId: string, updates: { name?: string; email?: string; username?: string; password?: string }) => void;
   deleteAdminUser: (userId: string) => void;
   promoteUserRole: (userId: string, newRole: UserRole) => void;
-  setPasswordFromInvite: (inviteToken: string, newPassword: string, customUsername?: string, customPin?: string) => Promise<{ success: boolean; message: string; user?: AuthUser }>;
+  setPasswordFromInvite: (inviteToken: string, newPassword: string, customUsername?: string, customPin?: string, email?: string) => Promise<{ success: boolean; message: string; user?: AuthUser }>;
 
   // 5-Minute Expiring Forgot Password & Reset System
   passwordResetTokens: PasswordResetToken[];
@@ -2059,16 +2059,16 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   };
 
   // 3. Staff Sets Password from Invite Link
-  const setPasswordFromInvite = async (inviteToken: string, newPassword: string, customUsername?: string, customPin?: string): Promise<{ success: boolean; message: string; user?: AuthUser }> => {
+  const setPasswordFromInvite = async (inviteToken: string, newPassword: string, customUsername?: string, customPin?: string, emailOverride?: string): Promise<{ success: boolean; message: string; user?: AuthUser }> => {
     const rawInput = (inviteToken || '').trim();
     let actualToken = rawInput;
-    let targetEmail = '';
+    let targetEmail = (emailOverride || '').trim().toLowerCase();
 
     if (rawInput.includes('invite=')) {
       const match = rawInput.match(/invite=([^&]+)/);
       if (match) actualToken = match[1];
       const emailMatch = rawInput.match(/email=([^&]+)/);
-      if (emailMatch) {
+      if (emailMatch && !targetEmail) {
         try {
           targetEmail = decodeURIComponent(emailMatch[1]).toLowerCase();
         } catch (e) {
@@ -2094,6 +2094,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       if (data.success && data.user && data.employee) {
         const verifiedUser: AuthUser = data.user;
         const activatedEmp: Employee = data.employee;
+
+        // Immediately synchronize localStorage so reloads and component transitions preserve session
+        try {
+          localStorage.setItem('ems_auth_user_v1', JSON.stringify(verifiedUser));
+          localStorage.setItem('ems_current_staff_id', activatedEmp.id);
+        } catch (e) {}
 
         setEmployees(prev => {
           const exists = prev.some(e => e.id === activatedEmp.id);
@@ -2219,6 +2225,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     } catch (e) {}
 
     // Auto-login as STAFF
+    try {
+      localStorage.setItem('ems_auth_user_v1', JSON.stringify(verifiedUser));
+      localStorage.setItem('ems_current_staff_id', emp.id);
+    } catch (e) {}
     setCurrentStaffId(emp.id);
     setCurrentUser(verifiedUser);
     setActivePortal('STAFF');

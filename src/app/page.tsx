@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useApp } from '@/lib/store';
 import AdminSidebar from '@/components/layout/AdminSidebar';
 import StaffSidebar from '@/components/layout/StaffSidebar';
@@ -19,6 +19,7 @@ export default function AppHome() {
   const [showGlobalLeaveModal, setShowGlobalLeaveModal] = useState(false);
 
   const [hasInviteOrReset, setHasInviteOrReset] = useState(false);
+  const checkedUrlOnMountRef = useRef(false);
 
   // Automatically remove any lingering URL hash (like #compliance) from the address bar
   useEffect(() => {
@@ -29,19 +30,18 @@ export default function AppHome() {
 
   // If an invite or password reset link is opened on initial page load, clear conflicting sessions and show AuthPortal
   useEffect(() => {
-    if (typeof window !== 'undefined') {
+    if (typeof window !== 'undefined' && !checkedUrlOnMountRef.current) {
+      checkedUrlOnMountRef.current = true;
       const searchParams = new URLSearchParams(window.location.search);
-      const inviteParam = searchParams.get('invite') || searchParams.get('token');
+      const inviteParam = searchParams.get('invite') || searchParams.get('token') || searchParams.get('inviteToken');
       const resetParam = searchParams.get('resetToken') || searchParams.get('reset');
       
       if (inviteParam || resetParam) {
         setHasInviteOrReset(true);
-        if (currentUser) {
-          logout();
-        }
+        logout();
       }
     }
-  }, [currentUser]);
+  }, [logout]);
 
   // Whenever admin or staff logs in, automatically select and display the dashboard tab
   useEffect(() => {
@@ -51,9 +51,14 @@ export default function AppHome() {
     }
   }, [currentUser?.id, currentUser?.role]);
 
-  // 1. If not logged in OR if opening an invite/reset link -> Show AuthPortal!
-  if (!currentUser || hasInviteOrReset) {
-    return <AuthPortal />;
+  // Check if URL currently has any active invite or reset query parameters
+  const hasActiveUrlInviteOrReset = typeof window !== 'undefined' 
+    ? Boolean(new URLSearchParams(window.location.search).get('invite') || new URLSearchParams(window.location.search).get('token') || new URLSearchParams(window.location.search).get('inviteToken') || new URLSearchParams(window.location.search).get('resetToken') || new URLSearchParams(window.location.search).get('reset'))
+    : false;
+
+  // 1. If not logged in OR actively on an unprocessed invite/reset link -> Show AuthPortal!
+  if (!currentUser || (hasInviteOrReset && hasActiveUrlInviteOrReset)) {
+    return <AuthPortal onInviteCompleted={() => setHasInviteOrReset(false)} />;
   }
 
   const isAdmin = currentUser.role === 'SUPER_ADMIN' || currentUser.role === 'ADMIN' || currentUser.role === 'HR_MANAGER';
