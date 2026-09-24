@@ -1291,8 +1291,13 @@ export default function AuthPortal({ onInviteCompleted }: { onInviteCompleted?: 
               </div>
 
               {/* Helpful Login Notice */}
-              <div className="p-2.5 rounded-xl bg-blue-50/80 border border-blue-200 text-blue-800 text-[11px]">
-                <span>💡 <strong>Sign In Info:</strong> Once activated, you can log in anytime from the main page using your email (<strong>{inviteMatchedEmp?.email || urlEmail || 'your email'}</strong>) and this password.</span>
+              <div className="p-2.5 rounded-xl bg-blue-50/80 border border-blue-200 text-blue-800 text-[11px] space-y-1">
+                <div>
+                  💡 <strong>Sign In Info:</strong> Once activated, you can log in anytime using your email (<strong>{inviteMatchedEmp?.email || urlEmail || 'your email'}</strong>) and this password.
+                </div>
+                <div className="text-amber-800 font-medium">
+                  📋 <strong>Compulsory Documents:</strong> Any mandatory compliance documents (such as passport copy and signed employment contract) must be uploaded after sign-in before your staff account becomes fully Active.
+                </div>
               </div>
 
               {/* Action Buttons */}

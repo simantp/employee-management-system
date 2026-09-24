@@ -383,13 +383,25 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
             'emp-02': 'priya.sharma',
             'emp-03': 'binod.gurung',
           };
+          let activeDocTypes = INITIAL_DOCUMENT_TYPES;
+          const savedDocs = localStorage.getItem('ems_doctypes_v1');
+          if (savedDocs) {
+            try {
+              const parsedDocs = JSON.parse(savedDocs);
+              if (Array.isArray(parsedDocs) && parsedDocs.length > 0) {
+                activeDocTypes = parsedDocs;
+                setDocumentTypes(parsedDocs);
+              }
+            } catch (e) {}
+          }
+
           const healed = parsed.map((emp, idx) => {
             const initialMatch = INITIAL_EMPLOYEES.find(ie => ie.id === emp.id);
             const pin = emp.kioskPin || defaultPins[emp.id] || initialMatch?.kioskPin || (4800 + idx).toString();
             const uname = emp.username || defaultUsernames[emp.id] || initialMatch?.username || (emp.email ? emp.email.split('@')[0].toLowerCase() : `${emp.firstName}.${emp.lastName}`.toLowerCase().replace(/[^a-z0-9._-]/g, ''));
             
             // Check if a pending employee is already 100% complete
-            const progress = getOnboardingProgress(emp);
+            const progress = getOnboardingProgress(emp, activeDocTypes);
             const isAutoActive = emp.status === 'Pending' && progress.isComplete;
 
             return {
@@ -414,14 +426,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       const savedLeave = localStorage.getItem('ems_leave_v1');
       if (savedLeave) setLeaveRequests(JSON.parse(savedLeave));
 
-      const savedDocs = localStorage.getItem('ems_doctypes_v1');
-      if (savedDocs) setDocumentTypes(JSON.parse(savedDocs));
-
       const savedNotifs = localStorage.getItem('ems_notifs_v1');
       if (savedNotifs) {
         try {
           const parsed: NotificationItem[] = JSON.parse(savedNotifs);
-          const cleaned = parsed.filter(n => !n.title.includes('Updated by Administrator') || n.message.includes('Fields modified'));
+          const cleaned = parsed.filter(n => !(n.title.includes('Updated by Administrator') && n.message.includes('Fields modified: Shift Username, First Name')));
           setNotifications(cleaned);
         } catch (e) {
           setNotifications(INITIAL_NOTIFICATIONS);
@@ -513,9 +522,15 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           setTimecards(backendTimecards);
         }
 
+        let loadedDocTypes = INITIAL_DOCUMENT_TYPES;
+        if (dtRes.status === 'fulfilled' && dtRes.value?.success && Array.isArray(dtRes.value.documentTypes) && dtRes.value.documentTypes.length > 0) {
+          loadedDocTypes = dtRes.value.documentTypes;
+          setDocumentTypes(loadedDocTypes);
+        }
+
         if (empRes.status === 'fulfilled' && empRes.value?.success && Array.isArray(empRes.value.employees)) {
           const healed = empRes.value.employees.map((emp: Employee) => {
-            const progress = getOnboardingProgress(emp);
+            const progress = getOnboardingProgress(emp, loadedDocTypes);
             if (emp.status === 'Pending' && progress.isComplete) {
               return {
                 ...emp,
@@ -531,9 +546,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         }
         if (lrRes.status === 'fulfilled' && lrRes.value?.success && Array.isArray(lrRes.value.leaveRequests)) {
           setLeaveRequests(lrRes.value.leaveRequests);
-        }
-        if (dtRes.status === 'fulfilled' && dtRes.value?.success && Array.isArray(dtRes.value.documentTypes) && dtRes.value.documentTypes.length > 0) {
-          setDocumentTypes(dtRes.value.documentTypes);
         }
         if (annRes.status === 'fulfilled' && annRes.value?.success && Array.isArray(annRes.value.announcements)) {
           setAnnouncements(annRes.value.announcements);
@@ -1325,13 +1337,33 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       addToast('Welcome Back, Admin', `Logged in as ${user.name} (${user.role}). Redirected to Admin Command Center.`, 'success');
     } else {
       setActivePortal('STAFF');
+      let matchedStaffEmp: Employee | undefined;
       if (user.staffId) {
         setCurrentStaffId(user.staffId);
+        matchedStaffEmp = employees.find(e => e.id === user.staffId);
       } else {
-        const matchingEmp = employees.find(e => e.email.toLowerCase() === user.email.toLowerCase());
-        if (matchingEmp) setCurrentStaffId(matchingEmp.id);
+        matchedStaffEmp = employees.find(e => e.email.toLowerCase() === user.email.toLowerCase());
+        if (matchedStaffEmp) setCurrentStaffId(matchedStaffEmp.id);
       }
-      addToast('Welcome Back', `Logged in as ${user.name} (Staff Portal).`, 'success');
+
+      if (matchedStaffEmp?.status === 'Pending') {
+        const p = getOnboardingProgress(matchedStaffEmp, documentTypes);
+        if (p.missingDocuments.length > 0) {
+          addToast(
+            'Action Required: Onboarding Incomplete',
+            `Welcome ${user.name}! Compulsory documents (${p.missingDocuments.join(', ')}) must be uploaded before your profile becomes fully active.`,
+            'warning'
+          );
+        } else {
+          addToast(
+            'Action Required: Onboarding Incomplete',
+            `Welcome ${user.name}! Please complete the remaining onboarding sections to activate your profile.`,
+            'warning'
+          );
+        }
+      } else {
+        addToast('Welcome Back', `Logged in as ${user.name} (Staff Portal).`, 'success');
+      }
     }
 
     addAudit('USER_LOGIN_SUCCESS', 'User', user.id, `User ${user.name} successfully authenticated with role ${user.role}.`, user.name, user.role);
@@ -1929,18 +1961,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     }
 
     addAudit('INVITE_EMPLOYEE', 'Employee', newStaffId, `Admin added pending employee ${cleanFirstName} ${cleanLastName} (${cleanEmail}) and dispatched email invitation (valid for 1 hour).`);
-    
-    // Notification for Admin
-    const adminNotif: NotificationItem = {
-      id: 'notif-' + Date.now(),
-      recipient: 'ADMIN',
-      title: 'Staff Invitation Sent (Pending - Valid 1 Hour)',
-      message: `Invitation email sent to ${cleanFirstName} ${cleanLastName} (${cleanEmail}). Status is Pending until profile is completed.`,
-      type: 'GENERAL',
-      timestamp: 'Just now',
-      read: false,
-    };
-    dispatchNotification(adminNotif);
 
     return { employee: newEmployee, inviteUrl, inviteToken };
   };
@@ -2221,7 +2241,16 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         setShowAuthModal(false);
 
         addAudit('STAFF_PASSWORD_SET', 'User', verifiedUser.id, `Staff member ${activatedEmp.firstName} ${activatedEmp.lastName} set account password via invite link.`);
-        addToast('Password Created & Signed In', `Welcome, ${activatedEmp.firstName}! Please complete your staff profile to activate your account.`, 'success');
+        const progress = getOnboardingProgress(activatedEmp, documentTypes);
+        if (progress.missingDocuments.length > 0) {
+          addToast(
+            'Password Created & Signed In',
+            `Welcome, ${activatedEmp.firstName}! Compulsory documents (${progress.missingDocuments.join(', ')}) are required before your profile becomes fully active.`,
+            'warning'
+          );
+        } else {
+          addToast('Password Created & Signed In', `Welcome, ${activatedEmp.firstName}! Please complete your staff profile to activate your account.`, 'success');
+        }
 
         return { success: true, message: 'Password set successfully. Welcome to HsCreations!', user: verifiedUser };
       } else if (!data.success && data.message) {
@@ -2336,7 +2365,16 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setShowAuthModal(false);
 
     addAudit('STAFF_PASSWORD_SET', 'User', verifiedUser.id, `Staff member ${emp.firstName} ${emp.lastName} set account password via invite link.`);
-    addToast('Password Created & Signed In', `Welcome, ${emp.firstName}! Please complete your staff profile to activate your account.`, 'success');
+    const fallbackProgress = getOnboardingProgress(emp, documentTypes);
+    if (fallbackProgress.missingDocuments.length > 0) {
+      addToast(
+        'Password Created & Signed In',
+        `Welcome, ${emp.firstName}! Compulsory documents (${fallbackProgress.missingDocuments.join(', ')}) are required before your profile becomes fully active.`,
+        'warning'
+      );
+    } else {
+      addToast('Password Created & Signed In', `Welcome, ${emp.firstName}! Please complete your staff profile to activate your account.`, 'success');
+    }
 
     return { success: true, message: 'Password set successfully. Welcome to HsCreations!', user: verifiedUser };
   };
@@ -2804,7 +2842,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setEmployees(prev => prev.map(e => {
       if (e.id !== id) return e;
       const merged = { ...e, ...updates };
-      const progress = getOnboardingProgress(merged);
+      const progress = getOnboardingProgress(merged, documentTypes);
       if (progress.isComplete && merged.status === 'Pending') {
         autoCompletedToActive = true;
         merged.status = 'Active';
@@ -2874,8 +2912,20 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       onboardingStatus: 'Onboarding Status',
     };
 
-    const changedKeys = Object.keys(updates);
-    const changedFieldNames = changedKeys
+    const actuallyChangedKeys = Object.keys(updates).filter(k => {
+      const oldVal = (target as any)?.[k];
+      const newVal = (updates as any)[k];
+      if (newVal === undefined) return false;
+      if (typeof oldVal === 'boolean' || typeof newVal === 'boolean') {
+        return Boolean(oldVal) !== Boolean(newVal);
+      }
+      if (typeof oldVal === 'number' || typeof newVal === 'number') {
+        return Number(oldVal) !== Number(newVal);
+      }
+      return String(oldVal ?? '').trim() !== String(newVal ?? '').trim();
+    });
+
+    const changedFieldNames = actuallyChangedKeys
       .map(k => FIELD_LABELS[k] || k.replace(/([A-Z])/g, ' $1').trim())
       .filter(Boolean);
     const changedFieldsList = changedFieldNames.join(', ');
@@ -2887,54 +2937,65 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
     if (isSelfEdit) {
       // 1. Staff is updating their own profile
-      // Dispatch notification to Admin
-      const adminNotif: NotificationItem = {
-        id: 'notif-staff-edit-' + Date.now(),
-        recipient: 'ADMIN',
-        title: `Staff Profile Updated: ${empName}`,
-        message: `${empName} updated their profile information (${changedFieldsList || 'Profile details'}).`,
-        type: 'PROFILE_UPDATE',
-        timestamp: 'Just now',
-        read: false,
-      };
-      dispatchNotification(adminNotif);
+      // Only notify admin if staff is already Active (not Pending onboarding). Admin receives notification only after fully active.
+      if (target?.status !== 'Pending' && actuallyChangedKeys.length > 0) {
+        const adminNotif: NotificationItem = {
+          id: 'notif-staff-edit-' + Date.now(),
+          recipient: 'ADMIN',
+          title: `Staff Profile Updated: ${empName}`,
+          message: `${empName} updated their profile information (${changedFieldsList || 'Profile details'}).`,
+          type: 'PROFILE_UPDATE',
+          timestamp: 'Just now',
+          read: false,
+        };
+        dispatchNotification(adminNotif);
+      }
 
-      addAudit(
-        'STAFF_PROFILE_UPDATE',
-        'Employee',
-        id,
-        `Staff member ${empName} updated their profile: ${changedFieldsList || 'Profile details'}`,
-        empName,
-        'STAFF'
-      );
+      if (actuallyChangedKeys.length > 0) {
+        addAudit(
+          'STAFF_PROFILE_UPDATE',
+          'Employee',
+          id,
+          `Staff member ${empName} updated their profile: ${changedFieldsList || 'Profile details'}`,
+          empName,
+          'STAFF'
+        );
+      }
       addToast('Profile Updated', 'Your profile details have been updated successfully.', 'success');
     } else {
       // 2. Administrator updated this employee's records
       const adminName = currentUser?.name || 'Administrator';
       const adminRole = currentUser?.role || 'ADMIN';
 
-      // Send informative notification to the staff member detailing the EXACT fields updated
-      const staffNotif: NotificationItem = {
-        id: 'notif-update-' + Date.now(),
-        recipient: 'STAFF',
-        recipientId: id,
-        title: 'Profile Updated by Administrator',
-        message: `Your profile was updated by ${adminName}. Fields modified: ${changedFieldsList || 'Profile details'}.`,
-        type: 'PROFILE_UPDATE',
-        timestamp: 'Just now',
-        read: false,
-      };
-      dispatchNotification(staffNotif);
+      // Send notification to staff member ONLY IF:
+      // - Fields were ACTUALLY changed (not an empty or redundant save)
+      // - The employee is Active (newly added staff in Pending onboarding do not receive false updates)
+      // - The action is performed from the Admin portal
+      if (actuallyChangedKeys.length > 0 && target?.status === 'Active' && !isStaffPortal) {
+        const staffNotif: NotificationItem = {
+          id: 'notif-update-' + Date.now(),
+          recipient: 'STAFF',
+          recipientId: id,
+          title: 'Profile Updated by Administrator',
+          message: `Your profile was updated by ${adminName}. Fields modified: ${changedFieldsList}.`,
+          type: 'PROFILE_UPDATE',
+          timestamp: 'Just now',
+          read: false,
+        };
+        dispatchNotification(staffNotif);
+      }
 
-      addAudit(
-        'ADMIN_UPDATE_EMPLOYEE',
-        'Employee',
-        id,
-        `Admin (${adminName}) updated fields for ${empName}: ${changedFieldsList || 'Profile details'}`,
-        adminName,
-        adminRole
-      );
-      addToast('Employee Details Updated', `Changes saved and notification sent to ${empName}.`, 'success');
+      if (actuallyChangedKeys.length > 0) {
+        addAudit(
+          'ADMIN_UPDATE_EMPLOYEE',
+          'Employee',
+          id,
+          `Admin (${adminName}) updated fields for ${empName}: ${changedFieldsList}`,
+          adminName,
+          adminRole
+        );
+        addToast('Employee Details Updated', `Changes saved for ${empName}.`, 'success');
+      }
     }
 
     // If onboarding auto-transitioned to Active
@@ -3291,9 +3352,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   };
 
   const updateBankDetails = (empId: string, bank: { bankName: string; bankBranch: string; accountName: string; bsb: string; accountNumber: string; superFund: string; superNumber: string; tfn?: string }) => {
+    const targetEmp = employees.find(e => e.id === empId);
     let autoCompletedToActive = false;
     let completedEmp: Employee | null = null;
-    let targetEmpName = 'Staff Member';
+    let targetEmpName = targetEmp ? `${targetEmp.firstName} ${targetEmp.lastName}`.trim() : 'Staff Member';
     let bankUpdates: any = {};
 
     setEmployees(prev => prev.map(emp => {
@@ -3413,16 +3475,18 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         };
         dispatchNotification(staffNotif);
       } else {
-        const bankAdminNotif: NotificationItem = {
-          id: 'notif-bank-' + Date.now(),
-          recipient: 'ADMIN',
-          title: `Banking & Super Updated: ${targetEmpName}`,
-          message: `${targetEmpName} updated their banking details and superannuation funds.`,
-          type: 'BANK_UPDATE',
-          timestamp: 'Just now',
-          read: false,
-        };
-        dispatchNotification(bankAdminNotif);
+        if (targetEmp?.status !== 'Pending') {
+          const bankAdminNotif: NotificationItem = {
+            id: 'notif-bank-' + Date.now(),
+            recipient: 'ADMIN',
+            title: `Banking & Super Updated: ${targetEmpName}`,
+            message: `${targetEmpName} updated their banking details and superannuation funds.`,
+            type: 'BANK_UPDATE',
+            timestamp: 'Just now',
+            read: false,
+          };
+          dispatchNotification(bankAdminNotif);
+        }
       }
     }
 
@@ -3702,17 +3766,19 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       }).catch(err => console.warn('Document server upload skipped:', err));
     } catch (e) {}
 
-    // Real-time Notification to Admin
-    const adminNotif: NotificationItem = {
-      id: 'notif-' + Date.now(),
-      recipient: 'ADMIN',
-      title: 'New Document Uploaded for Verification',
-      message: `${empName} uploaded a new document: "${doc.name}" (${doc.type}).`,
-      type: 'GENERAL',
-      timestamp: 'Just now',
-      read: false,
-    };
-    dispatchNotification(adminNotif);
+    // Real-time Notification to Admin only if staff is not in Pending onboarding
+    if (targetEmp?.status !== 'Pending') {
+      const adminNotif: NotificationItem = {
+        id: 'notif-' + Date.now(),
+        recipient: 'ADMIN',
+        title: 'New Document Uploaded for Verification',
+        message: `${empName} uploaded a new document: "${doc.name}" (${doc.type}).`,
+        type: 'GENERAL',
+        timestamp: 'Just now',
+        read: false,
+      };
+      dispatchNotification(adminNotif);
+    }
 
     addAudit('UPLOAD_DOCUMENT', 'Document', newDoc.id, `${empName} uploaded document: ${doc.name} (${doc.type})`, empName, 'STAFF');
     addToast('Document Uploaded', `"${doc.name}" saved to staff folder & sent for verification.`, 'success');

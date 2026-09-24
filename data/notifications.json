@@ -1,12 +1,1 @@
-[
-  {
-    "id": "notif-update-1790256323320",
-    "recipient": "STAFF",
-    "recipientId": "emp-2",
-    "title": "Profile Updated by Administrator",
-    "message": "Your profile was updated by Super Admin. Fields modified: Shift Username, First Name, Last Name, Email Address, Mobile Phone, Residential Address, Suburb, State, Postcode, Start Date, Department, Job Title, Work Location, Reporting Manager, Employment Status, Weekly Hours, Working Hours Confirmation, Shift Punch PIN, Visa Verification, Driver Licence Status, Licence State / Country, Licence Number, Licence Expiry Date, Bank Name, Bank Branch, Account Name, BSB Number, BSB Number, Account Number, Account Number, Account Number, Tax File Number (TFN), Tax File Number (TFN), Superannuation Fund, Super Member Number, Citizenship / Work Rights, Visa Subclass, Visa Expiry Date, Emergency Contact Name, Emergency Relationship, Emergency Mobile.",
-    "type": "PROFILE_UPDATE",
-    "timestamp": "Just now",
-    "read": false
-  }
-]
+[]

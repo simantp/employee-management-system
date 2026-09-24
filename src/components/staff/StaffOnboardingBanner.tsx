@@ -91,7 +91,7 @@ export default function StaffOnboardingBanner() {
                 )}
               </div>
               <p className="text-xs text-slate-600 mt-0.5">
-                Welcome to HsCreations! Please complete the {totalSections} onboarding sections below to activate your staff profile.
+                Welcome to HsCreations! Please complete the onboarding sections and upload all compulsory compliance documents below to activate your staff profile.
               </p>
             </div>
           </div>
@@ -105,6 +105,23 @@ export default function StaffOnboardingBanner() {
             </span>
           </div>
         </div>
+
+        {/* Compulsory Documents Notice */}
+        {progress.missingDocuments.length > 0 && (
+          <div className="flex items-start gap-3 p-3.5 rounded-2xl bg-rose-50/90 border border-rose-200 text-rose-900 text-xs">
+            <div className="px-2 py-0.5 rounded-md bg-rose-200 text-rose-900 font-extrabold text-[10px] tracking-wide shrink-0 uppercase mt-0.5">
+              Action Required
+            </div>
+            <div className="space-y-0.5">
+              <p className="font-extrabold text-slate-900">
+                Compulsory Compliance Documents Required Before Activation
+              </p>
+              <p className="text-slate-600 leading-relaxed">
+                Before your staff profile can become fully Active, you must upload: <span className="font-bold text-rose-700">{progress.missingDocuments.join(', ')}</span>.
+              </p>
+            </div>
+          </div>
+        )}
 
         {/* Dynamic Visual Progress Bar */}
         <div className="space-y-1.5">

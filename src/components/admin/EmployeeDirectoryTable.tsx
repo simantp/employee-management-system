@@ -197,7 +197,11 @@ export default function EmployeeDirectoryTable({
                         const progress = getOnboardingProgress(emp, documentTypes);
                         if (emp.status !== 'Pending' || progress.isComplete) return null;
 
-                        if (progress.missingDocuments.length > 0) {
+                        const profileInfoSections = progress.sections.filter(s => s.id !== 'DOCUMENTS');
+                        const isAllProfileInfoDone = profileInfoSections.length > 0 && profileInfoSections.every(s => s.isDone);
+                        const isOnlyDocPending = isAllProfileInfoDone && progress.missingDocuments.length > 0;
+
+                        if (isOnlyDocPending) {
                           return (
                             <button
                               type="button"

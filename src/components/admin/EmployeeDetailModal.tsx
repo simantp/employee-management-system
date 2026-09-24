@@ -298,6 +298,9 @@ export default function EmployeeDetailModal({
             {/* Self-Onboarding Status Info Banner */}
             {currentEmp.status === 'Pending' && (() => {
               const progress = getOnboardingProgress(currentEmp, documentTypes);
+              const profileInfoSections = progress.sections.filter(s => s.id !== 'DOCUMENTS');
+              const isAllProfileInfoDone = profileInfoSections.length > 0 && profileInfoSections.every(s => s.isDone);
+              const isOnlyDocPending = isAllProfileInfoDone && progress.missingDocuments.length > 0;
 
               return (
                 <div className="p-5 bg-gradient-to-br from-amber-50 to-orange-50/40 border-2 border-amber-300 rounded-3xl space-y-4 shadow-xs animate-in fade-in">
@@ -325,7 +328,7 @@ export default function EmployeeDetailModal({
                     </div>
 
                     <div className="flex flex-wrap items-center gap-2 flex-shrink-0">
-                      {progress.missingDocuments.length > 0 && (
+                      {isOnlyDocPending ? (
                         <button
                           type="button"
                           disabled={isSendingDocReminder}
@@ -333,19 +336,19 @@ export default function EmployeeDetailModal({
                           className="px-3.5 py-2 rounded-xl bg-amber-600 hover:bg-amber-700 disabled:opacity-50 text-white font-bold text-xs shadow-xs transition cursor-pointer flex items-center gap-1.5"
                           title={`Send Missing Documents Reminder (${progress.missingDocuments.join(', ')}) to ${currentEmp.email}`}
                         >
-                          <span>{isSendingDocReminder ? 'Sending...' : 'Send Document Reminder'}</span>
+                          <span>{isSendingDocReminder ? 'Sending...' : 'Send Doc Reminder'}</span>
+                        </button>
+                      ) : (
+                        <button
+                          type="button"
+                          disabled={isSendingReminder}
+                          onClick={handleSendReminderEmail}
+                          className="px-3.5 py-2 rounded-xl bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 disabled:opacity-50 text-white font-bold text-xs shadow-sm transition cursor-pointer flex items-center gap-1.5"
+                          title={`Send Profile Completion Reminder Email to ${currentEmp.email}`}
+                        >
+                          <span>{isSendingReminder ? 'Sending...' : 'Send Reminder'}</span>
                         </button>
                       )}
-
-                      <button
-                        type="button"
-                        disabled={isSendingReminder}
-                        onClick={handleSendReminderEmail}
-                        className="px-3.5 py-2 rounded-xl bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 disabled:opacity-50 text-white font-bold text-xs shadow-sm transition cursor-pointer flex items-center gap-1.5"
-                        title={`Send Profile Completion Reminder Email to ${currentEmp.email}`}
-                      >
-                        <span>{isSendingReminder ? 'Sending...' : 'Send Profile Reminder'}</span>
-                      </button>
 
                       <button
                         type="button"

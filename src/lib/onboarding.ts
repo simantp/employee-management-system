@@ -1,4 +1,5 @@
 import { Employee, DocumentTypeConfig } from '@/types';
+import { INITIAL_DOCUMENT_TYPES } from '@/lib/initialData';
 
 export interface OnboardingSectionProgress {
   id: 'PERSONAL' | 'WORK_RIGHTS' | 'EMERGENCY' | 'BANKING' | 'DOCUMENTS';
@@ -32,13 +33,19 @@ export function getOnboardingProgress(
   docTypes?: DocumentTypeConfig[]
 ): OnboardingProgressResult {
   let effectiveDocTypes = docTypes;
-  if (!effectiveDocTypes && typeof window !== 'undefined') {
+  if ((!effectiveDocTypes || effectiveDocTypes.length === 0) && typeof window !== 'undefined') {
     try {
       const saved = localStorage.getItem('ems_doctypes_v1');
       if (saved) {
-        effectiveDocTypes = JSON.parse(saved);
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          effectiveDocTypes = parsed;
+        }
       }
     } catch (e) {}
+  }
+  if (!effectiveDocTypes || effectiveDocTypes.length === 0) {
+    effectiveDocTypes = INITIAL_DOCUMENT_TYPES;
   }
   const requiredDocTypes = (effectiveDocTypes || []).filter(dt => Boolean(dt.isRequired));
 
