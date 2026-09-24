@@ -474,7 +474,7 @@ export default function AdminSettingsHub({
       sql += `  \`has_driver_license\`, \`license_country\`, \`license_number\`, \`license_expiry_date\`,\n`;
       sql += `  \`emergency_next_of_kin\`, \`emergency_relationship\`, \`emergency_mobile\`,\n`;
       sql += `  \`bank_name\`, \`bank_branch\`, \`account_name\`, \`bsb_encrypted\`, \`bsb_masked\`,\n`;
-      sql += `  \`account_number_encrypted\`, \`account_number_masked\`, \`tfn_encrypted\`, \`tfn_masked\`,\n`;
+      sql += `  \`account_number\`, \`account_number_encrypted\`, \`account_number_masked\`, \`tfn_encrypted\`, \`tfn_masked\`,\n`;
       sql += `  \`super_fund_name\`, \`super_member_number\`, \`kiosk_pin\`, \`clock_state\`, \`avatar_url\`,\n`;
       sql += `  \`annual_leave_balance\`, \`sick_leave_balance\`, \`carers_leave_balance\`, \`long_service_balance\`\n`;
       sql += `) VALUES (\n`;
@@ -485,7 +485,7 @@ export default function AdminSettingsHub({
       sql += `  ${escape(emp.hasDriverLicense ? 1 : 0)}, ${escape(emp.licenseCountry)}, ${escape(emp.licenseNumber)}, ${escape(emp.licenseExpiryDate)},\n`;
       sql += `  ${escape(emp.emergencyNextOfKin)}, ${escape(emp.emergencyRelationship)}, ${escape(emp.emergencyMobile)},\n`;
       sql += `  ${escape(emp.bankName)}, ${escape(emp.bankBranch)}, ${escape(emp.accountName)}, ${escape(emp.bsbEncrypted)}, ${escape(emp.bsbMasked)},\n`;
-      sql += `  ${escape(emp.accountNumberEncrypted)}, ${escape(emp.accountNumberMasked)}, ${escape(emp.tfnEncrypted)}, ${escape(emp.tfnMasked)},\n`;
+      sql += `  ${escape(emp.accountNumber || emp.accountNumberMasked)}, ${escape(emp.accountNumberEncrypted)}, ${escape(emp.accountNumberMasked)}, ${escape(emp.tfnEncrypted)}, ${escape(emp.tfnMasked)},\n`;
       sql += `  ${escape(emp.superFundName)}, ${escape(emp.superMemberNumber)}, ${escape(emp.kioskPin || '4829')}, ${escape(emp.clockState || 'CLOCKED_OUT')}, ${escape(emp.avatarUrl)},\n`;
       sql += `  ${escape(emp.leaveBalance?.annual || 20)}, ${escape(emp.leaveBalance?.sick || 10)}, ${escape(emp.leaveBalance?.carers || 2)}, ${escape(emp.leaveBalance?.longService || 0)}\n`;
       sql += `) ON DUPLICATE KEY UPDATE \`status\` = VALUES(\`status\`), \`updated_at\` = CURRENT_TIMESTAMP;\n\n`;

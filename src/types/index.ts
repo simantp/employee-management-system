@@ -171,8 +171,9 @@ export interface Employee {
   accountName: string;
   bsbMasked: string;
   bsbEncrypted: string;
-  accountNumberMasked: string;
-  accountNumberEncrypted: string;
+  accountNumber?: string;
+  accountNumberMasked?: string;
+  accountNumberEncrypted?: string;
 
   leaveBalance: LeaveBalance;
   payslips: Payslip[];

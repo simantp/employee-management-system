@@ -408,7 +408,7 @@ export default function StaffFullProfileView({
             </div>
             <div>
               <span className="text-slate-400 font-bold text-[10px] uppercase block mb-0.5">Account Number</span>
-              <span className="font-mono font-bold text-slate-900 text-xs">{currentStaff.accountNumberMasked || 'Pending details'}</span>
+              <span className="font-mono font-bold text-slate-900 text-xs">{currentStaff.accountNumber || currentStaff.accountNumberMasked || 'Pending details'}</span>
             </div>
             <div>
               <span className="text-slate-400 font-bold text-[10px] uppercase block mb-0.5">Tax File Number (TFN)</span>

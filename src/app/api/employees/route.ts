@@ -56,8 +56,9 @@ function mapDbRowToEmployee(row: any, documents: EmployeeDocument[] = []): Emplo
     accountName: row.account_name || '',
     bsbEncrypted: row.bsb_encrypted || undefined,
     bsbMasked: row.bsb_masked || '',
+    accountNumber: row.account_number || row.account_number_masked || '',
     accountNumberEncrypted: row.account_number_encrypted || undefined,
-    accountNumberMasked: row.account_number_masked || '',
+    accountNumberMasked: row.account_number || row.account_number_masked || '',
     tfnEncrypted: row.tfn_encrypted || undefined,
     tfnMasked: row.tfn_masked || '',
     superFundName: row.super_fund_name || '',
@@ -219,8 +220,9 @@ export async function POST(req: Request) {
       accountName: body.accountName || '',
       bsbEncrypted: body.bsbEncrypted,
       bsbMasked: body.bsbMasked || '',
+      accountNumber: body.accountNumber || body.accountNumberMasked || '',
       accountNumberEncrypted: body.accountNumberEncrypted,
-      accountNumberMasked: body.accountNumberMasked || '',
+      accountNumberMasked: body.accountNumber || body.accountNumberMasked || '',
       tfnEncrypted: body.tfnEncrypted,
       tfnMasked: body.tfnMasked || '',
       superFundName: body.superFundName || '',
@@ -252,10 +254,10 @@ export async function POST(req: Request) {
             emergency_next_of_kin, emergency_relationship, emergency_mobile, emergency_home_phone,
             emergency_address, emergency_suburb, emergency_state, emergency_postcode,
             bank_name, bank_branch, account_name, bsb_encrypted, bsb_masked,
-            account_number_encrypted, account_number_masked, tfn_encrypted, tfn_masked,
+            account_number, account_number_encrypted, account_number_masked, tfn_encrypted, tfn_masked,
             super_fund_name, super_member_number, kiosk_pin, clock_state, avatar_url,
             annual_leave_balance, sick_leave_balance, carers_leave_balance, long_service_balance
-          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         `;
         await query(sql, [
           id, empNumber, newEmp.username || null, newEmp.firstName, newEmp.lastName, newEmp.email, newEmp.mobilePhone, newEmp.homePhone || null, newEmp.dateOfBirth || null, newEmp.gender || 'Prefer not to say',
@@ -268,7 +270,7 @@ export async function POST(req: Request) {
           newEmp.emergencyNextOfKin || null, newEmp.emergencyRelationship || null, newEmp.emergencyMobile || null, newEmp.emergencyHomePhone || null,
           newEmp.emergencyAddress || null, newEmp.emergencySuburb || null, newEmp.emergencyState || 'NSW', newEmp.emergencyPostcode || null,
           newEmp.bankName || null, newEmp.bankBranch || null, newEmp.accountName || null, newEmp.bsbEncrypted || null, newEmp.bsbMasked || null,
-          newEmp.accountNumberEncrypted || null, newEmp.accountNumberMasked || null, newEmp.tfnEncrypted || null, newEmp.tfnMasked || null,
+          newEmp.accountNumber || newEmp.accountNumberMasked || null, newEmp.accountNumberEncrypted || null, newEmp.accountNumberMasked || null, newEmp.tfnEncrypted || null, newEmp.tfnMasked || null,
           newEmp.superFundName || null, newEmp.superMemberNumber || null, newEmp.kioskPin || null, newEmp.clockState || 'CLOCKED_OUT',
           newEmp.avatarUrl || null, newEmp.leaveBalance.annual, newEmp.leaveBalance.sick, newEmp.leaveBalance.carers, newEmp.leaveBalance.longService
         ]);
@@ -351,7 +353,7 @@ export async function PUT(req: Request) {
           emergencySuburb: 'emergency_suburb', emergencyState: 'emergency_state', emergencyPostcode: 'emergency_postcode',
           bankName: 'bank_name', bankBranch: 'bank_branch',
           accountName: 'account_name', bsbEncrypted: 'bsb_encrypted', bsbMasked: 'bsb_masked',
-          accountNumberEncrypted: 'account_number_encrypted', accountNumberMasked: 'account_number_masked',
+          accountNumber: 'account_number', accountNumberEncrypted: 'account_number_encrypted', accountNumberMasked: 'account_number_masked',
           tfnEncrypted: 'tfn_encrypted', tfnMasked: 'tfn_masked', superFundName: 'super_fund_name',
           superMemberNumber: 'super_member_number', kioskPin: 'kiosk_pin', clockState: 'clock_state',
           lastClockIn: 'last_clock_in', lastClockOut: 'last_clock_out', clockInTimestamp: 'clock_in_timestamp',

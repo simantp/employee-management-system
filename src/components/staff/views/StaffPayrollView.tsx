@@ -53,7 +53,7 @@ export default function StaffPayrollView() {
             </div>
             <div>
               <span className="text-slate-500 text-[10px] uppercase font-semibold block">Account Number</span>
-              <span className="font-mono text-blue-600 font-bold text-sm">{currentStaff.accountNumberMasked || 'Pending setup'}</span>
+              <span className="font-mono text-blue-600 font-bold text-sm">{currentStaff.accountNumber || currentStaff.accountNumberMasked || 'Pending setup'}</span>
             </div>
             <div className="col-span-2 pt-2 border-t border-slate-100">
               <span className="text-slate-500 text-[10px] uppercase font-semibold block">Superannuation Fund</span>

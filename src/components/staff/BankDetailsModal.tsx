@@ -3,17 +3,19 @@
 import React, { useState } from 'react';
 import { useApp } from '@/lib/store';
 import { validateAUBSB, formatBSB } from '@/lib/utils';
-import { encryptAES256 } from '@/lib/crypto';
+import { encryptAES256, decryptAES256 } from '@/lib/crypto';
 
 export default function BankDetailsModal({ onClose }: { onClose: () => void }) {
   const { currentStaff, updateBankDetails } = useApp();
+
+  const initialAccount = currentStaff.accountNumber || (currentStaff.accountNumberEncrypted ? decryptAES256(currentStaff.accountNumberEncrypted) : (currentStaff.accountNumberMasked || ''));
 
   const [form, setForm] = useState({
     bankName: currentStaff.bankName || 'Commonwealth Bank of Australia',
     bankBranch: currentStaff.bankBranch || 'Sydney Branch',
     accountName: currentStaff.accountName || `${currentStaff.firstName} ${currentStaff.lastName}`.trim(),
     bsb: currentStaff.bsbMasked || '',
-    accountNumber: currentStaff.accountNumberMasked || '',
+    accountNumber: initialAccount,
     tfn: currentStaff.tfnMasked || '',
     superFund: currentStaff.superFundName || 'AustralianSuper',
     superNumber: currentStaff.superMemberNumber || '',

@@ -68,14 +68,14 @@ export default function EmployeeDetailModal({
   // 3. Banking & Super
   const decryptedTFN = employee.tfnEncrypted ? decryptAES256(employee.tfnEncrypted) : (employee.tfnMasked || '');
   const decryptedBSB = employee.bsbEncrypted ? decryptAES256(employee.bsbEncrypted) : (employee.bsbMasked || '');
-  const decryptedAcc = employee.accountNumberEncrypted ? decryptAES256(employee.accountNumberEncrypted) : (employee.accountNumberMasked || '');
+  const decryptedAcc = employee.accountNumber || (employee.accountNumberEncrypted ? decryptAES256(employee.accountNumberEncrypted) : (employee.accountNumberMasked || ''));
 
   const [tfnInput, setTfnInput] = useState(decryptedTFN || '123 456 782');
   const [bankName, setBankName] = useState(employee.bankName || 'Commonwealth Bank of Australia');
   const [bankBranch, setBankBranch] = useState(employee.bankBranch || 'Sydney NSW');
   const [accountName, setAccountName] = useState(employee.accountName || `${employee.firstName} ${employee.lastName}`);
   const [bsbInput, setBsbInput] = useState(decryptedBSB || '062-000');
-  const [accInput, setAccInput] = useState(decryptedAcc || '10293847');
+  const [accInput, setAccInput] = useState(decryptedAcc || '');
   const [superFundName, setSuperFundName] = useState(employee.superFundName || 'AustralianSuper');
   const [superMemberNumber, setSuperMemberNumber] = useState(employee.superMemberNumber || 'AUS-987654');
 
@@ -97,10 +97,8 @@ export default function EmployeeDetailModal({
     e.preventDefault();
 
     const bsbEnc = encryptAES256(bsbInput);
-    const accEnc = encryptAES256(accInput);
     const tfnEnc = encryptAES256(tfnInput);
     const bsbMask = bsbInput.length >= 3 ? `${bsbInput.slice(0, 3)}-•••` : '•••-•••';
-    const accMask = maskSensitive(accInput, 3);
     const tfnMask = maskSensitive(tfnInput, 3);
 
     updateEmployee(employee.id, {
@@ -132,8 +130,9 @@ export default function EmployeeDetailModal({
       accountName,
       bsbEncrypted: bsbEnc,
       bsbMasked: bsbMask,
-      accountNumberEncrypted: accEnc,
-      accountNumberMasked: accMask,
+      accountNumber: accInput.trim(),
+      accountNumberMasked: accInput.trim(),
+      accountNumberEncrypted: '',
       tfnEncrypted: tfnEnc,
       tfnMasked: tfnMask,
       superFundName,
@@ -865,7 +864,7 @@ export default function EmployeeDetailModal({
                     <input
                       type="text"
                       disabled={!isEditing}
-                      value={showEncrypted || isEditing ? accInput : employee.accountNumberMasked || '•••••847'}
+                      value={isEditing ? accInput : (employee.accountNumber || employee.accountNumberMasked || '')}
                       onChange={e => setAccInput(e.target.value)}
                       className="w-full p-2.5 border border-slate-300 rounded-xl bg-white disabled:bg-slate-50 font-mono font-bold text-slate-900"
                     />

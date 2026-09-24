@@ -77,7 +77,7 @@ export function getOnboardingProgress(emp: Employee | null | undefined): Onboard
   if (!emp.accountName?.trim()) missingBanking.push('Account Name');
   const bsb = (emp.bsbMasked || emp.bsbEncrypted || '').trim();
   if (!bsb || bsb === '•••-•••') missingBanking.push('BSB Number');
-  const acc = (emp.accountNumberMasked || emp.accountNumberEncrypted || '').trim();
+  const acc = (emp.accountNumber || emp.accountNumberMasked || emp.accountNumberEncrypted || '').trim();
   if (!acc || acc === '••••••••') missingBanking.push('Account Number');
   const isBankingDone = missingBanking.length === 0;
 

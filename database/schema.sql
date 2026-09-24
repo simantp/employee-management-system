@@ -80,6 +80,7 @@ CREATE TABLE IF NOT EXISTS `employees` (
   `account_name` VARCHAR(100) NULL,
   `bsb_encrypted` TEXT NULL,
   `bsb_masked` VARCHAR(32) NULL,
+  `account_number` VARCHAR(64) NULL,
   `account_number_encrypted` TEXT NULL,
   `account_number_masked` VARCHAR(32) NULL,
   `tfn_encrypted` TEXT NULL,

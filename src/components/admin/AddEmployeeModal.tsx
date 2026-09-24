@@ -104,7 +104,6 @@ export default function AddEmployeeModal({ onClose }: { onClose: () => void }) {
 
     const tfnEnc = encryptAES256(fullForm.tfn);
     const bsbEnc = encryptAES256(fullForm.bsb);
-    const accEnc = encryptAES256(fullForm.accountNumber);
 
     addEmployee({
       employeeNumber: `EMP-00${Math.floor(Math.random() * 900 + 100)}`,
@@ -152,8 +151,9 @@ export default function AddEmployeeModal({ onClose }: { onClose: () => void }) {
       accountName: fullForm.accountName || '',
       bsbMasked: fullForm.bsb ? formatBSB(fullForm.bsb) : '',
       bsbEncrypted: bsbEnc,
-      accountNumberMasked: fullForm.accountNumber ? `••••••${fullForm.accountNumber.slice(-3)}` : '',
-      accountNumberEncrypted: accEnc,
+      accountNumber: fullForm.accountNumber || '',
+      accountNumberMasked: fullForm.accountNumber || '',
+      accountNumberEncrypted: '',
     });
 
     onClose();

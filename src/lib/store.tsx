@@ -2695,6 +2695,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       accountName: 'Account Name',
       bsbMasked: 'BSB Number',
       bsbEncrypted: 'BSB Number',
+      accountNumber: 'Account Number',
       accountNumberMasked: 'Account Number',
       accountNumberEncrypted: 'Account Number',
       tfnMasked: 'Tax File Number (TFN)',
@@ -3142,13 +3143,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           bsbMask = bank.bsb.length >= 3 ? `${bank.bsb.slice(0, 3)}-•••` : '•••-•••';
         }
 
-        // Account number encryption & masking
-        let accEnc = emp.accountNumberEncrypted;
-        let accMask = emp.accountNumberMasked || '';
-        if (bank.accountNumber && !bank.accountNumber.includes('•')) {
-          accEnc = encryptAES256(bank.accountNumber);
-          accMask = maskSensitive(bank.accountNumber, 3);
-        }
+        // Plaintext Account number (No encryption needed)
+        const plainAcc = bank.accountNumber ? bank.accountNumber.trim() : (emp.accountNumber || emp.accountNumberMasked || '');
 
         // TFN encryption & masking
         let tfnEnc = emp.tfnEncrypted;
@@ -3170,8 +3166,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           accountName: bank.accountName,
           bsbEncrypted: bsbEnc,
           bsbMasked: bsbMask,
-          accountNumberEncrypted: accEnc,
-          accountNumberMasked: accMask,
+          accountNumber: plainAcc,
+          accountNumberMasked: plainAcc,
+          accountNumberEncrypted: '',
           tfnEncrypted: tfnEnc,
           tfnMasked: tfnMask,
           superFundName: bank.superFund,
@@ -3195,8 +3192,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           accountName: bank.accountName,
           bsbEncrypted: bsbEnc,
           bsbMasked: bsbMask,
-          accountNumberEncrypted: accEnc,
-          accountNumberMasked: accMask,
+          accountNumber: plainAcc,
+          accountNumberMasked: plainAcc,
+          accountNumberEncrypted: '',
           tfnEncrypted: tfnEnc,
           tfnMasked: tfnMask,
           superFundName: bank.superFund,

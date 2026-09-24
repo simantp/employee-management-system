@@ -146,6 +146,7 @@ export async function ensureDatabaseSchema(pool: mysql.Pool): Promise<void> {
         { name: 'gender', def: "VARCHAR(32) DEFAULT 'Prefer not to say'" },
         { name: 'home_phone', def: 'VARCHAR(32) NULL' },
         { name: 'emergency_home_phone', def: 'VARCHAR(32) NULL' },
+        { name: 'account_number', def: 'VARCHAR(64) NULL' },
         { name: 'emergency_address', def: 'VARCHAR(255) NULL' },
         { name: 'emergency_suburb', def: 'VARCHAR(100) NULL' },
         { name: 'emergency_state', def: "VARCHAR(16) DEFAULT 'NSW'" },
