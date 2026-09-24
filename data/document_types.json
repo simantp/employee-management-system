@@ -3,54 +3,63 @@
     "id": "dt-7",
     "name": "Bank Statement / Direct Debit Proof",
     "category": "Payroll",
-    "hasExpiry": false
+    "hasExpiry": false,
+    "isRequired": false
   },
   {
     "id": "dt-3",
     "name": "Driver's License (NSW / State)",
     "category": "Licenses",
-    "hasExpiry": true
+    "hasExpiry": true,
+    "isRequired": false
   },
   {
     "id": "dt-6",
     "name": "Forklift / White Card / RSA License",
     "category": "Workplace Licenses",
-    "hasExpiry": true
+    "hasExpiry": true,
+    "isRequired": false
   },
   {
     "id": "dt-5",
     "name": "Medical / Sick Leave Certificate",
     "category": "Medical",
-    "hasExpiry": false
+    "hasExpiry": false,
+    "isRequired": false
   },
   {
     "id": "dt-1",
     "name": "Passport Copy (Australian / International)",
     "category": "Identification",
-    "hasExpiry": true
+    "hasExpiry": true,
+    "isRequired": true
   },
   {
     "id": "dt-9",
     "name": "Signed Employment Contract",
     "category": "HR Onboarding",
-    "hasExpiry": false
+    "hasExpiry": false,
+    "isRequired": true
   },
   {
     "id": "dt-8",
     "name": "Superannuation Choice Form",
     "category": "Payroll",
-    "hasExpiry": false
+    "hasExpiry": false,
+    "isRequired": false
   },
   {
     "id": "dt-4",
     "name": "Tax File Number (TFN) Declaration",
     "category": "Tax & Compliance",
-    "hasExpiry": false
+    "hasExpiry": false,
+    "isRequired": false
   },
   {
     "id": "dt-2",
     "name": "Visa Grant Notice / VEVO Verification",
     "category": "Visa & Immigration",
-    "hasExpiry": true
+    "hasExpiry": true,
+    "isRequired": false
   }
 ]

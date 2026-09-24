@@ -3,10 +3,11 @@
 import React, { useState } from 'react';
 import { useApp } from '@/lib/store';
 import { EmployeeDocument } from '@/types';
+import { getOnboardingProgress } from '@/lib/onboarding';
 import UploadDocumentModal from '../UploadDocumentModal';
 
 export default function StaffDocumentsView({ embedded = false }: { embedded?: boolean }) {
-  const { currentStaff } = useApp();
+  const { currentStaff, documentTypes } = useApp();
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [editingDoc, setEditingDoc] = useState<EmployeeDocument | null>(null);
   const [selectedPreviewDoc, setSelectedPreviewDoc] = useState<EmployeeDocument | null>(null);
@@ -19,6 +20,8 @@ export default function StaffDocumentsView({ embedded = false }: { embedded?: bo
     'Driving License Copy': 'https://images.unsplash.com/photo-1589829545856-d10d557cf95f?w=500&auto=format&fit=crop&q=80',
     'Signed Resume & CV': 'https://images.unsplash.com/photo-1586281380349-632531db7ed4?w=500&auto=format&fit=crop&q=80',
   };
+
+  const progress = getOnboardingProgress(currentStaff, documentTypes);
 
   const filteredDocs = filterType === 'ALL' 
     ? currentStaff.documents 
@@ -51,6 +54,81 @@ export default function StaffDocumentsView({ embedded = false }: { embedded?: bo
           <span>Upload Document</span>
         </button>
       </div>
+
+      {/* Mandatory Compliance Documents Checklist */}
+      {progress.requiredDocumentTypes.length > 0 && (
+        <div className="bg-gradient-to-br from-amber-50 via-white to-orange-50/50 border-2 border-amber-300 rounded-3xl p-5 shadow-xs space-y-3">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+            <div>
+              <div className="flex items-center gap-2 flex-wrap">
+                <h3 className="font-extrabold text-sm text-slate-900">
+                  Mandatory Compliance Documents Checklist
+                </h3>
+                <span className={`text-[10px] font-extrabold px-2.5 py-0.5 rounded-full ${
+                  progress.missingDocuments.length === 0 
+                    ? 'bg-emerald-100 text-emerald-800 border border-emerald-300' 
+                    : 'bg-amber-100 text-amber-900 border border-amber-300 animate-pulse'
+                }`}>
+                  {progress.missingDocuments.length === 0 ? '✓ All Mandatory Docs Uploaded' : `${progress.missingDocuments.length} Missing for Activation`}
+                </span>
+              </div>
+              <p className="text-[11px] text-slate-600 mt-0.5">
+                {progress.missingDocuments.length > 0
+                  ? 'The following documents are compulsory to complete your profile setup and activate your staff account.'
+                  : 'All compulsory documents have been uploaded.'}
+              </p>
+            </div>
+
+            {progress.missingDocuments.length > 0 && (
+              <button
+                onClick={() => {
+                  setEditingDoc(null);
+                  setShowUploadModal(true);
+                }}
+                className="bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold px-3.5 py-1.5 rounded-xl text-xs shadow-xs transition cursor-pointer self-start sm:self-auto shrink-0"
+              >
+                Upload Missing Documents
+              </button>
+            )}
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2.5 pt-1">
+            {progress.requiredDocumentTypes.map(dt => {
+              const isUploaded = (currentStaff.documents || []).some(
+                d => (d.type === dt.name || (d.name && d.name.toLowerCase().includes(dt.name.toLowerCase()))) && d.status !== 'Rejected'
+              );
+
+              return (
+                <div 
+                  key={dt.id}
+                  className={`p-3 rounded-2xl border flex items-center justify-between gap-2 ${
+                    isUploaded 
+                      ? 'bg-emerald-50/70 border-emerald-300' 
+                      : 'bg-white border-amber-300 shadow-2xs'
+                  }`}
+                >
+                  <div className="min-w-0">
+                    <span className="text-[9px] font-bold text-amber-800 uppercase tracking-wider block">
+                      ★ Compulsory
+                    </span>
+                    <span className="font-bold text-slate-900 text-xs truncate block" title={dt.name}>
+                      {dt.name}
+                    </span>
+                  </div>
+
+                  <span className={`px-2 py-0.5 rounded-lg text-[10px] font-extrabold shrink-0 ${
+                    isUploaded 
+                      ? 'bg-emerald-100 text-emerald-800 border border-emerald-300' 
+                      : 'bg-amber-100 text-amber-900 border border-amber-200'
+                  }`}>
+                    {isUploaded ? '✓ Uploaded' : 'Missing'}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {/* Upload Dropzone Banner */}
       <div 

@@ -174,7 +174,14 @@ export default function UploadDocumentModal({
 
           {/* Document Type Selector */}
           <div>
-            <label className="font-bold text-slate-700 block mb-1.5">Document Type *</label>
+            <div className="flex items-center justify-between mb-1.5">
+              <label className="font-bold text-slate-700 block">Document Type *</label>
+              {documentTypes.find(d => d.name === selectedDocType)?.isRequired && (
+                <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-amber-100 text-amber-900 border border-amber-300">
+                  ★ Compulsory for Onboarding
+                </span>
+              )}
+            </div>
             <select
               value={selectedDocType}
               onChange={(e) => setSelectedDocType(e.target.value)}
@@ -182,7 +189,7 @@ export default function UploadDocumentModal({
             >
               {documentTypes.map((dt) => (
                 <option key={dt.id} value={dt.name}>
-                  {dt.name} ({dt.category})
+                  {dt.isRequired ? `★ [COMPULSORY] ${dt.name}` : dt.name} ({dt.category})
                 </option>
               ))}
               <option value="Medical Certificate">Medical Certificate (Sick / Carers Leave)</option>
@@ -190,6 +197,12 @@ export default function UploadDocumentModal({
               <option value="Forklift / High Risk Work License">Forklift / High Risk Work License</option>
               <option value="Other Compliance Document">Other Compliance Document</option>
             </select>
+            {documentTypes.find(d => d.name === selectedDocType)?.isRequired && (
+              <div className="mt-2 flex items-start gap-1.5 text-amber-900 bg-amber-50 px-3 py-2 rounded-xl border border-amber-200 text-[11px] font-medium">
+                <span className="text-amber-600 font-bold">★</span>
+                <span><strong>Compulsory Document:</strong> This document is mandatory. Uploading it completes this requirement to activate your staff profile.</span>
+              </div>
+            )}
           </div>
 
           {/* Document Name */}

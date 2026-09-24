@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { sendProfileCompletionReminderEmail } from '@/lib/emailService';
+import { sendProfileCompletionReminderEmail, sendMissingDocumentsReminderEmail } from '@/lib/emailService';
 
 export async function POST(req: NextRequest) {
   try {
@@ -10,6 +10,8 @@ export async function POST(req: NextRequest) {
       lastName,
       loginUrl,
       missingSections,
+      missingDocuments,
+      reminderType,
       completedCount,
       totalSections,
       department,
@@ -23,11 +25,26 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    const resolvedLoginUrl = loginUrl || `${req.nextUrl.origin}/?login=true`;
+
+    if (reminderType === 'DOCUMENTS' && Array.isArray(missingDocuments) && missingDocuments.length > 0) {
+      const result = await sendMissingDocumentsReminderEmail({
+        email,
+        firstName: firstName || 'Staff Member',
+        lastName: lastName || '',
+        missingDocuments,
+        loginUrl: resolvedLoginUrl,
+        department,
+        jobTitle,
+      });
+      return NextResponse.json(result, { status: 200 });
+    }
+
     const result = await sendProfileCompletionReminderEmail({
       email,
       firstName: firstName || 'Staff Member',
       lastName: lastName || '',
-      loginUrl: loginUrl || `${req.nextUrl.origin}/?login=true`,
+      loginUrl: resolvedLoginUrl,
       missingSections: Array.isArray(missingSections) ? missingSections : [],
       completedCount: typeof completedCount === 'number' ? completedCount : 0,
       totalSections: typeof totalSections === 'number' ? totalSections : 4,

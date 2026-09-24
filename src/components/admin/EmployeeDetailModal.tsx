@@ -16,13 +16,22 @@ export default function EmployeeDetailModal({
   onClose: () => void;
   initialSection?: 'EMPLOYMENT' | 'PERSONAL' | 'VISA_LICENCE_EMERGENCY' | 'BANKING' | 'DOCUMENTS';
 }) {
-  const { employees, updateEmployee, addToast, resendStaffInvite, sendProfileCompletionReminder } = useApp();
+  const { 
+    employees, 
+    documentTypes, 
+    updateEmployee, 
+    addToast, 
+    resendStaffInvite, 
+    sendProfileCompletionReminder, 
+    sendMissingDocumentsReminder 
+  } = useApp();
   const currentEmp = employees.find(e => e.id === employee.id) || employee;
   const [activeSection, setActiveSection] = useState<'EMPLOYMENT' | 'PERSONAL' | 'VISA_LICENCE_EMERGENCY' | 'BANKING' | 'DOCUMENTS'>(initialSection);
   const [isEditing, setIsEditing] = useState(false);
   const [showEncrypted, setShowEncrypted] = useState(false);
   const [isSendingEmail, setIsSendingEmail] = useState(false);
   const [isSendingReminder, setIsSendingReminder] = useState(false);
+  const [isSendingDocReminder, setIsSendingDocReminder] = useState(false);
 
   // 1. Personal Details
   const [firstName, setFirstName] = useState(employee.firstName || '');
@@ -62,6 +71,15 @@ export default function EmployeeDetailModal({
       await sendProfileCompletionReminder(currentEmp.id);
     } finally {
       setIsSendingReminder(false);
+    }
+  };
+
+  const handleSendDocReminderEmail = async () => {
+    setIsSendingDocReminder(true);
+    try {
+      await sendMissingDocumentsReminder(currentEmp.id);
+    } finally {
+      setIsSendingDocReminder(false);
     }
   };
 
@@ -279,24 +297,46 @@ export default function EmployeeDetailModal({
             
             {/* Self-Onboarding Status Info Banner */}
             {currentEmp.status === 'Pending' && (() => {
-              const progress = getOnboardingProgress(currentEmp);
+              const progress = getOnboardingProgress(currentEmp, documentTypes);
 
               return (
                 <div className="p-5 bg-gradient-to-br from-amber-50 to-orange-50/40 border-2 border-amber-300 rounded-3xl space-y-4 shadow-xs animate-in fade-in">
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-amber-200/60 pb-3.5">
                     <div>
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 flex-wrap">
                         <h4 className="font-black text-amber-950 text-sm">Staff Self-Onboarding In Progress</h4>
                         <span className="px-2.5 py-0.5 rounded-full bg-amber-200 text-amber-900 font-black text-[10px] border border-amber-300 animate-pulse">
-                          {progress.completedCount} of 4 Completed ({progress.percent}%)
+                          {progress.completedCount} of {progress.totalSections} Completed ({progress.percent}%)
                         </span>
+                        {progress.missingDocuments.length > 0 && (
+                          <span className="px-2 py-0.5 rounded-full bg-rose-100 text-rose-800 font-extrabold text-[10px] border border-rose-200">
+                            {progress.missingDocuments.length} Missing Doc{progress.missingDocuments.length > 1 ? 's' : ''}
+                          </span>
+                        )}
                       </div>
                       <p className="text-[11px] text-amber-900/80 mt-0.5">
-                        Staff member must log in to complete all required profile sections. Once submitted, status will automatically switch to <strong>Active</strong>.
+                        Staff member must log in to complete all required profile sections and upload compulsory documents. Once completed, status will automatically switch to <strong>Active</strong>.
                       </p>
+                      {progress.missingDocuments.length > 0 && (
+                        <p className="text-[11px] text-rose-700 font-medium mt-1">
+                          Missing compulsory documents: <strong>{progress.missingDocuments.join(', ')}</strong>
+                        </p>
+                      )}
                     </div>
 
                     <div className="flex flex-wrap items-center gap-2 flex-shrink-0">
+                      {progress.missingDocuments.length > 0 && (
+                        <button
+                          type="button"
+                          disabled={isSendingDocReminder}
+                          onClick={handleSendDocReminderEmail}
+                          className="px-3.5 py-2 rounded-xl bg-amber-600 hover:bg-amber-700 disabled:opacity-50 text-white font-bold text-xs shadow-xs transition cursor-pointer flex items-center gap-1.5"
+                          title={`Send Missing Documents Reminder (${progress.missingDocuments.join(', ')}) to ${currentEmp.email}`}
+                        >
+                          <span>{isSendingDocReminder ? 'Sending...' : 'Send Document Reminder'}</span>
+                        </button>
+                      )}
+
                       <button
                         type="button"
                         disabled={isSendingReminder}
@@ -326,15 +366,15 @@ export default function EmployeeDetailModal({
                           navigator.clipboard.writeText(url);
                           addToast('Copied Link', 'Invitation link copied to clipboard.', 'info');
                         }}
-                        className="px-3 py-2 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs shadow-xs transition cursor-pointer flex items-center gap-1.5"
+                        className="px-3 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs shadow-xs transition cursor-pointer flex items-center gap-1.5"
                       >
                         <span>Copy Link</span>
                       </button>
                     </div>
                   </div>
 
-                  {/* 4 Required Profile Sections Progress Matrix */}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5">
+                  {/* Required Profile Sections Progress Matrix */}
+                  <div className={`grid grid-cols-1 sm:grid-cols-2 ${progress.sections.length > 4 ? 'lg:grid-cols-5' : 'lg:grid-cols-4'} gap-2.5`}>
                     {progress.sections.map((sec, idx) => (
                       <div 
                         key={sec.id}

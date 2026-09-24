@@ -3,6 +3,7 @@
 import React, { useState, useRef } from 'react';
 import { useApp } from '@/lib/store';
 import { EmployeeDocument } from '@/types';
+import { getOnboardingProgress } from '@/lib/onboarding';
 import ConfirmDeleteModal from '@/components/common/ConfirmDeleteModal';
 
 export default function EmployeeDocumentsTab({ employeeId }: { employeeId: string }) {
@@ -13,6 +14,7 @@ export default function EmployeeDocumentsTab({ employeeId }: { employeeId: strin
     updateDocument, 
     deleteDocument, 
     reviewDocument,
+    sendMissingDocumentsReminder,
     addToast,
     addAudit
   } = useApp();
@@ -22,6 +24,7 @@ export default function EmployeeDocumentsTab({ employeeId }: { employeeId: strin
 
   const [filterCategory, setFilterCategory] = useState<string>('ALL');
   const [searchQuery, setSearchQuery] = useState<string>('');
+  const [isSendingDocReminder, setIsSendingDocReminder] = useState<boolean>(false);
   
   // Modals & States
   const [showUploadModal, setShowUploadModal] = useState<boolean>(false);
@@ -247,6 +250,17 @@ export default function EmployeeDocumentsTab({ employeeId }: { employeeId: strin
     setDeletingDoc(null);
   };
 
+  const progress = getOnboardingProgress(currentEmp, documentTypes);
+
+  const handleSendDocReminder = async () => {
+    setIsSendingDocReminder(true);
+    try {
+      await sendMissingDocumentsReminder(employeeId);
+    } finally {
+      setIsSendingDocReminder(false);
+    }
+  };
+
   return (
     <div className="space-y-5 animate-in fade-in duration-150">
       
@@ -269,6 +283,43 @@ export default function EmployeeDocumentsTab({ employeeId }: { employeeId: strin
           <span>Upload New Document</span>
         </button>
       </div>
+
+      {/* Compulsory Documents Missing Alert Banner for Pending Staff */}
+      {currentEmp.status === 'Pending' && progress.missingDocuments.length > 0 && (
+        <div className="bg-amber-50 border-2 border-amber-300 rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xs">
+          <div className="space-y-1">
+            <div className="flex items-center gap-2">
+              <span className="px-2 py-0.5 rounded-md bg-amber-200 text-amber-900 font-extrabold text-[10px]">
+                Action Required for Onboarding
+              </span>
+              <span className="text-xs font-bold text-amber-950">
+                {progress.missingDocuments.length} Missing Compulsory Document{progress.missingDocuments.length > 1 ? 's' : ''}
+              </span>
+            </div>
+            <p className="text-[11px] text-amber-800">
+              Staff profile cannot transition to Active until the following mandatory documents are uploaded:
+            </p>
+            <div className="flex flex-wrap gap-1.5 pt-1">
+              {progress.missingDocuments.map((docName, idx) => (
+                <span key={idx} className="px-2.5 py-1 rounded-lg bg-white border border-amber-300 text-amber-900 font-bold text-[11px] shadow-2xs">
+                  ⚠️ {docName}
+                </span>
+              ))}
+            </div>
+          </div>
+          <div className="flex items-center gap-2 shrink-0">
+            <button
+              type="button"
+              disabled={isSendingDocReminder}
+              onClick={handleSendDocReminder}
+              className="px-3.5 py-2 rounded-xl bg-amber-600 hover:bg-amber-700 disabled:opacity-50 text-white font-bold text-xs shadow-xs transition cursor-pointer flex items-center gap-1.5"
+              title="Send simple reminder email specifically listing missing documents"
+            >
+              <span>{isSendingDocReminder ? 'Sending...' : 'Send Document Reminder Email'}</span>
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Filter and Search Bar */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-slate-50 p-3 rounded-2xl border border-slate-200">

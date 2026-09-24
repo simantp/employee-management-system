@@ -7,16 +7,17 @@ import EditPersonalInfoModal from './EditPersonalInfoModal';
 import EditWorkRightsModal from './EditWorkRightsModal';
 import EditEmergencyContactModal from './EditEmergencyContactModal';
 import BankDetailsModal from './BankDetailsModal';
+import UploadDocumentModal from './UploadDocumentModal';
 
 export default function StaffOnboardingBanner() {
-  const { currentStaff } = useApp();
+  const { currentStaff, documentTypes } = useApp();
 
-  const [activeModal, setActiveModal] = useState<'PERSONAL' | 'WORK_RIGHTS' | 'EMERGENCY' | 'BANK' | null>(null);
+  const [activeModal, setActiveModal] = useState<'PERSONAL' | 'WORK_RIGHTS' | 'EMERGENCY' | 'BANK' | 'DOCUMENTS' | null>(null);
 
   if (!currentStaff) return null;
 
   const isPending = currentStaff.status === 'Pending';
-  const progress = getOnboardingProgress(currentStaff);
+  const progress = getOnboardingProgress(currentStaff, documentTypes);
 
   const steps = [
     {
@@ -49,7 +50,21 @@ export default function StaffOnboardingBanner() {
     },
   ];
 
+  if (progress.requiredDocumentTypes.length > 0) {
+    const docProgress = progress.sections.find(s => s.id === 'DOCUMENTS');
+    steps.push({
+      id: 'DOCUMENTS',
+      title: 'Compulsory Documents',
+      desc: docProgress?.isDone
+        ? 'All mandatory compliance documents uploaded'
+        : `Required: ${progress.missingDocuments.join(', ')}`,
+      isDone: docProgress?.isDone ?? false,
+      buttonLabel: docProgress?.isDone ? 'Upload More / View' : 'Upload Documents',
+    });
+  }
+
   const completedCount = progress.completedCount;
+  const totalSections = progress.totalSections;
   const progressPercent = progress.percent;
 
   if (!isPending || progress.isComplete) return null;
@@ -62,16 +77,21 @@ export default function StaffOnboardingBanner() {
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-amber-200/80 pb-4">
           <div className="flex items-center gap-3">
             <div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 flex-wrap">
                 <h3 className="text-base sm:text-lg font-black text-slate-900 tracking-tight">
                   Account Status: Pending Profile Setup
                 </h3>
                 <span className="px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-800 font-extrabold text-[10px] border border-amber-300 animate-pulse">
-                  {completedCount} of 4 Completed
+                  {completedCount} of {totalSections} Completed
                 </span>
+                {progress.missingDocuments.length > 0 && (
+                  <span className="px-2 py-0.5 rounded-full bg-rose-100 text-rose-800 font-extrabold text-[10px] border border-rose-200">
+                    {progress.missingDocuments.length} Compulsory Doc{progress.missingDocuments.length > 1 ? 's' : ''} Missing
+                  </span>
+                )}
               </div>
               <p className="text-xs text-slate-600 mt-0.5">
-                Welcome to HsCreations! Please complete the 4 onboarding sections below to activate your staff profile.
+                Welcome to HsCreations! Please complete the {totalSections} onboarding sections below to activate your staff profile.
               </p>
             </div>
           </div>
@@ -96,12 +116,12 @@ export default function StaffOnboardingBanner() {
           </div>
           <div className="flex justify-between text-[10px] text-slate-500 font-semibold px-1">
             <span>Stage 1: Profile Entry</span>
-            <span>{completedCount === 4 ? 'All Complete! Transitioning to Active...' : `${4 - completedCount} sections remaining`}</span>
+            <span>{completedCount === totalSections ? 'All Complete! Transitioning to Active...' : `${totalSections - completedCount} section${totalSections - completedCount > 1 ? 's' : ''} remaining`}</span>
           </div>
         </div>
 
-        {/* 4 Interactive Checklist Step Tiles */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5 pt-1">
+        {/* Interactive Checklist Step Tiles */}
+        <div className={`grid grid-cols-1 sm:grid-cols-2 ${steps.length > 4 ? 'lg:grid-cols-5' : 'lg:grid-cols-4'} gap-3.5 pt-1`}>
           {steps.map((step, idx) => (
             <div 
               key={step.id}
@@ -165,6 +185,9 @@ export default function StaffOnboardingBanner() {
       )}
       {activeModal === 'BANK' && (
         <BankDetailsModal onClose={() => setActiveModal(null)} />
+      )}
+      {activeModal === 'DOCUMENTS' && (
+        <UploadDocumentModal onClose={() => setActiveModal(null)} />
       )}
     </>
   );

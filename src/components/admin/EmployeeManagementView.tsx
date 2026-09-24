@@ -12,7 +12,7 @@ export default function EmployeeManagementView({
 }: {
   filterCategory?: 'ALL' | 'PERSONAL' | 'EMPLOYMENT' | 'PAYROLL' | 'EMERGENCY';
 }) {
-  const { employees, archiveEmployee, unarchiveEmployee, sendProfileCompletionReminder } = useApp();
+  const { employees, documentTypes, archiveEmployee, unarchiveEmployee, sendProfileCompletionReminder, sendMissingDocumentsReminder } = useApp();
   const [search, setSearch] = useState('');
   const [selectedDept, setSelectedDept] = useState<string>('ALL');
   const [selectedStatus, setSelectedStatus] = useState<string>('ALL');
@@ -25,7 +25,7 @@ export default function EmployeeManagementView({
 
   // Effective status calculation ensuring 100% completed profiles are always treated as Active
   const getEffectiveStatus = (emp: Employee) => {
-    const progress = getOnboardingProgress(emp);
+    const progress = getOnboardingProgress(emp, documentTypes);
     if (emp.status === 'Pending' && progress.isComplete) {
       return 'Active';
     }
@@ -232,7 +232,7 @@ export default function EmployeeManagementView({
                     {/* Status & Onboarding Progress */}
                     <td className="py-3.5 px-5">
                       {(() => {
-                        const progress = getOnboardingProgress(emp);
+                        const progress = getOnboardingProgress(emp, documentTypes);
                         const effStatus = getEffectiveStatus(emp);
                         const isPending = effStatus === 'Pending';
 
@@ -241,12 +241,12 @@ export default function EmployeeManagementView({
                             <div className="space-y-1">
                               <span 
                                 className="px-2.5 py-1 rounded-full text-[10px] font-black border inline-flex items-center gap-1.5 bg-amber-50 text-amber-800 border-amber-300"
-                                title={`Onboarding: ${progress.completedCount} of 4 sections completed (${progress.percent}%). Missing: ${progress.missingSectionTitles.join(', ')}`}
+                                title={`Onboarding: ${progress.completedCount} of ${progress.totalSections} sections completed (${progress.percent}%). Missing: ${progress.missingSectionTitles.join(', ')}`}
                               >
                                 <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
-                                Pending ({progress.completedCount}/4 Done)
+                                Pending ({progress.completedCount}/{progress.totalSections} Done)
                               </span>
-                              {/* 4-dot Progress Bar */}
+                              {/* Progress Bar */}
                               <div className="flex items-center gap-1 px-1" title={`${progress.percent}% profile completed`}>
                                 {progress.sections.map((sec) => (
                                   <span 
@@ -286,25 +286,50 @@ export default function EmployeeManagementView({
                     {/* Actions: Remind, Manage, Archive/Unarchive */}
                     <td className="py-3.5 px-5 text-right" onClick={e => e.stopPropagation()}>
                       <div className="flex items-center justify-end gap-1.5">
-                        {getEffectiveStatus(emp) === 'Pending' && (
-                          <button
-                            type="button"
-                            disabled={remindingEmpId === emp.id}
-                            onClick={async (e) => {
-                              e.stopPropagation();
-                              setRemindingEmpId(emp.id);
-                              try {
-                                await sendProfileCompletionReminder(emp.id);
-                              } finally {
-                                setRemindingEmpId(null);
-                              }
-                            }}
-                            className="px-2.5 py-1.5 rounded-xl bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-300 font-bold text-[11px] transition inline-flex items-center gap-1 shadow-xs cursor-pointer disabled:opacity-50"
-                            title={`Send Profile Completion Reminder Email to ${emp.email}`}
-                          >
-                            <span>{remindingEmpId === emp.id ? 'Sending...' : 'Remind'}</span>
-                          </button>
-                        )}
+                        {getEffectiveStatus(emp) === 'Pending' && (() => {
+                          const progress = getOnboardingProgress(emp, documentTypes);
+                          if (progress.missingDocuments.length > 0) {
+                            return (
+                              <button
+                                type="button"
+                                disabled={remindingEmpId === emp.id}
+                                onClick={async (e) => {
+                                  e.stopPropagation();
+                                  setRemindingEmpId(emp.id);
+                                  try {
+                                    await sendMissingDocumentsReminder(emp.id);
+                                  } finally {
+                                    setRemindingEmpId(null);
+                                  }
+                                }}
+                                className="px-2.5 py-1.5 rounded-xl bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-300 font-bold text-[11px] transition inline-flex items-center gap-1 shadow-xs cursor-pointer disabled:opacity-50"
+                                title={`Send Missing Documents Reminder (${progress.missingDocuments.join(', ')}) to ${emp.email}`}
+                              >
+                                <span>{remindingEmpId === emp.id ? 'Sending...' : 'Doc Reminder'}</span>
+                              </button>
+                            );
+                          }
+
+                          return (
+                            <button
+                              type="button"
+                              disabled={remindingEmpId === emp.id}
+                              onClick={async (e) => {
+                                e.stopPropagation();
+                                setRemindingEmpId(emp.id);
+                                try {
+                                  await sendProfileCompletionReminder(emp.id);
+                                } finally {
+                                  setRemindingEmpId(null);
+                                }
+                              }}
+                              className="px-2.5 py-1.5 rounded-xl bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-300 font-bold text-[11px] transition inline-flex items-center gap-1 shadow-xs cursor-pointer disabled:opacity-50"
+                              title={`Send Profile Completion Reminder Email to ${emp.email}`}
+                            >
+                              <span>{remindingEmpId === emp.id ? 'Sending...' : 'Remind'}</span>
+                            </button>
+                          );
+                        })()}
 
                         <button
                           type="button"

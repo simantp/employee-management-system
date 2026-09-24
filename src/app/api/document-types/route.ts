@@ -12,6 +12,7 @@ export async function GET() {
         name: r.name,
         category: r.category,
         hasExpiry: Boolean(r.has_expiry),
+        isRequired: Boolean(r.is_required),
       }));
       await saveStoredDocumentTypes(documentTypes);
       return NextResponse.json({ success: true, documentTypes });
@@ -36,8 +37,8 @@ export async function POST(req: Request) {
 
     if (isDbConfigured) {
       try {
-        await query('INSERT INTO document_types (id, name, category, has_expiry) VALUES (?, ?, ?, ?)', [
-          id, dt.name, dt.category, dt.hasExpiry ? 1 : 0
+        await query('INSERT INTO document_types (id, name, category, has_expiry, is_required) VALUES (?, ?, ?, ?, ?) ON DUPLICATE KEY UPDATE name = VALUES(name), category = VALUES(category), has_expiry = VALUES(has_expiry), is_required = VALUES(is_required)', [
+          id, dt.name, dt.category, dt.hasExpiry ? 1 : 0, dt.isRequired ? 1 : 0
         ]);
       } catch (err: any) {
         console.warn('MySQL document-type insert skipped:', err.message);
@@ -47,6 +48,41 @@ export async function POST(req: Request) {
     return NextResponse.json({ success: true, id });
   } catch (err: any) {
     console.error('Error saving document type:', err);
+    return NextResponse.json({ success: false, message: err.message }, { status: 500 });
+  }
+}
+
+export async function PUT(req: Request) {
+  try {
+    const body: Partial<DocumentTypeConfig> & { id: string } = await req.json();
+    if (!body.id) {
+      return NextResponse.json({ success: false, message: 'ID required' }, { status: 400 });
+    }
+
+    const stored = await getStoredDocumentTypes();
+    const updated = stored.map(d => d.id === body.id ? { ...d, ...body } : d);
+    await saveStoredDocumentTypes(updated);
+
+    if (isDbConfigured) {
+      try {
+        const updates: string[] = [];
+        const params: any[] = [];
+        if (body.name !== undefined) { updates.push('name = ?'); params.push(body.name); }
+        if (body.category !== undefined) { updates.push('category = ?'); params.push(body.category); }
+        if (body.hasExpiry !== undefined) { updates.push('has_expiry = ?'); params.push(body.hasExpiry ? 1 : 0); }
+        if (body.isRequired !== undefined) { updates.push('is_required = ?'); params.push(body.isRequired ? 1 : 0); }
+        if (updates.length > 0) {
+          params.push(body.id);
+          await query(`UPDATE document_types SET ${updates.join(', ')} WHERE id = ?`, params);
+        }
+      } catch (err: any) {
+        console.warn('MySQL document-type update skipped:', err.message);
+      }
+    }
+
+    return NextResponse.json({ success: true });
+  } catch (err: any) {
+    console.error('Error updating document type:', err);
     return NextResponse.json({ success: false, message: err.message }, { status: 500 });
   }
 }

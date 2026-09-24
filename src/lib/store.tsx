@@ -82,6 +82,8 @@ interface AppContextType {
   // Data
   documentTypes: DocumentTypeConfig[];
   addDocumentType: (type: Omit<DocumentTypeConfig, 'id'>) => void;
+  updateDocumentType: (id: string, updates: Partial<DocumentTypeConfig>) => void;
+  toggleDocumentTypeRequired: (id: string) => void;
   deleteDocumentType: (id: string) => void;
   employees: Employee[];
   leaveRequests: LeaveRequest[];
@@ -153,6 +155,7 @@ interface AppContextType {
   inviteEmployee: (data: { firstName: string; lastName: string; email: string; department?: Department; jobTitle?: string }) => { employee: Employee; inviteUrl: string; inviteToken: string };
   resendStaffInvite: (empId: string) => Promise<{ success: boolean; inviteUrl?: string; message?: string }>;
   sendProfileCompletionReminder: (empId: string) => Promise<{ success: boolean; message: string }>;
+  sendMissingDocumentsReminder: (empId: string) => Promise<{ success: boolean; message: string }>;
   checkAndUpdateOnboardingCompletion: (empId: string) => boolean;
   updateEmployee: (id: string, updates: Partial<Employee>) => void;
   deleteEmployee: (id: string) => void;
@@ -1720,7 +1723,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setEmployees(prev => prev.map(emp => {
       if (emp.id !== empId) return emp;
 
-      const progress = getOnboardingProgress(emp);
+      const progress = getOnboardingProgress(emp, documentTypes);
 
       if (progress.isComplete && emp.status === 'Pending') {
         becameActive = true;
@@ -1997,10 +2000,15 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       return { success: false, message: 'Employee not found.' };
     }
 
-    const progress = getOnboardingProgress(emp);
+    const progress = getOnboardingProgress(emp, documentTypes);
     const origin = typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000';
     const cleanEmail = emp.email.trim().toLowerCase();
     const loginUrl = `${origin}/?login=true&email=${encodeURIComponent(cleanEmail)}`;
+
+    // If only documents are missing, send the dedicated missing documents reminder email
+    if (progress.missingSectionTitles.length === 1 && progress.missingSectionTitles[0] === 'Compulsory Documents' && progress.missingDocuments.length > 0) {
+      return sendMissingDocumentsReminder(empId);
+    }
 
     try {
       const res = await fetch('/api/auth/send-reminder-email', {
@@ -2012,6 +2020,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           lastName: emp.lastName,
           loginUrl,
           missingSections: progress.missingSectionTitles,
+          missingDocuments: progress.missingDocuments,
           completedCount: progress.completedCount,
           totalSections: progress.totalSections,
           department: emp.department,
@@ -2054,6 +2063,80 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     } catch (err: any) {
       console.warn('Failed to send profile reminder email:', err);
       addToast('Reminder Dispatch Failed', 'Could not send reminder email via server.', 'error');
+      return { success: false, message: err.message || 'Failed to dispatch email' };
+    }
+  };
+
+  // 2.8 Admin Sends Missing Compulsory Documents Reminder Email
+  const sendMissingDocumentsReminder = async (empId: string): Promise<{ success: boolean; message: string }> => {
+    const emp = employees.find(e => e.id === empId);
+    if (!emp) {
+      addToast('Employee Not Found', 'Could not locate employee record to send reminder.', 'error');
+      return { success: false, message: 'Employee not found.' };
+    }
+
+    const progress = getOnboardingProgress(emp, documentTypes);
+    const missingDocs = progress.missingDocuments || [];
+    if (missingDocs.length === 0) {
+      addToast('No Missing Documents', `${emp.firstName} has already uploaded all compulsory documents.`, 'info');
+      return { success: true, message: 'All compulsory documents are uploaded.' };
+    }
+
+    const origin = typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000';
+    const cleanEmail = emp.email.trim().toLowerCase();
+    const loginUrl = `${origin}/?login=true&email=${encodeURIComponent(cleanEmail)}`;
+
+    try {
+      const res = await fetch('/api/auth/send-reminder-email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: cleanEmail,
+          firstName: emp.firstName,
+          lastName: emp.lastName,
+          loginUrl,
+          missingDocuments: missingDocs,
+          reminderType: 'DOCUMENTS',
+          department: emp.department,
+          jobTitle: emp.jobTitle,
+        }),
+      });
+
+      const resJson = await res.json();
+      const empName = `${emp.firstName} ${emp.lastName}`.trim();
+
+      addAudit(
+        'SEND_DOCUMENT_REMINDER',
+        'Employee',
+        emp.id,
+        `Admin sent compulsory document reminder email to ${empName} (${cleanEmail}). Missing: ${missingDocs.join(', ')}.`
+      );
+
+      addToast(
+        'Document Reminder Sent',
+        `Compulsory document reminder sent to ${cleanEmail} (${missingDocs.length} missing: ${missingDocs.join(', ')}).`,
+        'success'
+      );
+
+      const staffNotif: NotificationItem = {
+        id: 'notif-doc-reminder-' + Date.now(),
+        recipient: 'STAFF',
+        recipientId: emp.id,
+        title: 'Action Required: Upload Compulsory Documents',
+        message: `Please upload your required onboarding documents (${missingDocs.join(', ')}). Your account will be activated once uploaded.`,
+        type: 'PROFILE_UPDATE',
+        timestamp: 'Just now',
+        read: false,
+      };
+      dispatchNotification(staffNotif);
+
+      return {
+        success: true,
+        message: resJson.message || `Document reminder sent to ${cleanEmail}`,
+      };
+    } catch (err: any) {
+      console.warn('Failed to send document reminder email:', err);
+      addToast('Reminder Dispatch Failed', 'Could not send document reminder email.', 'error');
       return { success: false, message: err.message || 'Failed to dispatch email' };
     }
   };
@@ -3170,7 +3253,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           superMemberNumber: bank.superNumber,
         };
 
-        const progress = getOnboardingProgress(merged);
+        const progress = getOnboardingProgress(merged, documentTypes);
         if (progress.isComplete && merged.status === 'Pending') {
           autoCompletedToActive = true;
           merged.status = 'Active';
@@ -3301,6 +3384,50 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       fetch(`/api/document-types?id=${encodeURIComponent(id)}`, {
         method: 'DELETE',
       }).catch(err => console.warn('Document type delete DB sync skipped:', err));
+    } catch (e) {}
+  };
+
+  const updateDocumentType = (id: string, updates: Partial<DocumentTypeConfig>) => {
+    setDocumentTypes(prev => prev.map(d => d.id === id ? { ...d, ...updates } : d));
+    const dt = documentTypes.find(d => d.id === id);
+    const dtName = updates.name || dt?.name || 'Document Type';
+    addAudit('UPDATE_DOCUMENT_TYPE', 'DocumentType', id, `Admin updated document type: ${dtName}`);
+
+    // MySQL Backend Sync
+    try {
+      fetch('/api/document-types', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id, ...updates }),
+      }).catch(err => console.warn('Document type update DB sync skipped:', err));
+    } catch (e) {}
+  };
+
+  const toggleDocumentTypeRequired = (id: string) => {
+    const target = documentTypes.find(d => d.id === id);
+    if (!target) return;
+    const nextVal = !target.isRequired;
+    setDocumentTypes(prev => prev.map(d => d.id === id ? { ...d, isRequired: nextVal } : d));
+    
+    addAudit(
+      'UPDATE_DOCUMENT_TYPE',
+      'DocumentType',
+      id,
+      `Admin toggled compulsory status for "${target.name}" to ${nextVal ? 'COMPULSORY (Required)' : 'OPTIONAL'}`
+    );
+    addToast(
+      nextVal ? 'Document Type Set to Compulsory' : 'Document Type Set to Optional',
+      `"${target.name}" is now ${nextVal ? 'compulsory for staff to complete their profile and activate' : 'optional'}.`,
+      nextVal ? 'warning' : 'info'
+    );
+
+    // MySQL Backend Sync
+    try {
+      fetch('/api/document-types', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id, isRequired: nextVal }),
+      }).catch(err => console.warn('Document type toggle DB sync skipped:', err));
     } catch (e) {}
   };
 
@@ -3436,6 +3563,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       }
       return emp;
     }));
+
+    // Auto-check if this uploaded document completes compulsory documents & activates profile
+    setTimeout(() => {
+      checkAndUpdateOnboardingCompletion(empId);
+    }, 100);
 
     const targetEmp = employees.find(e => e.id === empId);
     const empName = targetEmp ? `${targetEmp.firstName} ${targetEmp.lastName}` : 'Staff Member';
@@ -5168,6 +5300,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       currentStaff,
       documentTypes,
       addDocumentType,
+      updateDocumentType,
+      toggleDocumentTypeRequired,
       deleteDocumentType,
       employees,
       leaveRequests,
@@ -5222,6 +5356,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       inviteEmployee,
       resendStaffInvite,
       sendProfileCompletionReminder,
+      sendMissingDocumentsReminder,
       checkAndUpdateOnboardingCompletion,
       updateEmployee,
       deleteEmployee,

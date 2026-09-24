@@ -1,5 +1,53 @@
 [
   {
+    "id": "aud-1790260472211",
+    "action": "SESSION_AUTO_LOGOUT_INACTIVITY",
+    "targetType": "User",
+    "targetId": "usr-1",
+    "details": "User Super Admin (SUPER_ADMIN) automatically logged out after 1 min(s) inactivity.",
+    "actorId": "usr-1",
+    "actorName": "Super Admin",
+    "actorRole": "SUPER_ADMIN",
+    "timestamp": "25/09/2026, 12:34:32 am AEST",
+    "ipAddress": "127.0.0.1 (Localhost)"
+  },
+  {
+    "id": "aud-1790260398442",
+    "action": "SECURITY_SETTINGS_UPDATED",
+    "targetType": "Settings",
+    "targetId": "security",
+    "details": "Updated security settings (Inactivity Timeout: 1 min, Auto-Logout: Enabled, 2FA: Enabled)",
+    "actorId": "usr-1",
+    "actorName": "Super Admin",
+    "actorRole": "SUPER_ADMIN",
+    "timestamp": "25/09/2026, 12:33:18 am AEST",
+    "ipAddress": "127.0.0.1 (Localhost)"
+  },
+  {
+    "id": "aud-1790260042715",
+    "action": "SECURITY_SETTINGS_UPDATED",
+    "targetType": "Settings",
+    "targetId": "security",
+    "details": "Updated security settings (Inactivity Timeout: 5 min, Auto-Logout: Enabled, 2FA: Enabled)",
+    "actorId": "usr-1",
+    "actorName": "Super Admin",
+    "actorRole": "SUPER_ADMIN",
+    "timestamp": "25/09/2026, 12:27:22 am AEST",
+    "ipAddress": "127.0.0.1 (Localhost)"
+  },
+  {
+    "id": "aud-1790259797128",
+    "action": "USER_LOGIN_SUCCESS",
+    "targetType": "User",
+    "targetId": "usr-1",
+    "details": "User Super Admin successfully authenticated with role SUPER_ADMIN.",
+    "actorId": "usr-1",
+    "actorName": "Super Admin",
+    "actorRole": "SUPER_ADMIN",
+    "timestamp": "25/09/2026, 12:23:17 am AEST",
+    "ipAddress": "127.0.0.1 (Localhost)"
+  },
+  {
     "id": "aud-1790259334903",
     "action": "USER_LOGOUT",
     "targetType": "User",

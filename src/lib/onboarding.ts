@@ -1,7 +1,7 @@
-import { Employee } from '@/types';
+import { Employee, DocumentTypeConfig } from '@/types';
 
 export interface OnboardingSectionProgress {
-  id: 'PERSONAL' | 'WORK_RIGHTS' | 'EMERGENCY' | 'BANKING';
+  id: 'PERSONAL' | 'WORK_RIGHTS' | 'EMERGENCY' | 'BANKING' | 'DOCUMENTS';
   title: string;
   description: string;
   isDone: boolean;
@@ -15,29 +15,51 @@ export interface OnboardingProgressResult {
   isComplete: boolean;
   sections: OnboardingSectionProgress[];
   missingSectionTitles: string[];
+  missingDocuments: string[];
+  requiredDocumentTypes: DocumentTypeConfig[];
 }
 
 /**
- * Validates the 4 required profile sections for staff self-onboarding:
+ * Validates the required profile sections for staff self-onboarding:
  * 1. Personal Details (mobilePhone, dateOfBirth, address, suburb, postcode)
  * 2. Legal Work Rights (citizenStatus, and visa details if visa holder)
  * 3. Emergency Contact (emergencyNextOfKin, emergencyRelationship, emergencyMobile)
- * 4. Banking & TFN (bankName, bsbMasked/bsbEncrypted, accountNumberMasked/accountNumberEncrypted)
+ * 4. Banking & TFN (bankName, bsb, accountNumber)
+ * 5. Compulsory Documents (any document types configured as isRequired: true)
  */
-export function getOnboardingProgress(emp: Employee | null | undefined): OnboardingProgressResult {
+export function getOnboardingProgress(
+  emp: Employee | null | undefined,
+  docTypes?: DocumentTypeConfig[]
+): OnboardingProgressResult {
+  let effectiveDocTypes = docTypes;
+  if (!effectiveDocTypes && typeof window !== 'undefined') {
+    try {
+      const saved = localStorage.getItem('ems_doctypes_v1');
+      if (saved) {
+        effectiveDocTypes = JSON.parse(saved);
+      }
+    } catch (e) {}
+  }
+  const requiredDocTypes = (effectiveDocTypes || []).filter(dt => Boolean(dt.isRequired));
+
   if (!emp) {
+    const defaultMissing = [
+      'Personal Details',
+      'Legal Work Rights',
+      'Emergency Contact',
+      'Banking & TFN',
+    ];
+    if (requiredDocTypes.length > 0) defaultMissing.push('Compulsory Documents');
+
     return {
       completedCount: 0,
-      totalSections: 4,
+      totalSections: requiredDocTypes.length > 0 ? 5 : 4,
       percent: 0,
       isComplete: false,
       sections: [],
-      missingSectionTitles: [
-        'Personal Details',
-        'Legal Work Rights',
-        'Emergency Contact',
-        'Banking & TFN',
-      ],
+      missingSectionTitles: defaultMissing,
+      missingDocuments: requiredDocTypes.map(d => d.name),
+      requiredDocumentTypes: requiredDocTypes,
     };
   }
 
@@ -81,6 +103,21 @@ export function getOnboardingProgress(emp: Employee | null | undefined): Onboard
   if (!acc || acc === '••••••••') missingBanking.push('Account Number');
   const isBankingDone = missingBanking.length === 0;
 
+  // 5. Compulsory Compliance Documents
+  const missingDocuments: string[] = [];
+  if (requiredDocTypes.length > 0) {
+    const uploadedDocs = emp.documents || [];
+    for (const dt of requiredDocTypes) {
+      const hasUploaded = uploadedDocs.some(
+        d => (d.type === dt.name || (d.name && d.name.toLowerCase().includes(dt.name.toLowerCase()))) && d.status !== 'Rejected'
+      );
+      if (!hasUploaded) {
+        missingDocuments.push(dt.name);
+      }
+    }
+  }
+  const isDocumentsDone = requiredDocTypes.length === 0 || missingDocuments.length === 0;
+
   const sections: OnboardingSectionProgress[] = [
     {
       id: 'PERSONAL',
@@ -112,6 +149,16 @@ export function getOnboardingProgress(emp: Employee | null | undefined): Onboard
     },
   ];
 
+  if (requiredDocTypes.length > 0) {
+    sections.push({
+      id: 'DOCUMENTS',
+      title: 'Compulsory Documents',
+      description: 'Upload all mandatory compliance files',
+      isDone: isDocumentsDone,
+      missingFields: missingDocuments,
+    });
+  }
+
   const completedCount = sections.filter(s => s.isDone).length;
   const totalSections = sections.length;
   const percent = Math.round((completedCount / totalSections) * 100);
@@ -125,5 +172,7 @@ export function getOnboardingProgress(emp: Employee | null | undefined): Onboard
     isComplete,
     sections,
     missingSectionTitles,
+    missingDocuments,
+    requiredDocumentTypes: requiredDocTypes,
   };
 }

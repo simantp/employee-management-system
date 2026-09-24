@@ -334,6 +334,7 @@ export interface DocumentTypeConfig {
   category?: string;
   description?: string;
   hasExpiry?: boolean;
+  isRequired?: boolean; // Compulsory for staff to complete profile and be active
 }
 
 export interface Announcement {

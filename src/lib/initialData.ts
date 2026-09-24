@@ -47,15 +47,15 @@ export const INITIAL_SMTP_SETTINGS: SmtpSettings = {
 };
 
 export const INITIAL_DOCUMENT_TYPES: DocumentTypeConfig[] = [
-  { id: 'dt-1', name: 'Passport Copy (Australian / International)', category: 'Identification', hasExpiry: true },
-  { id: 'dt-2', name: 'Visa Grant Notice / VEVO Verification', category: 'Visa & Immigration', hasExpiry: true },
-  { id: 'dt-3', name: "Driver's License (NSW / State)", category: 'Licenses', hasExpiry: true },
-  { id: 'dt-4', name: 'Tax File Number (TFN) Declaration', category: 'Tax & Compliance', hasExpiry: false },
-  { id: 'dt-5', name: 'Medical / Sick Leave Certificate', category: 'Medical', hasExpiry: false },
-  { id: 'dt-6', name: 'Forklift / White Card / RSA License', category: 'Workplace Licenses', hasExpiry: true },
-  { id: 'dt-7', name: 'Bank Statement / Direct Debit Proof', category: 'Payroll', hasExpiry: false },
-  { id: 'dt-8', name: 'Superannuation Choice Form', category: 'Payroll', hasExpiry: false },
-  { id: 'dt-9', name: 'Signed Employment Contract', category: 'HR Onboarding', hasExpiry: false },
+  { id: 'dt-1', name: 'Passport Copy (Australian / International)', category: 'Identification', hasExpiry: true, isRequired: true },
+  { id: 'dt-2', name: 'Visa Grant Notice / VEVO Verification', category: 'Visa & Immigration', hasExpiry: true, isRequired: false },
+  { id: 'dt-3', name: "Driver's License (NSW / State)", category: 'Licenses', hasExpiry: true, isRequired: false },
+  { id: 'dt-4', name: 'Tax File Number (TFN) Declaration', category: 'Tax & Compliance', hasExpiry: false, isRequired: false },
+  { id: 'dt-5', name: 'Medical / Sick Leave Certificate', category: 'Medical', hasExpiry: false, isRequired: false },
+  { id: 'dt-6', name: 'Forklift / White Card / RSA License', category: 'Workplace Licenses', hasExpiry: true, isRequired: false },
+  { id: 'dt-7', name: 'Bank Statement / Direct Debit Proof', category: 'Payroll', hasExpiry: false, isRequired: false },
+  { id: 'dt-8', name: 'Superannuation Choice Form', category: 'Payroll', hasExpiry: false, isRequired: false },
+  { id: 'dt-9', name: 'Signed Employment Contract', category: 'HR Onboarding', hasExpiry: false, isRequired: true },
 ];
 
 export const INITIAL_ANNOUNCEMENTS: Announcement[] = [

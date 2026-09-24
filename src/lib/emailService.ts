@@ -1030,6 +1030,158 @@ export async function sendProfileCompletionReminderEmail(params: SendProfileRemi
   }
 }
 
+export interface SendMissingDocumentsReminderEmailParams {
+  email: string;
+  firstName: string;
+  lastName?: string;
+  missingDocuments: string[];
+  loginUrl: string;
+  department?: string;
+  jobTitle?: string;
+}
+
+export async function sendMissingDocumentsReminderEmail(params: SendMissingDocumentsReminderEmailParams): Promise<SendEmailResult> {
+  const smtp = await getEffectiveSmtpConfig();
+  const fromEmail = `"${smtp.fromName || 'HsCreations HR & Compliance'}" <${smtp.fromEmail}>`;
+
+  const docCount = params.missingDocuments.length;
+  const docsListHtml = params.missingDocuments.map(doc => `
+    <li style="margin-bottom: 10px; color: #f8fafc; font-size: 13px; font-weight: 700; list-style-type: none; display: flex; align-items: center; gap: 8px;">
+      <span style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; background-color: #f97316; margin-right: 8px;"></span>
+      ${doc}
+    </li>
+  `).join('');
+
+  const htmlContent = `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background-color: #0b1120; margin: 0; padding: 24px; color: #f8fafc; }
+    .container { max-width: 560px; margin: 0 auto; background: #0f172a; border-radius: 24px; border: 1px solid #1e293b; overflow: hidden; box-shadow: 0 20px 40px rgba(0,0,0,0.4); }
+    .header { background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); padding: 32px 28px; text-align: center; border-bottom: 1px solid #334155; }
+    .brand-title { font-size: 18px; font-weight: 900; letter-spacing: 1.5px; margin: 0; color: #ffffff; }
+    .brand-sub { font-size: 11px; color: #f97316; font-weight: 800; text-transform: uppercase; margin-top: 5px; letter-spacing: 1px; }
+    .badge { display: inline-block; background: #ea580c; color: #ffffff; font-size: 10px; font-weight: 800; text-transform: uppercase; padding: 4px 12px; border-radius: 999px; margin-top: 14px; letter-spacing: 0.5px; }
+    .content { padding: 32px 28px; }
+    .greeting { font-size: 20px; font-weight: 900; color: #ffffff; margin-top: 0; }
+    .desc { font-size: 13px; color: #94a3b8; line-height: 1.6; margin-bottom: 24px; }
+    .checklist-box { background: rgba(245, 158, 11, 0.08); border: 1px solid rgba(245, 158, 11, 0.35); border-radius: 16px; padding: 20px; margin-bottom: 24px; }
+    .checklist-title { font-size: 12px; font-weight: 800; color: #fbbf24; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 12px; }
+    .btn-container { text-align: center; margin: 28px 0; }
+    .btn { display: inline-block; background: linear-gradient(135deg, #f97316 0%, #ea580c 100%); color: #ffffff !important; font-size: 14px; font-weight: 900; text-decoration: none; padding: 14px 32px; border-radius: 14px; box-shadow: 0 10px 25px rgba(249,115,22,0.3); }
+    .btn-subtext { font-size: 11px; color: #fdba74; margin-top: 10px; font-weight: 600; }
+    .link-fallback { background: #0b1120; border: 1px solid #334155; border-radius: 12px; padding: 12px; font-family: monospace; font-size: 11px; color: #38bdf8; word-break: break-all; margin-top: 15px; }
+    .footer { background: #0b1120; padding: 22px; text-align: center; border-top: 1px solid #1e293b; font-size: 11px; color: #64748b; line-height: 1.6; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <div class="brand-title">HSCREATIONS SYDNEY</div>
+      <div class="brand-sub">Staff Portal &amp; Compliance Verification</div>
+      <div class="badge">Action Required: Upload Mandatory Documents</div>
+    </div>
+    <div class="content">
+      <h2 class="greeting">Hi ${params.firstName},</h2>
+      <p class="desc">
+        This is a reminder from HsCreations Administration that your staff onboarding is pending the upload of <strong>${docCount} compulsory document(s)</strong>.
+      </p>
+
+      <div class="checklist-box">
+        <div class="checklist-title">Missing Compulsory Document(s):</div>
+        <ul style="margin: 0; padding: 0;">
+          ${docsListHtml}
+        </ul>
+        <p style="font-size: 11px; color: #cbd5e1; margin-top: 14px; margin-bottom: 0; line-height: 1.5;">
+          <em>Under Australian workplace safety and HR compliance standards, these documents must be verified on file before your staff profile can be activated for shifts and rosters.</em>
+        </p>
+      </div>
+
+      <div class="btn-container">
+        <a href="${params.loginUrl}" class="btn">Upload Required Documents Now →</a>
+        <div class="btn-subtext">Upload PDF or photo from your phone/computer</div>
+      </div>
+
+      <p style="font-size: 11px; color: #94a3b8; text-align: center; margin-bottom: 5px;">
+        Or access your portal directly via:
+      </p>
+      <div class="link-fallback">${params.loginUrl}</div>
+    </div>
+    <div class="footer">
+      © 2026 HsCreations Pty Ltd • Sydney NSW Printing &amp; Design<br>
+      Fair Work Australia &amp; SafeWork NSW Compliant Workforce System
+    </div>
+  </div>
+</body>
+</html>
+  `;
+
+  const subject = `Action Required: Please Upload Missing Mandatory Documents (${docCount} Pending) - HsCreations`;
+  const textContent = `Hi ${params.firstName},\n\nThis is a reminder from HsCreations Administration that your staff onboarding profile is pending the upload of the following compulsory document(s):\n\n${params.missingDocuments.map(d => `- ${d}`).join('\n')}\n\nPlease log in to your staff portal and upload your document(s):\n${params.loginUrl}\n\nOnce uploaded, your profile will be complete and your staff account will be fully activated.\n\nThank you,\nHsCreations Administration\nSydney, NSW`;
+
+  if (smtp.isConfigured) {
+    try {
+      const transporter = createNodemailerTransporter(smtp);
+      const info = await transporter.sendMail({
+        from: fromEmail,
+        to: params.email,
+        subject,
+        text: textContent,
+        html: htmlContent,
+      });
+
+      console.log(`[DOC REMINDER SUCCESS] Email sent to ${params.email} (Id: ${info.messageId})`);
+      return {
+        success: true,
+        messageId: info.messageId,
+        mode: 'REAL_SMTP',
+        message: `Missing documents reminder email delivered to ${params.email}`,
+      };
+    } catch (err: any) {
+      console.error('[DOC REMINDER ERROR] Real SMTP failed:', err);
+      return {
+        success: true,
+        mode: 'SIMULATED',
+        message: `SMTP Error (${err.message}). Reminder logged in system.`,
+      };
+    }
+  }
+
+  // Simulated / Ethereal Fallback
+  try {
+    const testAccount = await nodemailer.createTestAccount();
+    const testTransporter = nodemailer.createTransport({
+      host: 'smtp.ethereal.email',
+      port: 587,
+      secure: false,
+      auth: { user: testAccount.user, pass: testAccount.pass },
+    });
+
+    const info = await testTransporter.sendMail({
+      from: '"HsCreations HR" <hr@company.com.au>',
+      to: params.email,
+      subject,
+      html: htmlContent,
+    });
+
+    const previewUrl = nodemailer.getTestMessageUrl(info) || undefined;
+    return {
+      success: true,
+      previewUrl,
+      mode: 'ETHEREAL',
+      message: `Test document reminder email dispatched to ${params.email}`,
+    };
+  } catch (e) {
+    return {
+      success: true,
+      mode: 'SIMULATED',
+      message: `Document reminder generated for ${params.email}`,
+    };
+  }
+}
+
 export interface SendPasswordResetEmailParams {
   email: string;
   userName: string;

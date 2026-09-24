@@ -10,7 +10,7 @@ export default function EmployeeDirectoryTable({
 }: {
   onSelectEmployee?: (emp: Employee) => void;
 }) {
-  const { employees, sendProfileCompletionReminder } = useApp();
+  const { employees, documentTypes, sendProfileCompletionReminder, sendMissingDocumentsReminder } = useApp();
   const [search, setSearch] = useState('');
   const [deptFilter, setDeptFilter] = useState('ALL');
   const [currentPage, setCurrentPage] = useState(1);
@@ -36,6 +36,16 @@ export default function EmployeeDirectoryTable({
     setRemindingEmpId(empId);
     try {
       await sendProfileCompletionReminder(empId);
+    } finally {
+      setRemindingEmpId(null);
+    }
+  };
+
+  const handleSendDocReminder = async (e: React.MouseEvent, empId: string) => {
+    e.stopPropagation();
+    setRemindingEmpId(empId);
+    try {
+      await sendMissingDocumentsReminder(empId);
     } finally {
       setRemindingEmpId(null);
     }
@@ -136,7 +146,7 @@ export default function EmployeeDirectoryTable({
                   </td>
                   <td className="py-3.5 px-5">
                     {(() => {
-                      const progress = getOnboardingProgress(emp);
+                      const progress = getOnboardingProgress(emp, documentTypes);
                       const isActuallyPending = emp.status === 'Pending' && !progress.isComplete;
                       const effStatus = (emp.status === 'Pending' && progress.isComplete) ? 'Active' : emp.status;
 
@@ -145,12 +155,12 @@ export default function EmployeeDirectoryTable({
                           <div className="space-y-1">
                             <span 
                               className="px-2.5 py-1 rounded-full text-[10px] font-extrabold inline-flex items-center gap-1.5 bg-amber-50 text-amber-800 border border-amber-300"
-                              title={`Onboarding: ${progress.completedCount} of 4 sections completed (${progress.percent}%). Missing: ${progress.missingSectionTitles.join(', ')}`}
+                              title={`Onboarding: ${progress.completedCount} of ${progress.totalSections} sections completed (${progress.percent}%). Missing: ${progress.missingSectionTitles.join(', ')}`}
                             >
                               <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
-                              Pending ({progress.completedCount}/4 Done)
+                              Pending ({progress.completedCount}/{progress.totalSections} Done)
                             </span>
-                            {/* Mini 4-dot Progress Indicator */}
+                            {/* Mini Progress Indicator */}
                             <div className="flex items-center gap-1 px-1" title={`${progress.percent}% profile completed`}>
                               {progress.sections.map((sec) => (
                                 <span 
@@ -183,17 +193,36 @@ export default function EmployeeDirectoryTable({
                   </td>
                   <td className="py-3.5 px-5 text-right" onClick={(e) => e.stopPropagation()}>
                     <div className="flex items-center justify-end gap-1.5">
-                      {emp.status === 'Pending' && !getOnboardingProgress(emp).isComplete && (
-                        <button
-                          type="button"
-                          disabled={remindingEmpId === emp.id}
-                          onClick={(e) => handleSendReminder(e, emp.id)}
-                          className="px-2 py-1 rounded-lg bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-300 text-xs font-bold transition flex items-center gap-1 cursor-pointer disabled:opacity-50"
-                          title={`Send Profile Completion Reminder Email to ${emp.email}`}
-                        >
-                          <span>{remindingEmpId === emp.id ? 'Sending...' : 'Remind'}</span>
-                        </button>
-                      )}
+                      {(() => {
+                        const progress = getOnboardingProgress(emp, documentTypes);
+                        if (emp.status !== 'Pending' || progress.isComplete) return null;
+
+                        if (progress.missingDocuments.length > 0) {
+                          return (
+                            <button
+                              type="button"
+                              disabled={remindingEmpId === emp.id}
+                              onClick={(e) => handleSendDocReminder(e, emp.id)}
+                              className="px-2 py-1 rounded-lg bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-300 text-xs font-bold transition flex items-center gap-1 cursor-pointer disabled:opacity-50"
+                              title={`Send Missing Documents Reminder (${progress.missingDocuments.join(', ')}) to ${emp.email}`}
+                            >
+                              <span>{remindingEmpId === emp.id ? 'Sending...' : 'Doc Reminder'}</span>
+                            </button>
+                          );
+                        }
+
+                        return (
+                          <button
+                            type="button"
+                            disabled={remindingEmpId === emp.id}
+                            onClick={(e) => handleSendReminder(e, emp.id)}
+                            className="px-2 py-1 rounded-lg bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-300 text-xs font-bold transition flex items-center gap-1 cursor-pointer disabled:opacity-50"
+                            title={`Send Profile Completion Reminder Email to ${emp.email}`}
+                          >
+                            <span>{remindingEmpId === emp.id ? 'Sending...' : 'Remind'}</span>
+                          </button>
+                        );
+                      })()}
                       <button
                         type="button"
                         onClick={() => onSelectEmployee && onSelectEmployee(emp)}
