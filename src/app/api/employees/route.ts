@@ -50,6 +50,7 @@ function mapDbRowToEmployee(row: any, documents: EmployeeDocument[] = []): Emplo
     emergencyState: (row.emergency_state as any) || 'NSW',
     emergencyPostcode: row.emergency_postcode || '',
     emergencyMobile: row.emergency_mobile || '',
+    emergencyHomePhone: row.emergency_home_phone || undefined,
     bankName: row.bank_name || '',
     bankBranch: row.bank_branch || '',
     accountName: row.account_name || '',
@@ -241,30 +242,30 @@ export async function POST(req: Request) {
       try {
         const sql = `
           INSERT INTO employees (
-            id, employee_number, username, first_name, last_name, email, mobile_phone,
+            id, employee_number, username, first_name, last_name, email, mobile_phone, home_phone, date_of_birth, gender,
             address, suburb, state, postcode, start_date, department, job_title,
             work_location, reports_to, status, onboarding_status,
             invite_token, invite_sent_at, invite_expires_at, password_set_at, profile_completed_at,
             working_hours, working_hours_confirmed,
             citizen_status, visa_type, visa_expiry_date, visa_status_confirmed,
             has_driver_license, license_country, license_number, license_expiry_date,
-            emergency_next_of_kin, emergency_relationship, emergency_mobile,
+            emergency_next_of_kin, emergency_relationship, emergency_mobile, emergency_home_phone,
             emergency_address, emergency_suburb, emergency_state, emergency_postcode,
             bank_name, bank_branch, account_name, bsb_encrypted, bsb_masked,
             account_number_encrypted, account_number_masked, tfn_encrypted, tfn_masked,
             super_fund_name, super_member_number, kiosk_pin, clock_state, avatar_url,
             annual_leave_balance, sick_leave_balance, carers_leave_balance, long_service_balance
-          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         `;
         await query(sql, [
-          id, empNumber, newEmp.username || null, newEmp.firstName, newEmp.lastName, newEmp.email, newEmp.mobilePhone,
+          id, empNumber, newEmp.username || null, newEmp.firstName, newEmp.lastName, newEmp.email, newEmp.mobilePhone, newEmp.homePhone || null, newEmp.dateOfBirth || null, newEmp.gender || 'Prefer not to say',
           newEmp.address, newEmp.suburb, newEmp.state, newEmp.postcode, newEmp.startDate, newEmp.department || null, newEmp.jobTitle,
           newEmp.workLocation, newEmp.reportsTo, newEmp.status, newEmp.onboardingStatus || 'INVITED',
           newEmp.inviteToken || null, newEmp.inviteSentAt || null, newEmp.inviteExpiresAt || null, newEmp.passwordSetAt || null, newEmp.profileCompletedAt || null,
           newEmp.workingHours, newEmp.workingHoursConfirmed ? 1 : 0,
           newEmp.citizenStatus || null, newEmp.visaType || null, newEmp.visaExpiryDate || null, newEmp.visaStatusConfirmed ? 1 : 0,
           newEmp.hasDriverLicense ? 1 : 0, newEmp.licenseCountry || null, newEmp.licenseNumber || null, newEmp.licenseExpiryDate || null,
-          newEmp.emergencyNextOfKin || null, newEmp.emergencyRelationship || null, newEmp.emergencyMobile || null,
+          newEmp.emergencyNextOfKin || null, newEmp.emergencyRelationship || null, newEmp.emergencyMobile || null, newEmp.emergencyHomePhone || null,
           newEmp.emergencyAddress || null, newEmp.emergencySuburb || null, newEmp.emergencyState || 'NSW', newEmp.emergencyPostcode || null,
           newEmp.bankName || null, newEmp.bankBranch || null, newEmp.accountName || null, newEmp.bsbEncrypted || null, newEmp.bsbMasked || null,
           newEmp.accountNumberEncrypted || null, newEmp.accountNumberMasked || null, newEmp.tfnEncrypted || null, newEmp.tfnMasked || null,
@@ -338,6 +339,7 @@ export async function PUT(req: Request) {
           inviteSentAt: 'invite_sent_at', inviteExpiresAt: 'invite_expires_at', passwordSetAt: 'password_set_at',
           profileCompletedAt: 'profile_completed_at',
           firstName: 'first_name', lastName: 'last_name', email: 'email', mobilePhone: 'mobile_phone',
+          homePhone: 'home_phone', dateOfBirth: 'date_of_birth', gender: 'gender',
           address: 'address', suburb: 'suburb', state: 'state', postcode: 'postcode', startDate: 'start_date',
           department: 'department', jobTitle: 'job_title', workLocation: 'work_location', reportsTo: 'reports_to',
           status: 'status', workingHours: 'working_hours', workingHoursConfirmed: 'working_hours_confirmed',
@@ -345,7 +347,7 @@ export async function PUT(req: Request) {
           visaStatusConfirmed: 'visa_status_confirmed', hasDriverLicense: 'has_driver_license',
           licenseCountry: 'license_country', licenseNumber: 'license_number', licenseExpiryDate: 'license_expiry_date',
           emergencyNextOfKin: 'emergency_next_of_kin', emergencyRelationship: 'emergency_relationship',
-          emergencyMobile: 'emergency_mobile', emergencyAddress: 'emergency_address',
+          emergencyMobile: 'emergency_mobile', emergencyHomePhone: 'emergency_home_phone', emergencyAddress: 'emergency_address',
           emergencySuburb: 'emergency_suburb', emergencyState: 'emergency_state', emergencyPostcode: 'emergency_postcode',
           bankName: 'bank_name', bankBranch: 'bank_branch',
           accountName: 'account_name', bsbEncrypted: 'bsb_encrypted', bsbMasked: 'bsb_masked',

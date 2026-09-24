@@ -76,9 +76,9 @@ export function getOnboardingProgress(emp: Employee | null | undefined): Onboard
   if (!emp.bankName?.trim()) missingBanking.push('Bank Name');
   if (!emp.accountName?.trim()) missingBanking.push('Account Name');
   const bsb = (emp.bsbMasked || emp.bsbEncrypted || '').trim();
-  if (!bsb || bsb === '062-•••' || bsb === '•••-•••') missingBanking.push('BSB Number');
+  if (!bsb || bsb === '•••-•••') missingBanking.push('BSB Number');
   const acc = (emp.accountNumberMasked || emp.accountNumberEncrypted || '').trim();
-  if (!acc || acc === '•••••847' || acc === '••••••••') missingBanking.push('Account Number');
+  if (!acc || acc === '••••••••') missingBanking.push('Account Number');
   const isBankingDone = missingBanking.length === 0;
 
   const sections: OnboardingSectionProgress[] = [

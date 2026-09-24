@@ -161,7 +161,7 @@ interface AppContextType {
   submitLeaveRequest: (req: Omit<LeaveRequest, 'id' | 'status' | 'submittedAt' | 'reminderCount'>) => void;
   reviewLeaveRequest: (id: string, status: LeaveStatus, notes?: string) => void;
   uploadMedicalCertificate: (leaveId: string, fileUrl: string) => void;
-  updateBankDetails: (empId: string, bank: { bankName: string; bankBranch: string; accountName: string; bsb: string; accountNumber: string; superFund: string; superNumber: string }) => void;
+  updateBankDetails: (empId: string, bank: { bankName: string; bankBranch: string; accountName: string; bsb: string; accountNumber: string; superFund: string; superNumber: string; tfn?: string }) => void;
   uploadDocument: (empId: string, doc: { name: string; type: string; fileSize?: string; previewUrl?: string; fileType?: 'image' | 'pdf' | 'doc'; expiryDate?: string; documentNumber?: string }) => void;
   updateDocument: (empId: string, docId: string, updates: { name?: string; type?: string; fileSize?: string; previewUrl?: string; fileType?: 'image' | 'pdf' | 'doc'; expiryDate?: string; documentNumber?: string; status?: 'Verified' | 'Pending' | 'Rejected' | 'Expired' }) => void;
   deleteDocument: (empId: string, docId: string) => void;
@@ -3124,19 +3124,45 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     addToast('Medical Certificate Uploaded', 'Your certificate has been attached and sent to HR.', 'success');
   };
 
-  const updateBankDetails = (empId: string, bank: { bankName: string; bankBranch: string; accountName: string; bsb: string; accountNumber: string; superFund: string; superNumber: string }) => {
-    const bsbEnc = encryptAES256(bank.bsb);
-    const accEnc = encryptAES256(bank.accountNumber);
-    const bsbMask = bank.bsb.length >= 3 ? `${bank.bsb.slice(0, 3)}-•••` : '•••-•••';
-    const accMask = maskSensitive(bank.accountNumber, 3);
-
+  const updateBankDetails = (empId: string, bank: { bankName: string; bankBranch: string; accountName: string; bsb: string; accountNumber: string; superFund: string; superNumber: string; tfn?: string }) => {
     let autoCompletedToActive = false;
     let completedEmp: Employee | null = null;
     let targetEmpName = 'Staff Member';
+    let bankUpdates: any = {};
 
     setEmployees(prev => prev.map(emp => {
       if (emp.id === empId) {
         targetEmpName = `${emp.firstName} ${emp.lastName}`.trim();
+
+        // BSB encryption & masking
+        let bsbEnc = emp.bsbEncrypted;
+        let bsbMask = emp.bsbMasked || '';
+        if (bank.bsb && !bank.bsb.includes('•')) {
+          bsbEnc = encryptAES256(bank.bsb);
+          bsbMask = bank.bsb.length >= 3 ? `${bank.bsb.slice(0, 3)}-•••` : '•••-•••';
+        }
+
+        // Account number encryption & masking
+        let accEnc = emp.accountNumberEncrypted;
+        let accMask = emp.accountNumberMasked || '';
+        if (bank.accountNumber && !bank.accountNumber.includes('•')) {
+          accEnc = encryptAES256(bank.accountNumber);
+          accMask = maskSensitive(bank.accountNumber, 3);
+        }
+
+        // TFN encryption & masking
+        let tfnEnc = emp.tfnEncrypted;
+        let tfnMask = emp.tfnMasked || '';
+        if (bank.tfn !== undefined) {
+          if (bank.tfn.trim() && !bank.tfn.includes('•')) {
+            tfnEnc = encryptAES256(bank.tfn.trim());
+            tfnMask = maskSensitive(bank.tfn.trim(), 3);
+          } else if (!bank.tfn.trim()) {
+            tfnEnc = '';
+            tfnMask = '';
+          }
+        }
+
         const merged: Employee = {
           ...emp,
           bankName: bank.bankName,
@@ -3146,6 +3172,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           bsbMasked: bsbMask,
           accountNumberEncrypted: accEnc,
           accountNumberMasked: accMask,
+          tfnEncrypted: tfnEnc,
+          tfnMasked: tfnMask,
           superFundName: bank.superFund,
           superMemberNumber: bank.superNumber,
         };
@@ -3161,23 +3189,24 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           completedEmp = merged;
         }
 
+        bankUpdates = {
+          bankName: bank.bankName,
+          bankBranch: bank.bankBranch,
+          accountName: bank.accountName,
+          bsbEncrypted: bsbEnc,
+          bsbMasked: bsbMask,
+          accountNumberEncrypted: accEnc,
+          accountNumberMasked: accMask,
+          tfnEncrypted: tfnEnc,
+          tfnMasked: tfnMask,
+          superFundName: bank.superFund,
+          superMemberNumber: bank.superNumber,
+        };
+
         return merged;
       }
       return emp;
     }));
-
-    // MySQL Backend Sync with Encrypted Strings
-    const bankUpdates: any = {
-      bankName: bank.bankName,
-      bankBranch: bank.bankBranch,
-      accountName: bank.accountName,
-      bsbEncrypted: bsbEnc,
-      bsbMasked: bsbMask,
-      accountNumberEncrypted: accEnc,
-      accountNumberMasked: accMask,
-      superFundName: bank.superFund,
-      superMemberNumber: bank.superNumber,
-    };
 
     if (autoCompletedToActive && completedEmp) {
       const cEmp: Employee = completedEmp;

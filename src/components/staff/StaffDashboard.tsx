@@ -6,6 +6,10 @@ import { getOnboardingProgress } from '@/lib/onboarding';
 import CompanyLatestAnnouncementBanner from './CompanyLatestAnnouncementBanner';
 import StaffOnboardingBanner from './StaffOnboardingBanner';
 import ResignationModal from './ResignationModal';
+import EditPersonalInfoModal from './EditPersonalInfoModal';
+import EditWorkRightsModal from './EditWorkRightsModal';
+import EditEmergencyContactModal from './EditEmergencyContactModal';
+import BankDetailsModal from './BankDetailsModal';
 
 // Dedicated Detailed Views
 import StaffFullProfileView from './views/StaffFullProfileView';
@@ -18,15 +22,30 @@ import StaffDirectoryView from './views/StaffDirectoryView';
 import StaffSupportView from './views/StaffSupportView';
 
 export default function StaffDashboard({
-  activeTab = 'dashboard'
+  activeTab = 'dashboard',
+  onNavigateTab,
 }: {
   activeTab?: string;
+  onNavigateTab?: (tab: string) => void;
 }) {
   const { announcements, currentStaff } = useApp();
   const [showResignModal, setShowResignModal] = useState(false);
+  const [activeModal, setActiveModal] = useState<'PERSONAL' | 'WORK_RIGHTS' | 'EMERGENCY' | 'BANK' | null>(null);
 
   const onboardingProgress = getOnboardingProgress(currentStaff);
   const isProfileIncomplete = currentStaff?.status === 'Pending' || !onboardingProgress.isComplete;
+
+  const handleOpenNextIncompleteModal = () => {
+    const firstIncomplete = onboardingProgress.sections.find(s => !s.isDone);
+    if (!firstIncomplete) {
+      if (onNavigateTab) onNavigateTab('profile');
+      return;
+    }
+    if (firstIncomplete.id === 'PERSONAL') setActiveModal('PERSONAL');
+    else if (firstIncomplete.id === 'WORK_RIGHTS') setActiveModal('WORK_RIGHTS');
+    else if (firstIncomplete.id === 'EMERGENCY') setActiveModal('EMERGENCY');
+    else if (firstIncomplete.id === 'BANKING') setActiveModal('BANK');
+  };
 
   // Profile management views: ALWAYS accessible so the staff member can complete their profile
   if (activeTab === 'profile' || activeTab === 'personal') {
@@ -83,10 +102,16 @@ export default function StaffDashboard({
               {onboardingProgress.sections.map(sec => (
                 <div 
                   key={sec.id}
-                  className={`p-2.5 rounded-xl border flex items-center justify-between text-xs font-semibold ${
+                  onClick={() => {
+                    if (sec.id === 'PERSONAL') setActiveModal('PERSONAL');
+                    else if (sec.id === 'WORK_RIGHTS') setActiveModal('WORK_RIGHTS');
+                    else if (sec.id === 'EMERGENCY') setActiveModal('EMERGENCY');
+                    else if (sec.id === 'BANKING') setActiveModal('BANK');
+                  }}
+                  className={`p-2.5 rounded-xl border flex items-center justify-between text-xs font-semibold cursor-pointer hover:shadow-xs transition ${
                     sec.isDone 
-                      ? 'bg-emerald-50/80 border-emerald-300 text-emerald-900'
-                      : 'bg-white border-amber-200 text-amber-950 shadow-xs'
+                      ? 'bg-emerald-50/80 border-emerald-300 text-emerald-900' 
+                      : 'bg-white border-amber-200 text-amber-950 shadow-xs hover:border-amber-400'
                   }`}
                 >
                   <span className="flex items-center gap-2">
@@ -106,11 +131,7 @@ export default function StaffDashboard({
           {/* Onboarding Wizard Action */}
           <div className="pt-2 flex flex-col sm:flex-row items-center gap-3">
             <button
-              onClick={() => {
-                const el = document.querySelector('button[data-onboarding-cta]') as HTMLButtonElement;
-                if (el) el.click();
-                else window.location.href = '#';
-              }}
+              onClick={handleOpenNextIncompleteModal}
               className="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-500 hover:to-orange-500 text-white font-bold shadow-md shadow-amber-600/25 transition cursor-pointer text-center"
             >
               Complete Profile Setup ({onboardingProgress.percent}%) →
@@ -123,6 +144,20 @@ export default function StaffDashboard({
 
         {/* Embedded Onboarding Form Banner */}
         <StaffOnboardingBanner />
+
+        {/* Direct Action Modals */}
+        {activeModal === 'PERSONAL' && (
+          <EditPersonalInfoModal onClose={() => setActiveModal(null)} />
+        )}
+        {activeModal === 'WORK_RIGHTS' && (
+          <EditWorkRightsModal onClose={() => setActiveModal(null)} />
+        )}
+        {activeModal === 'EMERGENCY' && (
+          <EditEmergencyContactModal onClose={() => setActiveModal(null)} />
+        )}
+        {activeModal === 'BANK' && (
+          <BankDetailsModal onClose={() => setActiveModal(null)} />
+        )}
       </div>
     );
   }

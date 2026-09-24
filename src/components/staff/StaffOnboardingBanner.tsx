@@ -137,6 +137,7 @@ export default function StaffOnboardingBanner() {
 
               <button
                 type="button"
+                data-onboarding-cta={!step.isDone ? "true" : undefined}
                 onClick={() => setActiveModal(step.id as any)}
                 className={`w-full py-2 px-3 rounded-xl font-bold text-xs transition cursor-pointer ${
                   step.isDone

@@ -10,15 +10,16 @@ export default function BankDetailsModal({ onClose }: { onClose: () => void }) {
 
   const [form, setForm] = useState({
     bankName: currentStaff.bankName || 'Commonwealth Bank of Australia',
-    bankBranch: currentStaff.bankBranch || 'Riverwood Branch',
-    accountName: currentStaff.accountName || `${currentStaff.firstName} ${currentStaff.lastName}`,
-    bsb: '062-184',
-    accountNumber: '104856789',
+    bankBranch: currentStaff.bankBranch || 'Sydney Branch',
+    accountName: currentStaff.accountName || `${currentStaff.firstName} ${currentStaff.lastName}`.trim(),
+    bsb: currentStaff.bsbMasked || '',
+    accountNumber: currentStaff.accountNumberMasked || '',
+    tfn: currentStaff.tfnMasked || '',
     superFund: currentStaff.superFundName || 'AustralianSuper',
-    superNumber: currentStaff.superMemberNumber || 'AUS-998241',
+    superNumber: currentStaff.superMemberNumber || '',
   });
 
-  const isBsbValid = validateAUBSB(form.bsb);
+  const isBsbValid = (Boolean(form.bsb) && form.bsb.includes('•') && Boolean(currentStaff.bsbMasked)) || validateAUBSB(form.bsb);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -31,8 +32,9 @@ export default function BankDetailsModal({ onClose }: { onClose: () => void }) {
       bankName: form.bankName,
       bankBranch: form.bankBranch,
       accountName: form.accountName,
-      bsb: formatBSB(form.bsb),
+      bsb: form.bsb.includes('•') ? form.bsb : formatBSB(form.bsb),
       accountNumber: form.accountNumber,
+      tfn: form.tfn,
       superFund: form.superFund,
       superNumber: form.superNumber,
     });
@@ -110,7 +112,7 @@ export default function BankDetailsModal({ onClose }: { onClose: () => void }) {
             <div>
               <label className="font-bold text-slate-700 block mb-1">Account Number</label>
               <input
-                type="password"
+                type="text"
                 required
                 placeholder="••••••••"
                 value={form.accountNumber}
@@ -118,6 +120,18 @@ export default function BankDetailsModal({ onClose }: { onClose: () => void }) {
                 className="w-full p-2.5 border rounded-xl bg-slate-50 font-mono font-bold focus:bg-white focus:outline-none"
               />
             </div>
+          </div>
+
+          <div>
+            <label className="font-bold text-slate-700 block mb-1">Tax File Number (TFN)</label>
+            <input
+              type="text"
+              placeholder="e.g. 123 456 789"
+              value={form.tfn}
+              onChange={e => setForm({...form, tfn: e.target.value})}
+              className="w-full p-2.5 border rounded-xl bg-slate-50 font-mono font-bold focus:bg-white focus:outline-none"
+            />
+            <p className="text-[10px] text-slate-400 mt-0.5">Encrypted with AES-256 for Australian tax compliance.</p>
           </div>
 
           <div className="pt-2 border-t border-slate-100">

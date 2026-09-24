@@ -74,9 +74,10 @@ export default function EditPersonalInfoModal({ onClose }: { onClose: () => void
           {/* DOB & Gender */}
           <div className="grid grid-cols-2 gap-3.5">
             <div>
-              <label className="font-bold text-slate-700 block mb-1">Date of Birth</label>
+              <label className="font-bold text-slate-700 block mb-1">Date of Birth *</label>
               <input
                 type="date"
+                required
                 value={form.dateOfBirth}
                 onChange={e => setForm({...form, dateOfBirth: e.target.value})}
                 className="w-full p-2.5 border border-slate-200 rounded-xl bg-slate-50/50 focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition"

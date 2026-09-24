@@ -100,7 +100,7 @@ export default function AppHome() {
           onNavigateTab={(tab) => setStaffTab(tab)}
         />
         <main className="flex-1 overflow-y-auto min-h-0">
-          <StaffDashboard activeTab={staffTab} />
+          <StaffDashboard activeTab={staffTab} onNavigateTab={(tab) => setStaffTab(tab)} />
         </main>
       </div>
 
