@@ -2693,6 +2693,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       bankName: 'Bank Name',
       bankBranch: 'Bank Branch',
       accountName: 'Account Name',
+      bsb: 'BSB Number',
       bsbMasked: 'BSB Number',
       bsbEncrypted: 'BSB Number',
       accountNumber: 'Account Number',
@@ -3135,15 +3136,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       if (emp.id === empId) {
         targetEmpName = `${emp.firstName} ${emp.lastName}`.trim();
 
-        // BSB encryption & masking
-        let bsbEnc = emp.bsbEncrypted;
-        let bsbMask = emp.bsbMasked || '';
-        if (bank.bsb && !bank.bsb.includes('•')) {
-          bsbEnc = encryptAES256(bank.bsb);
-          bsbMask = bank.bsb.length >= 3 ? `${bank.bsb.slice(0, 3)}-•••` : '•••-•••';
-        }
-
-        // Plaintext Account number (No encryption needed)
+        // Plaintext BSB & Account number (No encryption)
+        const plainBsb = bank.bsb ? (bank.bsb.includes('•') ? (emp.bsb || emp.bsbMasked || '') : bank.bsb.trim()) : (emp.bsb || emp.bsbMasked || '');
         const plainAcc = bank.accountNumber ? bank.accountNumber.trim() : (emp.accountNumber || emp.accountNumberMasked || '');
 
         // TFN encryption & masking
@@ -3164,8 +3158,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           bankName: bank.bankName,
           bankBranch: bank.bankBranch,
           accountName: bank.accountName,
-          bsbEncrypted: bsbEnc,
-          bsbMasked: bsbMask,
+          bsb: plainBsb,
+          bsbMasked: plainBsb,
+          bsbEncrypted: '',
           accountNumber: plainAcc,
           accountNumberMasked: plainAcc,
           accountNumberEncrypted: '',
@@ -3190,8 +3185,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           bankName: bank.bankName,
           bankBranch: bank.bankBranch,
           accountName: bank.accountName,
-          bsbEncrypted: bsbEnc,
-          bsbMasked: bsbMask,
+          bsb: plainBsb,
+          bsbMasked: plainBsb,
+          bsbEncrypted: '',
           accountNumber: plainAcc,
           accountNumberMasked: plainAcc,
           accountNumberEncrypted: '',
@@ -3257,7 +3253,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           id: 'notif-bank-' + Date.now(),
           recipient: 'ADMIN',
           title: `Banking & Super Updated: ${targetEmpName}`,
-          message: `${targetEmpName} updated their encrypted banking details and superannuation funds.`,
+          message: `${targetEmpName} updated their banking details and superannuation funds.`,
           type: 'BANK_UPDATE',
           timestamp: 'Just now',
           read: false,
@@ -3277,7 +3273,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       }).catch(err => console.warn('Bank details DB sync skipped:', err));
     } catch (e) {}
 
-    addToast('Banking Vault Updated', 'AES-256 encrypted banking details saved successfully.', 'success');
+    addToast('Banking Details Updated', 'Banking details saved successfully.', 'success');
   };
 
   const addDocumentType = (type: Omit<DocumentTypeConfig, 'id'>) => {

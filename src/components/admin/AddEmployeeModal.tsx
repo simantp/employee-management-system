@@ -103,7 +103,8 @@ export default function AddEmployeeModal({ onClose }: { onClose: () => void }) {
     const generatedPin = fullForm.kioskPin.trim() || Math.floor(1000 + Math.random() * 9000).toString();
 
     const tfnEnc = encryptAES256(fullForm.tfn);
-    const bsbEnc = encryptAES256(fullForm.bsb);
+    const plainBsb = fullForm.bsb ? formatBSB(fullForm.bsb) : '';
+    const plainAcc = fullForm.accountNumber ? fullForm.accountNumber.trim() : '';
 
     addEmployee({
       employeeNumber: `EMP-00${Math.floor(Math.random() * 900 + 100)}`,
@@ -149,10 +150,11 @@ export default function AddEmployeeModal({ onClose }: { onClose: () => void }) {
       bankName: fullForm.bankName,
       bankBranch: fullForm.bankBranch,
       accountName: fullForm.accountName || '',
-      bsbMasked: fullForm.bsb ? formatBSB(fullForm.bsb) : '',
-      bsbEncrypted: bsbEnc,
-      accountNumber: fullForm.accountNumber || '',
-      accountNumberMasked: fullForm.accountNumber || '',
+      bsb: plainBsb,
+      bsbMasked: plainBsb,
+      bsbEncrypted: '',
+      accountNumber: plainAcc,
+      accountNumberMasked: plainAcc,
       accountNumberEncrypted: '',
     });
 

@@ -368,12 +368,12 @@ export default function StaffFullProfileView({
           </div>
         </div>
 
-        {/* SECTION 4: Banking & Superannuation (AES-256 Encrypted) */}
+        {/* SECTION 4: Banking & Superannuation */}
         <div className="bg-white rounded-3xl p-6 border border-slate-200/80 shadow-xs space-y-4">
           <div className="flex items-center justify-between border-b border-slate-100 pb-3">
             <div className="flex items-center gap-2">
               <h3 className="font-black text-sm text-slate-900">
-                Banking, TFN &amp; Superannuation (Encrypted)
+                Banking, TFN &amp; Superannuation
               </h3>
               {isBankingDone ? (
                 <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-700 border border-emerald-200">
@@ -404,7 +404,7 @@ export default function StaffFullProfileView({
             </div>
             <div>
               <span className="text-slate-400 font-bold text-[10px] uppercase block mb-0.5">BSB Number</span>
-              <span className="font-mono font-bold text-slate-900 text-xs">{currentStaff.bsbMasked || 'Pending details'}</span>
+              <span className="font-mono font-bold text-slate-900 text-xs">{currentStaff.bsb || currentStaff.bsbMasked || 'Pending details'}</span>
             </div>
             <div>
               <span className="text-slate-400 font-bold text-[10px] uppercase block mb-0.5">Account Number</span>

@@ -67,15 +67,15 @@ export default function EmployeeDetailModal({
 
   // 3. Banking & Super
   const decryptedTFN = employee.tfnEncrypted ? decryptAES256(employee.tfnEncrypted) : (employee.tfnMasked || '');
-  const decryptedBSB = employee.bsbEncrypted ? decryptAES256(employee.bsbEncrypted) : (employee.bsbMasked || '');
-  const decryptedAcc = employee.accountNumber || (employee.accountNumberEncrypted ? decryptAES256(employee.accountNumberEncrypted) : (employee.accountNumberMasked || ''));
+  const plainBSB = employee.bsb || (employee.bsbEncrypted ? decryptAES256(employee.bsbEncrypted) : (employee.bsbMasked && !employee.bsbMasked.includes('•') ? employee.bsbMasked : (employee.bsbMasked || '062-000')));
+  const plainAcc = employee.accountNumber || (employee.accountNumberEncrypted ? decryptAES256(employee.accountNumberEncrypted) : (employee.accountNumberMasked && !employee.accountNumberMasked.includes('•') ? employee.accountNumberMasked : ''));
 
   const [tfnInput, setTfnInput] = useState(decryptedTFN || '123 456 782');
   const [bankName, setBankName] = useState(employee.bankName || 'Commonwealth Bank of Australia');
   const [bankBranch, setBankBranch] = useState(employee.bankBranch || 'Sydney NSW');
   const [accountName, setAccountName] = useState(employee.accountName || `${employee.firstName} ${employee.lastName}`);
-  const [bsbInput, setBsbInput] = useState(decryptedBSB || '062-000');
-  const [accInput, setAccInput] = useState(decryptedAcc || '');
+  const [bsbInput, setBsbInput] = useState(plainBSB || '062-000');
+  const [accInput, setAccInput] = useState(plainAcc || '');
   const [superFundName, setSuperFundName] = useState(employee.superFundName || 'AustralianSuper');
   const [superMemberNumber, setSuperMemberNumber] = useState(employee.superMemberNumber || 'AUS-987654');
 
@@ -96,10 +96,10 @@ export default function EmployeeDetailModal({
   const handleSaveAll = (e: React.FormEvent) => {
     e.preventDefault();
 
-    const bsbEnc = encryptAES256(bsbInput);
     const tfnEnc = encryptAES256(tfnInput);
-    const bsbMask = bsbInput.length >= 3 ? `${bsbInput.slice(0, 3)}-•••` : '•••-•••';
     const tfnMask = maskSensitive(tfnInput, 3);
+    const cleanBsb = bsbInput.trim();
+    const cleanAcc = accInput.trim();
 
     updateEmployee(employee.id, {
       username: username.trim().toLowerCase() || employee.username,
@@ -128,10 +128,11 @@ export default function EmployeeDetailModal({
       bankName,
       bankBranch,
       accountName,
-      bsbEncrypted: bsbEnc,
-      bsbMasked: bsbMask,
-      accountNumber: accInput.trim(),
-      accountNumberMasked: accInput.trim(),
+      bsb: cleanBsb,
+      bsbMasked: cleanBsb,
+      bsbEncrypted: '',
+      accountNumber: cleanAcc,
+      accountNumberMasked: cleanAcc,
       accountNumberEncrypted: '',
       tfnEncrypted: tfnEnc,
       tfnMasked: tfnMask,
@@ -833,8 +834,8 @@ export default function EmployeeDetailModal({
               <div className="space-y-4">
                 <div className="flex items-center justify-between border-b border-slate-100 pb-2">
                   <div>
-                    <h3 className="font-extrabold text-sm text-slate-900">Confidential Bank, TFN &amp; Superannuation Vault</h3>
-                    <p className="text-slate-500 text-[11px]">Protected under AES-256 Australian privacy and payroll encryption</p>
+                    <h3 className="font-extrabold text-sm text-slate-900">Direct Deposit Banking, TFN &amp; Superannuation</h3>
+                    <p className="text-slate-500 text-[11px]">Direct deposit banking details, Tax File Number &amp; superannuation fund</p>
                   </div>
                   <button
                     type="button"
@@ -845,7 +846,7 @@ export default function EmployeeDetailModal({
                         : 'bg-slate-900 text-white hover:bg-slate-800'
                     }`}
                   >
-                    <span>{showEncrypted ? 'Hide Plaintext (Logged)' : 'Decrypt Full Details'}</span>
+                    <span>{showEncrypted ? 'Hide TFN' : 'Show Full TFN'}</span>
                   </button>
                 </div>
 
@@ -909,7 +910,7 @@ export default function EmployeeDetailModal({
                       disabled={!isEditing}
                       autoComplete="off"
                       data-lpignore="true"
-                      value={showEncrypted || isEditing ? bsbInput : employee.bsbMasked || '062-•••'}
+                      value={isEditing ? bsbInput : (employee.bsb || (employee.bsbMasked && !employee.bsbMasked.includes('•') ? employee.bsbMasked : bsbInput))}
                       onChange={e => setBsbInput(e.target.value)}
                       className="w-full p-2.5 border border-slate-300 rounded-xl bg-white disabled:bg-slate-50 font-mono font-bold text-slate-900"
                     />
@@ -922,7 +923,7 @@ export default function EmployeeDetailModal({
                       disabled={!isEditing}
                       autoComplete="off"
                       data-lpignore="true"
-                      value={isEditing ? accInput : (employee.accountNumber || employee.accountNumberMasked || '')}
+                      value={isEditing ? accInput : (employee.accountNumber || (employee.accountNumberMasked && !employee.accountNumberMasked.includes('•') ? employee.accountNumberMasked : accInput))}
                       onChange={e => setAccInput(e.target.value)}
                       className="w-full p-2.5 border border-slate-300 rounded-xl bg-white disabled:bg-slate-50 font-mono font-bold text-slate-900"
                     />

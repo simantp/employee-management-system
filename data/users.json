@@ -11,28 +11,6 @@
     "createdAt": "24/09/2026"
   },
   {
-    "id": "usr-1790250922770",
-    "name": "Simant Paudyal",
-    "username": "simant.paudyal",
-    "email": "simantpaudyal42@gmail.com",
-    "passwordHash": "$2b$12$UXZFc8WVh2IVvovkY5kOa.bAl9XCplWRhMR3TM2TN.z28JKB4tlte",
-    "role": "STAFF",
-    "isEmailVerified": true,
-    "staffId": "emp-2",
-    "createdAt": "24/09/2026"
-  },
-  {
-    "id": "usr-1790251384217",
-    "name": "John Doe",
-    "username": "john.doe",
-    "email": "exploreandinspirenow@gmail.com",
-    "passwordHash": "$2b$12$q/aoOoGBmQlwyFz95bRAQejp3Wd2EheA7cQrF.H7b.jjZ.AB3Nueq",
-    "role": "STAFF",
-    "isEmailVerified": true,
-    "staffId": "emp-3",
-    "createdAt": "24/09/2026"
-  },
-  {
     "id": "usr-1",
     "name": "Super Admin",
     "username": "admin",

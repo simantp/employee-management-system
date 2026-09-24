@@ -9,12 +9,13 @@ export default function BankDetailsModal({ onClose }: { onClose: () => void }) {
   const { currentStaff, updateBankDetails } = useApp();
 
   const initialAccount = currentStaff.accountNumber || (currentStaff.accountNumberEncrypted ? decryptAES256(currentStaff.accountNumberEncrypted) : (currentStaff.accountNumberMasked || ''));
+  const initialBsb = currentStaff.bsb || (currentStaff.bsbEncrypted ? decryptAES256(currentStaff.bsbEncrypted) : (currentStaff.bsbMasked || ''));
 
   const [form, setForm] = useState({
     bankName: currentStaff.bankName || 'Commonwealth Bank of Australia',
     bankBranch: currentStaff.bankBranch || 'Sydney Branch',
     accountName: currentStaff.accountName || `${currentStaff.firstName} ${currentStaff.lastName}`.trim(),
-    bsb: currentStaff.bsbMasked || '',
+    bsb: initialBsb,
     accountNumber: initialAccount,
     tfn: currentStaff.tfnMasked || '',
     superFund: currentStaff.superFundName || 'AustralianSuper',
@@ -50,7 +51,7 @@ export default function BankDetailsModal({ onClose }: { onClose: () => void }) {
         <div className="p-5 bg-gradient-to-r from-navy-950 to-navy-900 text-white flex items-center justify-between">
           <div>
             <h3 className="text-sm font-bold text-white">Self-Service Banking &amp; Super</h3>
-            <p className="text-[11px] text-cyan-300">Protected with AES-256 Application-Level Encryption</p>
+            <p className="text-[11px] text-cyan-300">Direct deposit payroll and superannuation details</p>
           </div>
           <button onClick={onClose} className="text-xs font-semibold text-slate-400 hover:text-white px-2 py-1 rounded-lg hover:bg-white/10 transition cursor-pointer">
             Close
@@ -60,7 +61,7 @@ export default function BankDetailsModal({ onClose }: { onClose: () => void }) {
         <form onSubmit={handleSubmit} autoComplete="off" data-lpignore="true" data-form-type="other" className="p-6 space-y-4 text-xs">
           <div className="p-3.5 rounded-xl bg-cyan-50 border border-cyan-200 text-cyan-900 flex items-start gap-2.5">
             <p className="text-[11px] leading-relaxed">
-              Your banking details are encrypted on the server before being saved into the database. Updates trigger an instant real-time notification to the Payroll Admin.
+              Your banking details are used for direct payroll deposits. Updates trigger an instant real-time notification to the Payroll Admin.
             </p>
           </div>
 
@@ -126,7 +127,7 @@ export default function BankDetailsModal({ onClose }: { onClose: () => void }) {
                 required
                 autoComplete="off"
                 data-lpignore="true"
-                placeholder="••••••••"
+                placeholder="10482910"
                 value={form.accountNumber}
                 onChange={e => setForm({...form, accountNumber: e.target.value})}
                 className="w-full p-2.5 border rounded-xl bg-slate-50 font-mono font-bold focus:bg-white focus:outline-none"
@@ -145,7 +146,7 @@ export default function BankDetailsModal({ onClose }: { onClose: () => void }) {
               onChange={e => setForm({...form, tfn: e.target.value})}
               className="w-full p-2.5 border rounded-xl bg-slate-50 font-mono font-bold focus:bg-white focus:outline-none"
             />
-            <p className="text-[10px] text-slate-400 mt-0.5">Encrypted with AES-256 for Australian tax compliance.</p>
+            <p className="text-[10px] text-slate-400 mt-0.5">Tax File Number declaration for Australian taxation compliance.</p>
           </div>
 
           <div className="pt-2 border-t border-slate-100">
@@ -182,7 +183,7 @@ export default function BankDetailsModal({ onClose }: { onClose: () => void }) {
               type="submit"
               className="px-5 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold shadow-md shadow-blue-600/25 transition cursor-pointer"
             >
-              Encrypt &amp; Save Bank Details
+              Save Bank Details
             </button>
           </div>
         </form>

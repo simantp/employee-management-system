@@ -1588,7 +1588,7 @@ export default function AdminSettingsHub({
                     <span>ENCRYPTION ACTIVE</span>
                   </div>
                   <p className="text-[10px] text-slate-400">
-                    TFN, BSB &amp; banking records encrypted client-side prior to database storage
+                    Tax File Number (TFN) encrypted; banking records stored directly for payroll disbursements
                   </p>
                 </div>
 

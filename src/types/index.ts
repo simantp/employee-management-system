@@ -169,8 +169,9 @@ export interface Employee {
   bankName: string;
   bankBranch: string;
   accountName: string;
+  bsb?: string;
   bsbMasked: string;
-  bsbEncrypted: string;
+  bsbEncrypted?: string;
   accountNumber?: string;
   accountNumberMasked?: string;
   accountNumberEncrypted?: string;

@@ -13,7 +13,7 @@ export default function StaffPayrollView() {
     <div className="p-6 lg:p-8 space-y-6 max-w-7xl mx-auto animate-in fade-in duration-150 text-xs">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h2 className="text-xl font-black text-slate-900 tracking-tight">Payroll &amp; Encrypted Banking</h2>
+          <h2 className="text-xl font-black text-slate-900 tracking-tight">Payroll &amp; Banking</h2>
           <p className="text-slate-500 mt-0.5">
             Australian PAYG withholding, Superannuation &amp; bank disbursement details
           </p>
@@ -23,7 +23,7 @@ export default function StaffPayrollView() {
           onClick={() => setShowBankModal(true)}
           className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2.5 rounded-xl font-bold shadow-md shadow-blue-500/20 transition hover:-translate-y-0.5 cursor-pointer"
         >
-          <span>Update Bank Details (Encrypted)</span>
+          <span>Update Bank Details</span>
         </button>
       </div>
 
@@ -35,7 +35,7 @@ export default function StaffPayrollView() {
             <h3 className="font-extrabold text-sm text-slate-900 flex items-center gap-2">
               <span>Current Banking &amp; Superannuation</span>
             </h3>
-            <span className="text-[10px] font-mono text-emerald-700 font-bold bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">AES-256</span>
+            <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">Direct Deposit</span>
           </div>
 
           <div className="grid grid-cols-2 gap-4">
@@ -49,7 +49,7 @@ export default function StaffPayrollView() {
             </div>
             <div>
               <span className="text-slate-500 text-[10px] uppercase font-semibold block">BSB Number</span>
-              <span className="font-mono text-blue-600 font-bold text-sm">{currentStaff.bsbMasked || 'Pending setup'}</span>
+              <span className="font-mono text-blue-600 font-bold text-sm">{currentStaff.bsb || currentStaff.bsbMasked || 'Pending setup'}</span>
             </div>
             <div>
               <span className="text-slate-500 text-[10px] uppercase font-semibold block">Account Number</span>
