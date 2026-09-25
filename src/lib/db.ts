@@ -195,6 +195,36 @@ export async function ensureDatabaseSchema(pool: mysql.Pool): Promise<void> {
           console.log('[MySQL Migration] Created notifications table');
         }
       } catch (e: any) {}
+
+      // Check document_types table and is_required column
+      try {
+        const [docTables] = await pool.query<any[]>("SHOW TABLES LIKE 'document_types'");
+        if (!Array.isArray(docTables) || docTables.length === 0) {
+          await pool.query(`
+            CREATE TABLE IF NOT EXISTS \`document_types\` (
+              \`id\` VARCHAR(64) NOT NULL,
+              \`name\` VARCHAR(191) NOT NULL,
+              \`category\` VARCHAR(100) NOT NULL,
+              \`has_expiry\` TINYINT(1) NOT NULL DEFAULT 1,
+              \`is_required\` TINYINT(1) NOT NULL DEFAULT 0,
+              \`created_at\` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+              PRIMARY KEY (\`id\`)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+          `);
+          console.log('[MySQL Migration] Created document_types table');
+        } else {
+          const [docCols] = await pool.query<any[]>('SHOW COLUMNS FROM document_types');
+          const docColsSet = new Set((docCols as any[]).map(c => c.Field.toLowerCase()));
+          if (!docColsSet.has('is_required')) {
+            await pool.query('ALTER TABLE document_types ADD COLUMN is_required TINYINT(1) NOT NULL DEFAULT 0');
+            console.log('[MySQL Migration] Added missing column: document_types.is_required');
+            // Seed initial compulsory documents if newly added
+            await pool.query("UPDATE document_types SET is_required = 1 WHERE id IN ('dt-1', 'dt-9')");
+          }
+        }
+      } catch (e: any) {
+        console.warn('[MySQL Migration] document_types check warning:', e.message);
+      }
     }
 
     global._dbSchemaChecked = true;
@@ -271,9 +301,9 @@ export async function query<T = any>(sql: string, params: any[] = []): Promise<T
     const [results] = await pool.query(sql, params);
     return results as T;
   } catch (error: any) {
-    // If the error is table missing (errno 1146), attempt auto-migration and retry once
-    if (error.errno === 1146 || error.code === 'ER_NO_SUCH_TABLE') {
-      console.warn('[MySQL] Table missing detected during query. Attempting schema migration...');
+    // If the error is table missing (errno 1146) or column missing (errno 1054 / ER_BAD_FIELD_ERROR), attempt auto-migration and retry once
+    if (error.errno === 1146 || error.code === 'ER_NO_SUCH_TABLE' || error.errno === 1054 || error.code === 'ER_BAD_FIELD_ERROR') {
+      console.warn('[MySQL] Schema mismatch detected during query. Attempting schema migration...');
       global._dbSchemaChecked = false;
       await ensureDatabaseSchema(pool);
       const [retryResults] = await pool.query(sql, params);

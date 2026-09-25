@@ -212,6 +212,7 @@ CREATE TABLE IF NOT EXISTS `document_types` (
   `name` VARCHAR(191) NOT NULL,
   `category` VARCHAR(100) NOT NULL,
   `has_expiry` TINYINT(1) NOT NULL DEFAULT 1,
+  `is_required` TINYINT(1) NOT NULL DEFAULT 0,
   `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
@@ -274,16 +275,16 @@ SET FOREIGN_KEY_CHECKS = 1;
 -- ====================================================================
 
 -- Document Types
-INSERT IGNORE INTO `document_types` (`id`, `name`, `category`, `has_expiry`) VALUES
-('dt-1', 'Passport Copy (Australian / International)', 'Identification', 1),
-('dt-2', 'Visa Grant Notice / VEVO Verification', 'Visa & Immigration', 1),
-('dt-3', 'Driver\'s License (NSW / State)', 'Licenses', 1),
-('dt-4', 'Tax File Number (TFN) Declaration', 'Tax & Compliance', 0),
-('dt-5', 'Medical / Sick Leave Certificate', 'Medical', 0),
-('dt-6', 'Forklift / White Card / RSA License', 'Workplace Licenses', 1),
-('dt-7', 'Bank Statement / Direct Debit Proof', 'Payroll', 0),
-('dt-8', 'Superannuation Choice Form', 'Payroll', 0),
-('dt-9', 'Signed Employment Contract', 'HR Onboarding', 0);
+INSERT IGNORE INTO `document_types` (`id`, `name`, `category`, `has_expiry`, `is_required`) VALUES
+('dt-1', 'Passport Copy (Australian / International)', 'Identification', 1, 1),
+('dt-2', 'Visa Grant Notice / VEVO Verification', 'Visa & Immigration', 1, 0),
+('dt-3', 'Driver\'s License (NSW / State)', 'Licenses', 1, 0),
+('dt-4', 'Tax File Number (TFN) Declaration', 'Tax & Compliance', 0, 0),
+('dt-5', 'Medical / Sick Leave Certificate', 'Medical', 0, 0),
+('dt-6', 'Forklift / White Card / RSA License', 'Workplace Licenses', 1, 0),
+('dt-7', 'Bank Statement / Direct Debit Proof', 'Payroll', 0, 0),
+('dt-8', 'Superannuation Choice Form', 'Payroll', 0, 0),
+('dt-9', 'Signed Employment Contract', 'HR Onboarding', 0, 1);
 
 -- Announcements
 INSERT IGNORE INTO `announcements` (`id`, `title`, `content`, `author`, `author_role`, `date`, `category`, `is_pinned`) VALUES

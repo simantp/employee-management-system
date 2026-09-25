@@ -4,32 +4,53 @@ import { DocumentTypeConfig } from '@/types';
 import { getStoredDocumentTypes, saveStoredDocumentTypes } from '@/lib/serverData';
 
 export async function GET() {
+  const diskDocTypes = await getStoredDocumentTypes();
+  const diskMap = new Map(diskDocTypes.map(d => [d.id, d]));
+
   if (isDbConfigured) {
     try {
       const rows = await query<any[]>('SELECT * FROM document_types ORDER BY name ASC');
-      const documentTypes: DocumentTypeConfig[] = rows.map(r => ({
-        id: r.id,
-        name: r.name,
-        category: r.category,
-        hasExpiry: Boolean(r.has_expiry),
-        isRequired: Boolean(r.is_required),
-      }));
-      await saveStoredDocumentTypes(documentTypes);
-      return NextResponse.json({ success: true, documentTypes });
+      if (Array.isArray(rows) && rows.length > 0) {
+        const documentTypes: DocumentTypeConfig[] = rows.map(r => {
+          let isRequired = diskMap.get(r.id)?.isRequired ?? false;
+          if (r.is_required !== undefined && r.is_required !== null) {
+            isRequired = Boolean(Number(r.is_required) === 1 || r.is_required === true);
+          }
+          return {
+            id: r.id,
+            name: r.name,
+            category: r.category,
+            hasExpiry: Boolean(r.has_expiry),
+            isRequired,
+          };
+        });
+        await saveStoredDocumentTypes(documentTypes);
+        return NextResponse.json({ success: true, documentTypes });
+      } else if (Array.isArray(rows) && rows.length === 0 && diskDocTypes.length > 0) {
+        // Table exists in MySQL but is empty; seed it from disk
+        for (const dt of diskDocTypes) {
+          try {
+            await query(
+              'INSERT INTO document_types (id, name, category, has_expiry, is_required) VALUES (?, ?, ?, ?, ?) ON DUPLICATE KEY UPDATE is_required = VALUES(is_required)',
+              [dt.id, dt.name, dt.category, dt.hasExpiry ? 1 : 0, dt.isRequired ? 1 : 0]
+            );
+          } catch (e) {}
+        }
+        return NextResponse.json({ success: true, documentTypes: diskDocTypes });
+      }
     } catch (err: any) {
       console.warn('MySQL document-types fetch failed, using disk fallback:', err.message);
     }
   }
 
-  const documentTypes = await getStoredDocumentTypes();
-  return NextResponse.json({ success: true, documentTypes });
+  return NextResponse.json({ success: true, documentTypes: diskDocTypes });
 }
 
 export async function POST(req: Request) {
   try {
     const dt: DocumentTypeConfig = await req.json();
     const id = dt.id || `dt-${Date.now()}`;
-    const newDt: DocumentTypeConfig = { ...dt, id };
+    const newDt: DocumentTypeConfig = { ...dt, id, isRequired: Boolean(dt.isRequired) };
 
     const stored = await getStoredDocumentTypes();
     const updated = [...stored.filter(x => x.id !== id), newDt];
@@ -38,7 +59,7 @@ export async function POST(req: Request) {
     if (isDbConfigured) {
       try {
         await query('INSERT INTO document_types (id, name, category, has_expiry, is_required) VALUES (?, ?, ?, ?, ?) ON DUPLICATE KEY UPDATE name = VALUES(name), category = VALUES(category), has_expiry = VALUES(has_expiry), is_required = VALUES(is_required)', [
-          id, dt.name, dt.category, dt.hasExpiry ? 1 : 0, dt.isRequired ? 1 : 0
+          id, newDt.name, newDt.category, newDt.hasExpiry ? 1 : 0, newDt.isRequired ? 1 : 0
         ]);
       } catch (err: any) {
         console.warn('MySQL document-type insert skipped:', err.message);
@@ -73,7 +94,17 @@ export async function PUT(req: Request) {
         if (body.isRequired !== undefined) { updates.push('is_required = ?'); params.push(body.isRequired ? 1 : 0); }
         if (updates.length > 0) {
           params.push(body.id);
-          await query(`UPDATE document_types SET ${updates.join(', ')} WHERE id = ?`, params);
+          const updateRes: any = await query(`UPDATE document_types SET ${updates.join(', ')} WHERE id = ?`, params);
+          if (updateRes && (updateRes.affectedRows === 0 || updateRes.changedRows === 0)) {
+            const current = updated.find(d => d.id === body.id);
+            if (current) {
+              await query(
+                `INSERT INTO document_types (id, name, category, has_expiry, is_required) VALUES (?, ?, ?, ?, ?)
+                 ON DUPLICATE KEY UPDATE name = VALUES(name), category = VALUES(category), has_expiry = VALUES(has_expiry), is_required = VALUES(is_required)`,
+                [current.id, current.name, current.category, current.hasExpiry ? 1 : 0, current.isRequired ? 1 : 0]
+              );
+            }
+          }
         }
       } catch (err: any) {
         console.warn('MySQL document-type update skipped:', err.message);

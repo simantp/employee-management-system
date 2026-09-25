@@ -359,6 +359,18 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         }
       }
 
+      let activeDocTypes = INITIAL_DOCUMENT_TYPES;
+      const savedDocs = localStorage.getItem('ems_doctypes_v1');
+      if (savedDocs) {
+        try {
+          const parsedDocs = JSON.parse(savedDocs);
+          if (Array.isArray(parsedDocs) && parsedDocs.length > 0) {
+            activeDocTypes = parsedDocs;
+            setDocumentTypes(parsedDocs);
+          }
+        } catch (e) {}
+      }
+
       const savedEmployees = localStorage.getItem('ems_employees_v1');
       if (savedEmployees) {
         try {
@@ -383,17 +395,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
             'emp-02': 'priya.sharma',
             'emp-03': 'binod.gurung',
           };
-          let activeDocTypes = INITIAL_DOCUMENT_TYPES;
-          const savedDocs = localStorage.getItem('ems_doctypes_v1');
-          if (savedDocs) {
-            try {
-              const parsedDocs = JSON.parse(savedDocs);
-              if (Array.isArray(parsedDocs) && parsedDocs.length > 0) {
-                activeDocTypes = parsedDocs;
-                setDocumentTypes(parsedDocs);
-              }
-            } catch (e) {}
-          }
 
           const healed = parsed.map((emp, idx) => {
             const initialMatch = INITIAL_EMPLOYEES.find(ie => ie.id === emp.id);
@@ -3539,8 +3540,14 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   };
 
   const addDocumentType = (type: Omit<DocumentTypeConfig, 'id'>) => {
-    const newType = { id: 'dt-' + Date.now(), ...type };
-    setDocumentTypes(prev => [...prev, newType]);
+    const newType = { id: 'dt-' + Date.now(), ...type, isRequired: Boolean(type.isRequired) };
+    setDocumentTypes(prev => {
+      const next = [...prev, newType];
+      try {
+        localStorage.setItem('ems_doctypes_v1', JSON.stringify(next));
+      } catch (e) {}
+      return next;
+    });
     addAudit('CREATE_DOCUMENT_TYPE', 'DocumentType', newType.id, `Admin added document type: ${type.name}`);
     addToast('Document Type Added', `"${type.name}" is now available in staff upload dropdown.`, 'success');
 
@@ -3555,7 +3562,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   };
 
   const deleteDocumentType = (id: string) => {
-    setDocumentTypes(prev => prev.filter(d => d.id !== id));
+    setDocumentTypes(prev => {
+      const next = prev.filter(d => d.id !== id);
+      try {
+        localStorage.setItem('ems_doctypes_v1', JSON.stringify(next));
+      } catch (e) {}
+      return next;
+    });
     addToast('Document Type Removed', 'Document type deleted.', 'info');
 
     // MySQL Backend Sync
@@ -3567,7 +3580,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   };
 
   const updateDocumentType = (id: string, updates: Partial<DocumentTypeConfig>) => {
-    setDocumentTypes(prev => prev.map(d => d.id === id ? { ...d, ...updates } : d));
+    setDocumentTypes(prev => {
+      const next = prev.map(d => d.id === id ? { ...d, ...updates } : d);
+      try {
+        localStorage.setItem('ems_doctypes_v1', JSON.stringify(next));
+      } catch (e) {}
+      return next;
+    });
     const dt = documentTypes.find(d => d.id === id);
     const dtName = updates.name || dt?.name || 'Document Type';
     addAudit('UPDATE_DOCUMENT_TYPE', 'DocumentType', id, `Admin updated document type: ${dtName}`);
@@ -3586,7 +3605,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     const target = documentTypes.find(d => d.id === id);
     if (!target) return;
     const nextVal = !target.isRequired;
-    setDocumentTypes(prev => prev.map(d => d.id === id ? { ...d, isRequired: nextVal } : d));
+    setDocumentTypes(prev => {
+      const next = prev.map(d => d.id === id ? { ...d, isRequired: nextVal } : d);
+      try {
+        localStorage.setItem('ems_doctypes_v1', JSON.stringify(next));
+      } catch (e) {}
+      return next;
+    });
     
     addAudit(
       'UPDATE_DOCUMENT_TYPE',
