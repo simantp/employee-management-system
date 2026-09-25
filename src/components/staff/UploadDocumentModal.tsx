@@ -15,9 +15,32 @@ export default function UploadDocumentModal({
 
   const isEditing = !!initialDoc;
 
+  // Identify compulsory documents and which ones currentStaff is missing
+  const compulsoryTypes = documentTypes.filter(d => Boolean(d.isRequired));
+  const uploadedDocs = currentStaff?.documents || [];
+
+  const isDocSatisfied = (dtName: string) => {
+    const dtLower = dtName.toLowerCase();
+    return uploadedDocs.some(d => {
+      if (d.status === 'Rejected') return false;
+      const dType = (d.type || '').toLowerCase();
+      const dName = (d.name || '').toLowerCase();
+      if (dType === dtLower || dName === dtLower || dName.includes(dtLower) || (dType && dtLower.includes(dType))) return true;
+      if (dtLower.includes('passport') && (dType.includes('passport') || dName.includes('passport'))) return true;
+      if (dtLower.includes('contract') && (dType.includes('contract') || dName.includes('contract'))) return true;
+      if (dtLower.includes('visa') && (dType.includes('visa') || dName.includes('visa') || dType.includes('vevo') || dName.includes('vevo'))) return true;
+      return false;
+    });
+  };
+
+  const missingCompulsory = compulsoryTypes.filter(dt => !isDocSatisfied(dt.name));
+
+  // Auto-select the first missing compulsory document by default
+  const defaultSelectedType = initialDoc?.type || missingCompulsory[0]?.name || compulsoryTypes[0]?.name || documentTypes[0]?.name || 'Passport Copy (Australian / International)';
+
   const [source, setSource] = useState<'COMPUTER' | 'MOBILE'>('COMPUTER');
-  const [selectedDocType, setSelectedDocType] = useState(initialDoc?.type || documentTypes[0]?.name || 'Passport Copy');
-  const [docName, setDocName] = useState(initialDoc?.name || '');
+  const [selectedDocType, setSelectedDocType] = useState(defaultSelectedType);
+  const [docName, setDocName] = useState(initialDoc?.name || (missingCompulsory[0]?.name || defaultSelectedType));
   const [documentNumber, setDocumentNumber] = useState(initialDoc?.documentNumber || '');
   const [expiryDate, setExpiryDate] = useState(initialDoc?.expiryDate || '');
   const [filePreview, setFilePreview] = useState<string | null>(initialDoc?.previewUrl || null);
@@ -79,28 +102,26 @@ export default function UploadDocumentModal({
     }
 
     setIsSubmitting(true);
-    setTimeout(() => {
-      const payloadDoc = {
-        name: docName || selectedDocType,
-        type: selectedDocType,
-        fileSize: fileSize || '1.6 MB',
-        previewUrl: filePreview || initialDoc?.previewUrl || 'https://images.unsplash.com/photo-1589829545856-d10d557cf95f?w=400&auto=format&fit=crop&q=80',
-        fileType,
-        expiryDate: expiryDate || undefined,
-        documentNumber: documentNumber || undefined,
-      };
+    const payloadDoc = {
+      name: docName || selectedDocType,
+      type: selectedDocType,
+      fileSize: fileSize || '1.6 MB',
+      previewUrl: filePreview || initialDoc?.previewUrl || 'https://images.unsplash.com/photo-1589829545856-d10d557cf95f?w=400&auto=format&fit=crop&q=80',
+      fileType,
+      expiryDate: expiryDate || undefined,
+      documentNumber: documentNumber || undefined,
+    };
 
-      if (isEditing && initialDoc) {
-        updateDocument(currentStaff.id, initialDoc.id, {
-          ...payloadDoc,
-          status: 'Pending',
-        });
-      } else {
-        uploadDocument(currentStaff.id, payloadDoc);
-      }
-      setIsSubmitting(false);
-      onClose();
-    }, 350);
+    if (isEditing && initialDoc) {
+      updateDocument(currentStaff.id, initialDoc.id, {
+        ...payloadDoc,
+        status: 'Pending',
+      });
+    } else {
+      uploadDocument(currentStaff.id, payloadDoc);
+    }
+    setIsSubmitting(false);
+    onClose();
   };
 
   return (
@@ -177,30 +198,67 @@ export default function UploadDocumentModal({
             <div className="flex items-center justify-between mb-1.5">
               <label className="font-bold text-slate-700 block">Document Type *</label>
               {documentTypes.find(d => d.name === selectedDocType)?.isRequired && (
-                <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-amber-100 text-amber-900 border border-amber-300">
+                <span className="text-[10px] font-extrabold px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-900 border border-amber-300">
                   ★ Compulsory for Onboarding
                 </span>
               )}
             </div>
             <select
               value={selectedDocType}
-              onChange={(e) => setSelectedDocType(e.target.value)}
+              onChange={(e) => {
+                const val = e.target.value;
+                setSelectedDocType(val);
+                if (!docName || documentTypes.some(d => d.name === docName)) {
+                  setDocName(val);
+                }
+              }}
               className="w-full p-3 rounded-2xl border border-slate-300 font-semibold text-slate-800 focus:outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 transition cursor-pointer"
             >
-              {documentTypes.map((dt) => (
-                <option key={dt.id} value={dt.name}>
-                  {dt.isRequired ? `★ [COMPULSORY] ${dt.name}` : dt.name} ({dt.category})
-                </option>
-              ))}
-              <option value="Medical Certificate">Medical Certificate (Sick / Carers Leave)</option>
-              <option value="First Aid & WHS Certificate">First Aid &amp; WHS Certificate</option>
-              <option value="Forklift / High Risk Work License">Forklift / High Risk Work License</option>
-              <option value="Other Compliance Document">Other Compliance Document</option>
+              {compulsoryTypes.length > 0 && (
+                <optgroup label="⭐ Compulsory Required Documents (Mandatory for Profile Activation)">
+                  {compulsoryTypes.map(dt => {
+                    const isMissing = missingCompulsory.some(m => m.id === dt.id);
+                    return (
+                      <option key={dt.id} value={dt.name}>
+                        ★ [REQUIRED] {dt.name} ({dt.category}) {isMissing ? '— PENDING UPLOAD' : '✓ UPLOADED'}
+                      </option>
+                    );
+                  })}
+                </optgroup>
+              )}
+              <optgroup label="Optional & General Compliance Documents">
+                {documentTypes.filter(d => !d.isRequired).map((dt) => (
+                  <option key={dt.id} value={dt.name}>
+                    {dt.name} ({dt.category})
+                  </option>
+                ))}
+                <option value="Medical Certificate">Medical Certificate (Sick / Carers Leave)</option>
+                <option value="First Aid & WHS Certificate">First Aid &amp; WHS Certificate</option>
+                <option value="Forklift / High Risk Work License">Forklift / High Risk Work License</option>
+                <option value="Other Compliance Document">Other Compliance Document</option>
+              </optgroup>
             </select>
             {documentTypes.find(d => d.name === selectedDocType)?.isRequired && (
-              <div className="mt-2 flex items-start gap-1.5 text-amber-900 bg-amber-50 px-3 py-2 rounded-xl border border-amber-200 text-[11px] font-medium">
-                <span className="text-amber-600 font-bold">★</span>
-                <span><strong>Compulsory Document:</strong> This document is mandatory. Uploading it completes this requirement to activate your staff profile.</span>
+              <div className={`mt-2 flex items-start gap-2 px-3 py-2.5 rounded-xl border text-xs font-medium ${
+                missingCompulsory.some(m => m.name === selectedDocType)
+                  ? 'bg-amber-50 border-amber-300 text-amber-950'
+                  : 'bg-emerald-50 border-emerald-300 text-emerald-950'
+              }`}>
+                <span className="font-bold text-sm">
+                  {missingCompulsory.some(m => m.name === selectedDocType) ? '⚠️' : '✓'}
+                </span>
+                <div>
+                  <span className="font-bold">
+                    {missingCompulsory.some(m => m.name === selectedDocType)
+                      ? '★ Compulsory Document (Required for Profile Activation)'
+                      : '✓ Compulsory Document Uploaded'}
+                  </span>
+                  <p className="text-[11px] text-slate-600 mt-0.5">
+                    {missingCompulsory.some(m => m.name === selectedDocType)
+                      ? 'Your profile will remain in Pending state and cannot be activated until all compulsory documents are uploaded.'
+                      : 'You have already submitted this required document. Uploading again will update HR records with this newer copy.'}
+                  </p>
+                </div>
               </div>
             )}
           </div>
@@ -287,9 +345,21 @@ export default function UploadDocumentModal({
                   'Passport Copy (Australian / International)',
                   'https://images.unsplash.com/photo-1544717305-2782549b5136?w=500&auto=format&fit=crop&q=80'
                 )}
-                className="px-2.5 py-1 rounded-lg border border-slate-200 bg-slate-50 hover:bg-orange-50 hover:text-orange-700 text-[10px] font-bold text-slate-700 transition cursor-pointer"
+                className="px-2.5 py-1 rounded-lg border border-amber-300 bg-amber-50 hover:bg-amber-100 text-[10px] font-bold text-amber-900 transition cursor-pointer"
               >
-                Passport Sample
+                ★ Passport Sample (Required)
+              </button>
+
+              <button
+                type="button"
+                onClick={() => handleSelectPreset(
+                  'Signed Employment Contract',
+                  'Signed Employment Contract',
+                  'https://images.unsplash.com/photo-1589829545856-d10d557cf95f?w=500&auto=format&fit=crop&q=80'
+                )}
+                className="px-2.5 py-1 rounded-lg border border-amber-300 bg-amber-50 hover:bg-amber-100 text-[10px] font-bold text-amber-900 transition cursor-pointer"
+              >
+                ★ Contract Sample (Required)
               </button>
 
               <button

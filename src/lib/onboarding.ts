@@ -115,9 +115,30 @@ export function getOnboardingProgress(
   if (requiredDocTypes.length > 0) {
     const uploadedDocs = emp.documents || [];
     for (const dt of requiredDocTypes) {
-      const hasUploaded = uploadedDocs.some(
-        d => (d.type === dt.name || (d.name && d.name.toLowerCase().includes(dt.name.toLowerCase()))) && d.status !== 'Rejected'
-      );
+      const dtLower = dt.name.toLowerCase();
+      const hasUploaded = uploadedDocs.some(d => {
+        if (d.status === 'Rejected') return false;
+        const dType = (d.type || '').toLowerCase();
+        const dName = (d.name || '').toLowerCase();
+
+        // Exact or substring match
+        if (dType === dtLower || dName === dtLower || dName.includes(dtLower) || (dType && dtLower.includes(dType))) {
+          return true;
+        }
+
+        // Resilient keyword matching for known compulsory compliance types
+        if (dtLower.includes('passport') && (dType.includes('passport') || dName.includes('passport'))) {
+          return true;
+        }
+        if (dtLower.includes('contract') && (dType.includes('contract') || dName.includes('contract'))) {
+          return true;
+        }
+        if (dtLower.includes('visa') && (dType.includes('visa') || dName.includes('visa') || dType.includes('vevo') || dName.includes('vevo'))) {
+          return true;
+        }
+
+        return false;
+      });
       if (!hasUploaded) {
         missingDocuments.push(dt.name);
       }

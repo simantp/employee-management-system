@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { query, isDbConfigured } from '@/lib/db';
 import { Employee, EmployeeDocument } from '@/types';
-import { getStoredEmployees, saveStoredEmployees } from '@/lib/serverData';
+import { getStoredEmployees, saveStoredEmployees, getStoredDocumentTypes } from '@/lib/serverData';
 import { getOnboardingProgress } from '@/lib/onboarding';
 import { getAuthenticatedUserFromRequest } from '@/lib/session';
 
@@ -110,10 +110,23 @@ export async function GET(req: Request) {
         });
       });
 
+      const serverDocTypes = await getStoredDocumentTypes();
       const rawEmployees: Employee[] = empRows.map(row => mapDbRowToEmployee(row, docsByEmp[row.id] || []));
       employeesList = rawEmployees.map(emp => {
-        const progress = getOnboardingProgress(emp);
-        if (emp.status === 'Pending' && progress.isComplete) {
+        const progress = getOnboardingProgress(emp, serverDocTypes);
+        // STRICT: If any compulsory document is missing, staff cannot be active
+        if (progress.missingDocuments.length > 0) {
+          if (emp.status === 'Active' && emp.onboardingStatus !== 'COMPLETED') {
+            return {
+              ...emp,
+              status: 'Pending' as const,
+              onboardingStatus: emp.onboardingStatus === 'INVITED' ? ('INVITED' as const) : ('PROFILE_COMPLETED' as const),
+            };
+          }
+          return emp;
+        }
+
+        if (emp.status === 'Pending' && progress.isComplete && progress.missingDocuments.length === 0) {
           return {
             ...emp,
             status: 'Active' as const,
@@ -130,10 +143,23 @@ export async function GET(req: Request) {
   }
 
   if (employeesList.length === 0) {
+    const serverDocTypes = await getStoredDocumentTypes();
     const rawEmployees = await getStoredEmployees();
     employeesList = rawEmployees.map(emp => {
-      const progress = getOnboardingProgress(emp);
-      if (emp.status === 'Pending' && progress.isComplete) {
+      const progress = getOnboardingProgress(emp, serverDocTypes);
+      // STRICT: If any compulsory document is missing, staff cannot be active
+      if (progress.missingDocuments.length > 0) {
+        if (emp.status === 'Active' && emp.onboardingStatus !== 'COMPLETED') {
+          return {
+            ...emp,
+            status: 'Pending' as const,
+            onboardingStatus: emp.onboardingStatus === 'INVITED' ? ('INVITED' as const) : ('PROFILE_COMPLETED' as const),
+          };
+        }
+        return emp;
+      }
+
+      if (emp.status === 'Pending' && progress.isComplete && progress.missingDocuments.length === 0) {
         return {
           ...emp,
           status: 'Active' as const,
@@ -314,11 +340,23 @@ export async function PUT(req: Request) {
     // Update disk JSON
     let autoCompleted = false;
     const nowIso = new Date().toISOString();
+    const serverDocTypes = await getStoredDocumentTypes();
     const updated = stored.map(emp => {
       if (emp.id !== id) return emp;
       const merged = { ...emp, ...updates };
-      const progress = getOnboardingProgress(merged);
-      if (merged.status === 'Pending' && progress.isComplete) {
+      const progress = getOnboardingProgress(merged, serverDocTypes);
+      
+      // STRICT: If compulsory document is missing, staff profile CANNOT be Active
+      if (progress.missingDocuments.length > 0) {
+        if (merged.status === 'Active' && merged.onboardingStatus !== 'COMPLETED') {
+          merged.status = 'Pending';
+          merged.onboardingStatus = (merged.onboardingStatus === 'INVITED' ? 'INVITED' : 'PROFILE_COMPLETED');
+        }
+        if (updates.status === 'Active') {
+          delete updates.status;
+          delete updates.onboardingStatus;
+        }
+      } else if (merged.status === 'Pending' && progress.isComplete && progress.missingDocuments.length === 0) {
         merged.status = 'Active';
         merged.onboardingStatus = 'COMPLETED';
         merged.profileCompletedAt = merged.profileCompletedAt || nowIso;

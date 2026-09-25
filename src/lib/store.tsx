@@ -402,12 +402,22 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
             
             // Check if a pending employee is already 100% complete
             const progress = getOnboardingProgress(emp, activeDocTypes);
-            const isAutoActive = emp.status === 'Pending' && progress.isComplete;
+            let targetStatus = emp.status;
+            let targetOnboardingStatus = emp.onboardingStatus;
+            if (progress.missingDocuments.length > 0) {
+              if (emp.status === 'Active' && emp.onboardingStatus !== 'COMPLETED') {
+                targetStatus = 'Pending';
+                targetOnboardingStatus = emp.onboardingStatus === 'INVITED' ? 'INVITED' : 'PROFILE_COMPLETED';
+              }
+            } else if (emp.status === 'Pending' && progress.isComplete && progress.missingDocuments.length === 0) {
+              targetStatus = 'Active';
+              targetOnboardingStatus = 'COMPLETED';
+            }
 
             return {
               ...emp,
-              status: isAutoActive ? ('Active' as const) : emp.status,
-              onboardingStatus: isAutoActive ? ('COMPLETED' as const) : emp.onboardingStatus,
+              status: targetStatus,
+              onboardingStatus: targetOnboardingStatus,
               username: uname,
               kioskPin: pin,
               clockState: emp.clockState || initialMatch?.clockState || 'CLOCKED_OUT',
@@ -531,7 +541,17 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         if (empRes.status === 'fulfilled' && empRes.value?.success && Array.isArray(empRes.value.employees)) {
           const healed = empRes.value.employees.map((emp: Employee) => {
             const progress = getOnboardingProgress(emp, loadedDocTypes);
-            if (emp.status === 'Pending' && progress.isComplete) {
+            if (progress.missingDocuments.length > 0) {
+              if (emp.status === 'Active' && emp.onboardingStatus !== 'COMPLETED') {
+                return {
+                  ...emp,
+                  status: 'Pending' as const,
+                  onboardingStatus: emp.onboardingStatus === 'INVITED' ? ('INVITED' as const) : ('PROFILE_COMPLETED' as const),
+                };
+              }
+              return emp;
+            }
+            if (emp.status === 'Pending' && progress.isComplete && progress.missingDocuments.length === 0) {
               return {
                 ...emp,
                 status: 'Active' as const,
@@ -1023,7 +1043,20 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         if (empRes.status === 'fulfilled' && empRes.value?.success && Array.isArray(empRes.value.employees)) {
           const serverEmp: Employee[] = empRes.value.employees;
           setEmployees(prevEmp => {
-            const reconciled = reconcileEmployeesWithTimecards(serverEmp, latestTc);
+            const mergedServerEmp = serverEmp.map(sEmp => {
+              const pEmp = prevEmp.find(p => p.id === sEmp.id);
+              if (!pEmp) return sEmp;
+              const serverDocIds = new Set((sEmp.documents || []).map(d => d.id));
+              const localPendingDocs = (pEmp.documents || []).filter(d => !serverDocIds.has(d.id));
+              if (localPendingDocs.length > 0) {
+                return {
+                  ...sEmp,
+                  documents: [...localPendingDocs, ...(sEmp.documents || [])],
+                };
+              }
+              return sEmp;
+            });
+            const reconciled = reconcileEmployeesWithTimecards(mergedServerEmp, latestTc);
             if (JSON.stringify(prevEmp) !== JSON.stringify(reconciled)) {
               return reconciled;
             }
@@ -1757,7 +1790,18 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
       const progress = getOnboardingProgress(emp, documentTypes);
 
-      if (progress.isComplete && emp.status === 'Pending') {
+      if (progress.missingDocuments.length > 0) {
+        if (emp.status === 'Active' && emp.onboardingStatus !== 'COMPLETED') {
+          return {
+            ...emp,
+            status: 'Pending' as const,
+            onboardingStatus: emp.onboardingStatus === 'INVITED' ? ('INVITED' as const) : ('PROFILE_COMPLETED' as const),
+          };
+        }
+        return emp;
+      }
+
+      if (progress.isComplete && progress.missingDocuments.length === 0 && emp.status === 'Pending') {
         becameActive = true;
         completedEmp = {
           ...emp,
@@ -3709,6 +3753,16 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       return emp;
     }));
 
+    // Save to localStorage immediately so polling or sync events cannot overwrite
+    try {
+      const saved = localStorage.getItem('ems_employees_v1');
+      if (saved) {
+        const parsed: Employee[] = JSON.parse(saved);
+        const updated = parsed.map(e => e.id === empId ? { ...e, documents: [newDoc, ...(e.documents || []).filter(d => d.id !== tempDocId)] } : e);
+        localStorage.setItem('ems_employees_v1', JSON.stringify(updated));
+      }
+    } catch (e) {}
+
     // Auto-check if this uploaded document completes compulsory documents & activates profile
     setTimeout(() => {
       checkAndUpdateOnboardingCompletion(empId);
@@ -3731,15 +3785,20 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          empId: empId,
           employeeId: empId,
+          empName: empName,
           employeeName: empName,
           documentId: tempDocId,
+          docId: tempDocId,
+          id: tempDocId,
           name: doc.name,
           type: doc.type,
           documentNumber: doc.documentNumber || null,
           issueDate: doc.issueDate || null,
           expiryDate: doc.expiryDate || null,
           fileData: doc.previewUrl || null,
+          previewUrl: doc.previewUrl || null,
           fileName: safeFileName,
           fileSize: doc.fileSize || '1.2 MB',
           fileType: doc.fileType || 'pdf',
@@ -3747,6 +3806,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         }),
       }).then(async res => {
         const data = await res.json();
+        if (data.becameActive) {
+          checkAndUpdateOnboardingCompletion(empId);
+        }
         if (data.success && data.fileUrl) {
           // Update the in-memory document with database generated ID and server relative file path
           setEmployees(prev => prev.map(emp => {

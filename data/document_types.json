@@ -32,14 +32,14 @@
     "name": "Passport Copy (Australian / International)",
     "category": "Identification",
     "hasExpiry": true,
-    "isRequired": false
+    "isRequired": true
   },
   {
     "id": "dt-9",
     "name": "Signed Employment Contract",
     "category": "HR Onboarding",
     "hasExpiry": false,
-    "isRequired": false
+    "isRequired": true
   },
   {
     "id": "dt-8",
