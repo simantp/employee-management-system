@@ -1231,13 +1231,15 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   };
 
   const addAudit = (action: string, targetType: string, targetId: string, details: string, actorName?: string, actorRole?: string) => {
-    const actName = actorName || (currentUser ? currentUser.name : 'System');
-    const actRole = actorRole || (currentUser ? currentUser.role : 'System');
+    const staffFallbackName = currentStaff ? `${currentStaff.firstName} ${currentStaff.lastName}`.trim() : '';
+    const actName = actorName || (currentUser ? currentUser.name : (staffFallbackName || 'System'));
+    const actRole = actorRole || (currentUser ? currentUser.role : (staffFallbackName ? 'STAFF' : 'System'));
+    const actId = (currentUser ? currentUser.id : (currentStaff ? currentStaff.id : 'sys-1'));
 
     const newLog: AuditLog = {
       id: 'aud-' + Date.now(),
       timestamp: new Date().toLocaleString('en-AU', { timeZone: 'Australia/Sydney' }) + ' AEST',
-      actorId: currentUser ? currentUser.id : 'sys-1',
+      actorId: actId,
       actorName: actName,
       actorRole: actRole,
       action,
@@ -1261,9 +1263,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           targetEntity: newLog.targetType,
           targetId: newLog.targetId,
           details: newLog.details,
+          actorId: newLog.actorId,
           performedBy: newLog.actorName,
           role: newLog.actorRole,
           timestamp: newLog.timestamp,
+          ipAddress: newLog.ipAddress,
         })
       }).catch(err => console.warn('Audit log database sync skipped:', err));
     } catch(e) {}
@@ -1661,7 +1665,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   // 5. Logout
   const logout = () => {
     if (currentUser) {
-      addAudit('USER_LOGOUT', 'User', currentUser.id, `User ${currentUser.name} logged out`);
+      addAudit('USER_LOGOUT', 'User', currentUser.id, `User ${currentUser.name} (${currentUser.role}) logged out`, currentUser.name, currentUser.role);
+    } else if (currentStaff) {
+      const staffName = `${currentStaff.firstName} ${currentStaff.lastName}`.trim();
+      addAudit('USER_LOGOUT', 'User', currentStaff.id, `Staff member ${staffName} logged out`, staffName, 'STAFF');
     }
     // Call backend /api/auth/logout to invalidate session cookie
     try {
@@ -1887,7 +1894,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       } catch (e) {}
 
       // Audit log & Notifications
-      addAudit('PROFILE_ONBOARDING_COMPLETED', 'Employee', empId, `Staff member ${empName} completed all 4 profile sections and status transitioned to ACTIVE.`);
+      addAudit('PROFILE_ONBOARDING_COMPLETED', 'Employee', empId, `Staff member ${empName} completed all 4 profile sections and status transitioned to ACTIVE.`, empName, 'STAFF');
       
       // Notify Admin ONLY when staff is fully active (all 4 sections AND all compulsory documents uploaded)
       if (targetEmp.onboardingStatus === 'COMPLETED') {
@@ -3105,7 +3112,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         return u;
       }));
 
-      addAudit('PROFILE_ONBOARDING_COMPLETED', 'Employee', id, `Staff member ${empName} completed all 4 profile sections and status transitioned to fully ACTIVE.`);
+      addAudit('PROFILE_ONBOARDING_COMPLETED', 'Employee', id, `Staff member ${empName} completed all 4 profile sections and status transitioned to fully ACTIVE.`, empName, 'STAFF');
 
       const adminNotif: NotificationItem = {
         id: 'notif-active-' + Date.now(),
@@ -3435,6 +3442,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     };
     dispatchNotification(adminNotif);
 
+    addAudit('UPLOAD_LEAVE_CERTIFICATE', 'LeaveRequest', leaveId, `Staff member ${empName} uploaded a medical certificate for sick leave (${targetLeave?.startDate || 'Leave'}).`, empName, 'STAFF');
     addToast('Medical Certificate Uploaded', 'Your certificate has been attached and sent to HR.', 'success');
   };
 
@@ -3534,7 +3542,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       }));
 
       const empName = `${cEmp.firstName} ${cEmp.lastName}`.trim();
-      addAudit('PROFILE_ONBOARDING_COMPLETED', 'Employee', empId, `Staff member ${empName} completed all 4 profile sections and status transitioned to fully ACTIVE.`);
+      addAudit('PROFILE_ONBOARDING_COMPLETED', 'Employee', empId, `Staff member ${empName} completed all 4 profile sections and status transitioned to fully ACTIVE.`, empName, 'STAFF');
 
       const activeNotif: NotificationItem = {
         id: 'notif-active-' + Date.now(),
@@ -3587,6 +3595,30 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         }),
       }).catch(err => console.warn('Bank details DB sync skipped:', err));
     } catch (e) {}
+
+    const isStaffPortal = activePortal === 'STAFF';
+    const isCurrentUserStaff = currentUser?.role === 'STAFF';
+    const isSelfEdit = (currentUser?.staffId === empId) || (isStaffPortal && (!currentUser || isCurrentUserStaff));
+
+    if (isSelfEdit) {
+      addAudit(
+        'STAFF_BANK_DETAILS_UPDATE',
+        'Employee',
+        empId,
+        `Staff member ${targetEmpName} updated banking information (${bank.bankName || 'Bank'}) and superannuation details.`,
+        targetEmpName,
+        'STAFF'
+      );
+    } else {
+      addAudit(
+        'ADMIN_BANK_DETAILS_UPDATE',
+        'Employee',
+        empId,
+        `Admin updated banking details for ${targetEmpName}.`,
+        currentUser?.name || 'Administrator',
+        currentUser?.role || 'ADMIN'
+      );
+    }
 
     addToast('Banking Details Updated', 'Banking details saved successfully.', 'success');
   };

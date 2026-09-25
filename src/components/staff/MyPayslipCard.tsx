@@ -5,7 +5,7 @@ import { useApp } from '@/lib/store';
 import { formatCurrency } from '@/lib/utils';
 
 export default function MyPayslipCard() {
-  const { currentStaff } = useApp();
+  const { currentStaff, addAudit } = useApp();
   const [showSlipModal, setShowSlipModal] = useState(false);
 
   // If new staff has no payslips generated yet -> Show clean empty state!
@@ -76,7 +76,18 @@ export default function MyPayslipCard() {
       </div>
 
       <button
-        onClick={() => setShowSlipModal(true)}
+        onClick={() => {
+          setShowSlipModal(true);
+          const staffName = `${currentStaff.firstName} ${currentStaff.lastName}`.trim();
+          addAudit(
+            'STAFF_VIEW_PAYSLIP',
+            'Payslip',
+            latestPayslip.id,
+            `Staff member ${staffName} viewed full payslip statement for pay period ${latestPayslip.payPeriod} ($${latestPayslip.netPay.toLocaleString()}).`,
+            staffName,
+            'STAFF'
+          );
+        }}
         className="w-full py-2 px-4 rounded-xl border border-slate-200 hover:bg-slate-50 text-slate-700 font-bold text-xs transition flex items-center justify-center gap-2 mt-1 cursor-pointer"
       >
         <span>View Full Payslip</span>

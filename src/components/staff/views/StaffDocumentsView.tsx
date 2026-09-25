@@ -7,11 +7,36 @@ import { getOnboardingProgress } from '@/lib/onboarding';
 import UploadDocumentModal from '../UploadDocumentModal';
 
 export default function StaffDocumentsView({ embedded = false }: { embedded?: boolean }) {
-  const { currentStaff, documentTypes } = useApp();
+  const { currentStaff, documentTypes, addAudit } = useApp();
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [editingDoc, setEditingDoc] = useState<EmployeeDocument | null>(null);
   const [selectedPreviewDoc, setSelectedPreviewDoc] = useState<EmployeeDocument | null>(null);
   const [filterType, setFilterType] = useState('ALL');
+
+  const handleOpenPreview = (doc: EmployeeDocument) => {
+    setSelectedPreviewDoc(doc);
+    const staffName = `${currentStaff.firstName} ${currentStaff.lastName}`.trim();
+    addAudit(
+      'STAFF_VIEW_DOCUMENT',
+      'Document',
+      doc.id,
+      `Staff member ${staffName} viewed compliance document: "${doc.name}" (${doc.type}).`,
+      staffName,
+      'STAFF'
+    );
+  };
+
+  const handleOpenFile = (doc: EmployeeDocument) => {
+    const staffName = `${currentStaff.firstName} ${currentStaff.lastName}`.trim();
+    addAudit(
+      'STAFF_OPEN_DOCUMENT_FILE',
+      'Document',
+      doc.id,
+      `Staff member ${staffName} opened full file for document: "${doc.name}".`,
+      staffName,
+      'STAFF'
+    );
+  };
 
   const defaultPreviews: Record<string, string> = {
     'Passport Copy': 'https://images.unsplash.com/photo-1544717305-2782549b5136?w=500&auto=format&fit=crop&q=80',
@@ -189,7 +214,7 @@ export default function StaffDocumentsView({ embedded = false }: { embedded?: bo
             >
               {/* Document Image Thumbnail Preview */}
               <div 
-                onClick={() => setSelectedPreviewDoc(doc)}
+                onClick={() => handleOpenPreview(doc)}
                 className="relative h-40 bg-slate-100 border-b border-slate-100 overflow-hidden cursor-pointer flex items-center justify-center group-hover:opacity-95 transition"
               >
                 {isPdf ? (
@@ -259,7 +284,7 @@ export default function StaffDocumentsView({ embedded = false }: { embedded?: bo
                     </button>
 
                     <button 
-                      onClick={() => setSelectedPreviewDoc(doc)}
+                      onClick={() => handleOpenPreview(doc)}
                       className="px-2 py-1 text-slate-500 hover:text-slate-900 rounded-lg hover:bg-slate-100 transition cursor-pointer font-semibold text-[11px]"
                       title="View & Inspect"
                     >
@@ -389,6 +414,7 @@ export default function StaffDocumentsView({ embedded = false }: { embedded?: bo
                       href={selectedPreviewDoc.previewUrl || '#'}
                       target="_blank"
                       rel="noopener noreferrer"
+                      onClick={() => handleOpenFile(selectedPreviewDoc)}
                       className="px-3.5 py-2 rounded-xl border border-slate-300 hover:bg-slate-50 text-slate-700 font-bold transition cursor-pointer flex items-center gap-1.5"
                     >
                       <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">

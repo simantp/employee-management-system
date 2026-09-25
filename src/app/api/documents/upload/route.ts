@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { query, isDbConfigured } from '@/lib/db';
 import { saveEmployeeFile } from '@/lib/uploadUtils';
 import { EmployeeDocument } from '@/types';
-import { getStoredEmployees, saveStoredEmployees, getStoredDocumentTypes } from '@/lib/serverData';
+import { getStoredEmployees, saveStoredEmployees, getStoredDocumentTypes, getStoredAuditLogs, saveStoredAuditLogs } from '@/lib/serverData';
 import { getOnboardingProgress } from '@/lib/onboarding';
 
 export async function POST(req: Request) {
@@ -163,6 +163,43 @@ export async function POST(req: Request) {
       } catch (err: any) {
         console.warn('MySQL update employee active on doc upload skipped:', err.message);
       }
+    }
+
+    // Persist document upload to Audit Trail
+    const auditTimestamp = new Date().toLocaleString('en-AU', { timeZone: 'Australia/Sydney' }) + ' AEST';
+    const auditId = `aud-${Date.now()}`;
+    const auditDetails = `Staff member ${empName} uploaded document: ${name} (${type}).`;
+
+    if (isDbConfigured) {
+      try {
+        await query(
+          'INSERT INTO audit_logs (id, action, target_entity, target_id, details, performed_by, role, timestamp) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+          [auditId, 'UPLOAD_DOCUMENT', 'Document', docId, auditDetails, empName, 'STAFF', auditTimestamp]
+        );
+      } catch (auditErr: any) {
+        console.warn('MySQL audit insert on document upload skipped:', auditErr.message);
+      }
+    }
+
+    try {
+      const currentStoredAudits = await getStoredAuditLogs();
+      await saveStoredAuditLogs([
+        {
+          id: auditId,
+          action: 'UPLOAD_DOCUMENT',
+          targetType: 'Document',
+          targetId: docId,
+          details: auditDetails,
+          actorId: empId,
+          actorName: empName,
+          actorRole: 'STAFF',
+          timestamp: auditTimestamp,
+          ipAddress: '127.0.0.1 (Localhost)',
+        },
+        ...currentStoredAudits,
+      ]);
+    } catch (diskAuditErr: any) {
+      console.warn('Disk audit save on document upload skipped:', diskAuditErr.message);
     }
 
     return NextResponse.json({

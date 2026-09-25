@@ -5,13 +5,28 @@ import { useApp } from '@/lib/store';
 
 export default function AuditLogViewer() {
   const { auditLogs } = useApp();
-  const [filterType, setFilterType] = useState<'ALL' | 'AUTH' | 'PUNCH' | 'SECURITY'>('ALL');
+  const [filterType, setFilterType] = useState<'ALL' | 'STAFF' | 'AUTH' | 'PUNCH' | 'SECURITY'>('ALL');
   const [searchTerm, setSearchTerm] = useState('');
 
   const filteredLogs = useMemo(() => {
     return auditLogs.filter(log => {
       // Type Filter
-      if (filterType === 'AUTH') {
+      if (filterType === 'STAFF') {
+        const isStaffRole = (log.actorRole || '').toUpperCase().includes('STAFF');
+        const isStaffAction = 
+          log.action.includes('STAFF') || 
+          log.action.includes('LEAVE') || 
+          log.action.includes('DOCUMENT') || 
+          log.action.includes('AVATAR') || 
+          log.action.includes('PROFILE') || 
+          log.action.includes('PIN') || 
+          log.action.includes('USERNAME') || 
+          log.action.includes('CERTIFICATE') ||
+          log.action.includes('PAYSLIP');
+        if (!isStaffRole && !isStaffAction) {
+          return false;
+        }
+      } else if (filterType === 'AUTH') {
         if (!log.action.includes('LOGIN') && !log.action.includes('LOGOUT') && !log.action.includes('REGISTER') && !log.action.includes('DENIED')) {
           return false;
         }
@@ -53,6 +68,9 @@ export default function AuditLogViewer() {
     if (action.includes('VIEW_ENCRYPTED') || action.includes('WARNING')) {
       return 'bg-amber-100 text-amber-800 border border-amber-300';
     }
+    if (action.includes('STAFF') || action.includes('LEAVE') || action.includes('DOCUMENT') || action.includes('PROFILE') || action.includes('AVATAR') || action.includes('PAYSLIP')) {
+      return 'bg-indigo-100 text-indigo-800 border border-indigo-200';
+    }
     return 'bg-blue-100 text-blue-800 border border-blue-200';
   };
 
@@ -67,23 +85,23 @@ export default function AuditLogViewer() {
             </span>
           </h3>
           <p className="text-[11px] text-slate-500">
-            Immutable ledger of authentication, punch events, unauthorized attempts & security actions
+            Immutable ledger of staff activities, onboarding updates, shift punches, document vault actions, logins & security events
           </p>
         </div>
 
         {/* Filter Controls */}
         <div className="flex flex-wrap items-center gap-2">
           <div className="flex items-center gap-1 bg-slate-100 p-0.5 rounded-lg text-[10px] font-bold">
-            {(['ALL', 'AUTH', 'PUNCH', 'SECURITY'] as const).map(type => (
+            {(['ALL', 'STAFF', 'AUTH', 'PUNCH', 'SECURITY'] as const).map(type => (
               <button
                 key={type}
                 type="button"
                 onClick={() => setFilterType(type)}
-                className={`px-2.5 py-1 rounded-md transition ${
-                  filterType === type ? 'bg-white text-slate-900 shadow-2xs' : 'text-slate-500 hover:text-slate-800'
+                className={`px-2.5 py-1 rounded-md transition cursor-pointer ${
+                  filterType === type ? 'bg-white text-slate-900 shadow-2xs font-bold' : 'text-slate-500 hover:text-slate-800'
                 }`}
               >
-                {type === 'ALL' ? 'All' : type === 'AUTH' ? 'Logins' : type === 'PUNCH' ? 'Shifts' : 'Security'}
+                {type === 'ALL' ? 'All' : type === 'STAFF' ? 'Staff Activity' : type === 'AUTH' ? 'Logins' : type === 'PUNCH' ? 'Shifts' : 'Security'}
               </button>
             ))}
           </div>
