@@ -192,6 +192,14 @@ export default function EmployeeDetailModal({
                   {status === 'Pending' && <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />}
                   {status}
                 </span>
+                {status === 'Active' && getOnboardingProgress(currentEmp, documentTypes).missingDocuments.length > 0 && (
+                  <span 
+                    className="text-[9.5px] font-bold px-2 py-0.5 rounded-md border inline-flex items-center gap-1 bg-amber-500/20 text-amber-300 border-amber-400/40"
+                    title={`Pending Required Documents: ${getOnboardingProgress(currentEmp, documentTypes).missingDocuments.join(', ')}`}
+                  >
+                    <span>⚠️ Pending Document to Upload ({getOnboardingProgress(currentEmp, documentTypes).missingDocuments.length})</span>
+                  </span>
+                )}
                 <span className="text-[10px] font-bold text-slate-300 bg-slate-800 px-2 py-0.5 rounded border border-slate-700">
                   {department || 'Unassigned Dept'}
                 </span>
@@ -296,7 +304,7 @@ export default function EmployeeDetailModal({
           <div className="p-6 space-y-6 max-h-[62vh] overflow-y-auto text-xs">
             
             {/* Self-Onboarding Status Info Banner */}
-            {currentEmp.status === 'Pending' && (() => {
+            {(currentEmp.status === 'Pending' || getOnboardingProgress(currentEmp, documentTypes).missingDocuments.length > 0) && (() => {
               const progress = getOnboardingProgress(currentEmp, documentTypes);
               const profileInfoSections = progress.sections.filter(s => s.id !== 'DOCUMENTS');
               const isAllProfileInfoDone = profileInfoSections.length > 0 && profileInfoSections.every(s => s.isDone);

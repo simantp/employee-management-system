@@ -3,6 +3,7 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { useApp } from '@/lib/store';
 import SydneyClock from './SydneyClock';
+import { getOnboardingProgress } from '@/lib/onboarding';
 
 export interface ActivityNotificationItem {
   id: string;
@@ -42,6 +43,7 @@ export default function Topbar({
     unreadStaffCount,
     currentStaff,
     currentStaffId,
+    documentTypes,
     markNotificationRead,
     markAllNotificationsRead,
     showChangePasswordModal,
@@ -272,6 +274,26 @@ export default function Topbar({
         });
       });
 
+      // 2b. Compulsory Documents Pending Notification for Staff
+      const docProgress = getOnboardingProgress(currentStaff, documentTypes);
+      if (docProgress.missingDocuments.length > 0) {
+        const itemId = `doc-pending-${currentStaff?.id || 'me'}`;
+        list.push({
+          id: itemId,
+          source: 'COMPLIANCE',
+          badge: 'ACTION REQ',
+          badgeColor: 'bg-amber-100 text-amber-900 border-amber-300 font-extrabold',
+          title: `Compulsory Documents Required (${docProgress.missingDocuments.length} Missing)`,
+          description: `Mandatory documents pending upload: ${docProgress.missingDocuments.join(', ')}. All operational tabs remain locked until uploaded.`,
+          timestamp: 'Urgent',
+          rawTimestamp: Date.now() + 500000,
+          actorName: 'HsCreations Compliance',
+          actorAvatar: currentStaff?.avatarUrl,
+          isUnread: !viewedActionIds.includes(itemId),
+          targetTab: 'profile',
+        });
+      }
+
       // 3. Real-time Notification Center items
       const relevantNotifs = notifications.filter(n => {
         if (n.recipient !== 'STAFF' && n.recipient !== 'ALL') return false;
@@ -359,7 +381,7 @@ export default function Topbar({
     });
 
     return list;
-  }, [leaveRequests, employees, alerts, timecards, notifications, isAdmin, currentUser, currentStaff, currentStaffId, viewedActionIds]);
+  }, [leaveRequests, employees, alerts, timecards, notifications, isAdmin, currentUser, currentStaff, currentStaffId, viewedActionIds, documentTypes]);
 
   // Sydney Timezone date checking helper
   const isTodaySydney = (rawTime?: number | string) => {

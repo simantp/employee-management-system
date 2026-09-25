@@ -52,19 +52,21 @@ export default function StaffSidebar({
       {/* Main Navigation with Curved Active Tab */}
       <div className="flex-1 overflow-y-auto pt-2 space-y-1 scrollbar-none">
         {navItems.map(item => {
-          const isActive = activeTab === item.id;
           const isItemLocked = isIncomplete && item.id === 'timesheet';
+          const isActive = !isItemLocked && activeTab === item.id;
           
           return (
             <div key={item.id} className="relative pl-3">
               <button
-                onClick={() => handleNav(item.id)}
-                className={`w-full flex items-center justify-between px-4 py-3 text-xs transition-all duration-150 cursor-pointer ${
-                  isActive
+                disabled={isItemLocked}
+                onClick={() => !isItemLocked && handleNav(item.id)}
+                title={isItemLocked ? `Locked: Pending compulsory document(s) (${progress.missingDocuments.join(', ')})` : undefined}
+                className={`w-full flex items-center justify-between px-4 py-3 text-xs transition-all duration-150 ${
+                  isItemLocked
+                    ? 'rounded-2xl text-purple-300/40 bg-white/5 cursor-not-allowed opacity-60 pr-4'
+                    : isActive
                     ? 'curved-active-tab font-bold text-[#453a6a]'
-                    : isItemLocked
-                    ? 'rounded-2xl text-purple-200/50 hover:text-purple-200 hover:bg-white/5 font-medium pr-4'
-                    : 'rounded-2xl text-purple-200/75 hover:text-white hover:bg-white/10 font-medium pr-4'
+                    : 'rounded-2xl text-purple-200/75 hover:text-white hover:bg-white/10 font-medium pr-4 cursor-pointer'
                 }`}
               >
                 <div className="flex items-center gap-3 min-w-0">
@@ -107,22 +109,24 @@ export default function StaffSidebar({
 
         <div className="relative pl-3">
           <button
-            onClick={() => handleNav('leave')}
-            className={`w-full flex items-center justify-between px-4 py-2.5 text-xs transition-all duration-150 cursor-pointer ${
-              activeTab === 'leave'
+            disabled={isIncomplete}
+            onClick={() => !isIncomplete && handleNav('leave')}
+            title={isIncomplete ? `Locked: Pending compulsory document(s) (${progress.missingDocuments.join(', ')})` : undefined}
+            className={`w-full flex items-center justify-between px-4 py-2.5 text-xs transition-all duration-150 ${
+              isIncomplete
+                ? 'rounded-2xl text-purple-300/40 bg-white/5 cursor-not-allowed opacity-60 pr-4'
+                : activeTab === 'leave'
                 ? 'curved-active-tab font-bold text-[#453a6a]'
-                : isIncomplete
-                ? 'rounded-2xl text-purple-200/50 hover:text-purple-200 hover:bg-white/5 font-medium pr-4'
-                : 'rounded-2xl text-purple-200/75 hover:text-white hover:bg-white/10 font-medium pr-4'
+                : 'rounded-2xl text-purple-200/75 hover:text-white hover:bg-white/10 font-medium pr-4 cursor-pointer'
             }`}
           >
             <div className="flex items-center gap-3 min-w-0">
-              {activeTab === 'leave' && <span className="w-2 h-2 rounded-full bg-[#453a6a] flex-shrink-0 animate-pulse" />}
+              {!isIncomplete && activeTab === 'leave' && <span className="w-2 h-2 rounded-full bg-[#453a6a] flex-shrink-0 animate-pulse" />}
               <span className="truncate">Leave Management</span>
             </div>
             {isIncomplete && (
               <span className="text-[10px] text-amber-300 font-bold px-1.5 py-0.5 rounded bg-amber-500/20 border border-amber-400/30 flex items-center gap-1">
-                🔒
+                🔒 Locked
               </span>
             )}
           </button>
@@ -146,22 +150,24 @@ export default function StaffSidebar({
 
         <div className="relative pl-3">
           <button
-            onClick={() => handleNav('resignation')}
-            className={`w-full flex items-center justify-between px-4 py-2.5 text-xs transition-all duration-150 cursor-pointer ${
-              activeTab === 'resignation'
+            disabled={isIncomplete}
+            onClick={() => !isIncomplete && handleNav('resignation')}
+            title={isIncomplete ? `Locked: Pending compulsory document(s) (${progress.missingDocuments.join(', ')})` : undefined}
+            className={`w-full flex items-center justify-between px-4 py-2.5 text-xs transition-all duration-150 ${
+              isIncomplete
+                ? 'rounded-2xl text-purple-300/40 bg-white/5 cursor-not-allowed opacity-60 pr-4'
+                : activeTab === 'resignation'
                 ? 'curved-active-tab font-bold text-[#453a6a]'
-                : isIncomplete
-                ? 'rounded-2xl text-purple-200/50 hover:text-purple-200 hover:bg-white/5 font-medium pr-4'
-                : 'rounded-2xl text-purple-200/75 hover:text-rose-300 hover:bg-rose-500/10 font-medium pr-4'
+                : 'rounded-2xl text-purple-200/75 hover:text-rose-300 hover:bg-rose-500/10 font-medium pr-4 cursor-pointer'
             }`}
           >
             <div className="flex items-center gap-3 min-w-0">
-              {activeTab === 'resignation' && <span className="w-2 h-2 rounded-full bg-rose-600 flex-shrink-0 animate-pulse" />}
+              {!isIncomplete && activeTab === 'resignation' && <span className="w-2 h-2 rounded-full bg-rose-600 flex-shrink-0 animate-pulse" />}
               <span className="truncate">Resignation Notice</span>
             </div>
             {isIncomplete && (
               <span className="text-[10px] text-amber-300 font-bold px-1.5 py-0.5 rounded bg-amber-500/20 border border-amber-400/30 flex items-center gap-1">
-                🔒
+                🔒 Locked
               </span>
             )}
           </button>

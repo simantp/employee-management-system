@@ -23,10 +23,10 @@ export default function EmployeeManagementView({
   // Modal for Archive / Unarchive confirmation
   const [employeeToArchive, setEmployeeToArchive] = useState<Employee | null>(null);
 
-  // Effective status calculation ensuring 100% completed profiles are always treated as Active
+  // Effective status calculation: 4 profile info sections completed = Active
   const getEffectiveStatus = (emp: Employee) => {
     const progress = getOnboardingProgress(emp, documentTypes);
-    if (emp.status === 'Pending' && progress.isComplete) {
+    if (emp.status === 'Pending' && progress.isProfileInfoComplete) {
       return 'Active';
     }
     return emp.status;
@@ -266,19 +266,35 @@ export default function EmployeeManagementView({
                         }
 
                         return (
-                          <span className={`px-2.5 py-1 rounded-full text-[10px] font-black border inline-flex items-center gap-1.5 ${
-                            effStatus === 'Active' 
-                              ? 'bg-emerald-50 text-emerald-700 border-emerald-200' 
-                              : effStatus === 'On Leave' 
-                              ? 'bg-blue-50 text-blue-700 border-blue-200' 
-                              : effStatus === 'Archived'
-                              ? 'bg-purple-50 text-purple-700 border-purple-200 font-black'
-                              : 'bg-slate-100 text-slate-600 border-slate-200'
-                          }`}>
-                            {effStatus === 'Active' && <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />}
-                            {effStatus === 'Archived' && <span className="w-1.5 h-1.5 rounded-full bg-purple-500" />}
-                            {effStatus}
-                          </span>
+                          <div className="space-y-1">
+                            <div>
+                              <span className={`px-2.5 py-1 rounded-full text-[10px] font-black border inline-flex items-center gap-1.5 ${
+                                effStatus === 'Active' 
+                                  ? 'bg-emerald-50 text-emerald-700 border-emerald-200' 
+                                  : effStatus === 'On Leave' 
+                                  ? 'bg-blue-50 text-blue-700 border-blue-200' 
+                                  : effStatus === 'Archived'
+                                  ? 'bg-purple-50 text-purple-700 border-purple-200 font-black'
+                                  : 'bg-slate-100 text-slate-600 border-slate-200'
+                              }`}>
+                                {effStatus === 'Active' && <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />}
+                                {effStatus === 'Archived' && <span className="w-1.5 h-1.5 rounded-full bg-purple-500" />}
+                                {effStatus}
+                              </span>
+                            </div>
+                            {/* Below Active: show pending document badge */}
+                            {effStatus === 'Active' && progress.missingDocuments.length > 0 && (
+                              <div>
+                                <span 
+                                  className="px-2 py-0.5 rounded-md text-[9.5px] font-bold inline-flex items-center gap-1 bg-amber-50 text-amber-900 border border-amber-300 shadow-2xs"
+                                  title={`Pending Required Documents to Upload: ${progress.missingDocuments.join(', ')}`}
+                                >
+                                  <span className="text-amber-500 font-extrabold">⚠️</span>
+                                  <span>Pending Document to Upload ({progress.missingDocuments.length})</span>
+                                </span>
+                              </div>
+                            )}
+                          </div>
                         );
                       })()}
                     </td>
@@ -286,11 +302,16 @@ export default function EmployeeManagementView({
                     {/* Actions: Remind, Manage, Archive/Unarchive */}
                     <td className="py-3.5 px-5 text-right" onClick={e => e.stopPropagation()}>
                       <div className="flex items-center justify-end gap-1.5">
-                        {getEffectiveStatus(emp) === 'Pending' && (() => {
+                        {(() => {
                           const progress = getOnboardingProgress(emp, documentTypes);
+                          const effStatus = getEffectiveStatus(emp);
+                          if (progress.missingDocuments.length === 0 && (effStatus === 'Active' || progress.isComplete)) return null;
+
                           const profileInfoSections = progress.sections.filter(s => s.id !== 'DOCUMENTS');
                           const isAllProfileInfoDone = profileInfoSections.length > 0 && profileInfoSections.every(s => s.isDone);
                           const isOnlyDocPending = isAllProfileInfoDone && progress.missingDocuments.length > 0;
+
+                          if (effStatus !== 'Pending' && !isOnlyDocPending) return null;
 
                           if (isOnlyDocPending) {
                             return (

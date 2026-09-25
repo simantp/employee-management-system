@@ -115,19 +115,28 @@ export default function StaffOnboardingBanner() {
 
         {/* Compulsory Documents Notice */}
         {hasPendingDocs && (
-          <div className="flex items-start gap-3 p-3.5 rounded-2xl bg-amber-50/90 border border-amber-300 text-amber-950 text-xs shadow-xs">
-            <div className="px-2 py-0.5 rounded-md bg-amber-200 text-amber-950 font-extrabold text-[10px] tracking-wide shrink-0 uppercase mt-0.5">
-              Action Required
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 rounded-2xl bg-amber-50/90 border-2 border-amber-300 text-amber-950 text-xs shadow-xs">
+            <div className="flex items-start gap-3">
+              <div className="px-2 py-0.5 rounded-md bg-amber-200 text-amber-950 font-extrabold text-[10px] tracking-wide shrink-0 uppercase mt-0.5">
+                Action Required
+              </div>
+              <div className="space-y-0.5">
+                <p className="font-extrabold text-slate-900 text-xs">
+                  Pending Compulsory Documents to Upload Before All Tabs Are Active
+                </p>
+                <p className="text-slate-600 leading-relaxed text-[11px]">
+                  You have pending required document{progress.missingDocuments.length > 1 ? 's' : ''} to upload: <span className="font-bold text-rose-700">{progress.missingDocuments.join(', ')}</span>.
+                  All operational tabs (Timesheet records, Leave management, etc.) will unlock once these documents are uploaded.
+                </p>
+              </div>
             </div>
-            <div className="space-y-0.5">
-              <p className="font-extrabold text-slate-900">
-                Pending Compulsory Documents to Upload Before All Tabs Are Active
-              </p>
-              <p className="text-slate-600 leading-relaxed">
-                You have pending required document{progress.missingDocuments.length > 1 ? 's' : ''} to upload: <span className="font-bold text-amber-900">{progress.missingDocuments.join(', ')}</span>.
-                All operational tabs (Timesheet records, Leave management, etc.) will unlock once these documents are uploaded.
-              </p>
-            </div>
+            <button
+              type="button"
+              onClick={() => setActiveModal('DOCUMENTS')}
+              className="px-4 py-2 rounded-xl bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-500 hover:to-orange-500 text-white font-extrabold text-xs shadow-sm cursor-pointer whitespace-nowrap shrink-0 self-start sm:self-center"
+            >
+              Upload Pending Documents →
+            </button>
           </div>
         )}
 

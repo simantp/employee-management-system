@@ -235,41 +235,46 @@ export default function StaffDashboard({
   if (isProfileIncomplete) {
     return (
       <div className="p-6 lg:p-8 space-y-6 max-w-7xl mx-auto animate-in fade-in duration-200 text-xs font-sans">
-        {/* Onboarding Profile Completion Banner */}
-        <StaffOnboardingBanner />
-
-        {/* Locked Portal Features Notice */}
-        {onboardingProgress.isProfileInfoComplete && onboardingProgress.missingDocuments.length > 0 ? (
-          <div className="bg-white rounded-3xl p-6 sm:p-7 border border-amber-300 shadow-sm space-y-4">
-            <div className="flex items-center gap-3">
-              <span className="text-xl">📄</span>
-              <div>
-                <h3 className="text-sm font-black text-slate-800 tracking-tight flex items-center gap-2">
-                  <span>Portal Features Locked: Compulsory Documents Pending</span>
-                  <span className="px-2 py-0.5 rounded-full bg-rose-100 text-rose-800 border border-rose-300 font-extrabold text-[10px]">
-                    {onboardingProgress.missingDocuments.length} Pending
-                  </span>
-                </h3>
-                <p className="text-slate-500 text-xs mt-0.5">
-                  Your 4 profile information sections are complete (Status: Active). However, timesheets, shift records, leave applications, and resignation workflows remain locked until all compulsory compliance documents are uploaded.
-                </p>
-              </div>
-            </div>
-
-            <div className="p-4 rounded-2xl bg-amber-50/80 border border-amber-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-              <div className="text-xs text-amber-950">
-                <span className="font-bold">Pending Document(s):</span>{' '}
-                <span className="font-semibold text-rose-700">{onboardingProgress.missingDocuments.join(', ')}</span>
+        {/* Prominent Alert Card when Profile Info is complete but Compulsory Documents are pending */}
+        {onboardingProgress.isProfileInfoComplete && onboardingProgress.missingDocuments.length > 0 && (
+          <div className="rounded-3xl bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 p-5 sm:p-6 text-white shadow-lg space-y-3">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div className="flex items-start sm:items-center gap-3.5">
+                <div className="w-12 h-12 rounded-2xl bg-white/20 border border-white/30 flex items-center justify-center text-2xl shrink-0 shadow-inner">
+                  📄
+                </div>
+                <div className="space-y-0.5">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <h3 className="text-base sm:text-lg font-black tracking-tight text-white">
+                      Action Required: Pending Compulsory Document{onboardingProgress.missingDocuments.length > 1 ? 's' : ''} to Upload
+                    </h3>
+                    <span className="px-2.5 py-0.5 rounded-full bg-white text-amber-900 font-black text-[10px] shadow-xs">
+                      {onboardingProgress.missingDocuments.length} Required
+                    </span>
+                  </div>
+                  <p className="text-amber-100 text-xs leading-relaxed max-w-2xl">
+                    Your 4 profile sections are complete and your account is <strong>Active</strong>. However, operational features (Timesheets, Shift punch, Leave Requests, and Resignation) will remain locked until your compulsory documents are uploaded.
+                  </p>
+                  <p className="text-white font-bold text-xs pt-0.5">
+                    Pending upload: <span className="underline decoration-amber-200">{onboardingProgress.missingDocuments.join(', ')}</span>
+                  </p>
+                </div>
               </div>
               <button
                 onClick={() => setActiveModal('DOCUMENTS')}
-                className="px-4 py-2 rounded-xl bg-gradient-to-r from-rose-600 to-amber-600 hover:from-rose-500 hover:to-amber-500 text-white font-bold text-xs shadow-sm cursor-pointer whitespace-nowrap"
+                className="px-5 py-3 rounded-2xl bg-white hover:bg-amber-50 text-amber-900 font-extrabold text-xs shadow-md transition cursor-pointer shrink-0 text-center"
               >
                 Upload Required Documents →
               </button>
             </div>
           </div>
-        ) : (
+        )}
+
+        {/* Onboarding Profile Completion Banner */}
+        <StaffOnboardingBanner />
+
+        {/* Locked Portal Features Notice for Incomplete Profile Setup */}
+        {!onboardingProgress.isProfileInfoComplete && (
           <div className="bg-white rounded-3xl p-6 sm:p-7 border border-amber-200 shadow-sm space-y-4">
             <div className="flex items-center gap-3">
               <span className="text-xl">🔒</span>

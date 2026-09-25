@@ -285,7 +285,7 @@ export default function EmployeeDocumentsTab({ employeeId }: { employeeId: strin
       </div>
 
       {/* Compulsory Documents Missing Alert Banner for Pending Staff */}
-      {currentEmp.status === 'Pending' && progress.missingDocuments.length > 0 && (
+      {progress.missingDocuments.length > 0 && (
         <div className="bg-amber-50 border-2 border-amber-300 rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xs">
           <div className="space-y-1">
             <div className="flex items-center gap-2">

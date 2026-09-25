@@ -1826,7 +1826,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
             id: empId,
             updates: {
               status: 'Active',
-              onboardingStatus: 'COMPLETED',
+              onboardingStatus: targetEmp.onboardingStatus,
               profileCompletedAt: targetEmp.profileCompletedAt,
             }
           }),
@@ -1834,18 +1834,21 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       } catch (e) {}
 
       // Audit log & Notifications
-      addAudit('PROFILE_ONBOARDING_COMPLETED', 'Employee', empId, `Staff member ${empName} completed all 4 profile sections and status transitioned to fully ACTIVE.`);
+      addAudit('PROFILE_ONBOARDING_COMPLETED', 'Employee', empId, `Staff member ${empName} completed all 4 profile sections and status transitioned to ACTIVE.`);
       
-      const adminNotif: NotificationItem = {
-        id: 'notif-active-' + Date.now(),
-        recipient: 'ADMIN',
-        title: 'Staff Onboarding Completed: Active',
-        message: `${empName} (${targetEmp.email}) completed all required profile sections. Status is now fully Active.`,
-        type: 'PROFILE_UPDATE',
-        timestamp: 'Just now',
-        read: false,
-      };
-      dispatchNotification(adminNotif);
+      // Notify Admin ONLY when staff is fully active (all 4 sections AND all compulsory documents uploaded)
+      if (targetEmp.onboardingStatus === 'COMPLETED') {
+        const adminNotif: NotificationItem = {
+          id: 'notif-active-' + Date.now(),
+          recipient: 'ADMIN',
+          title: 'Staff Onboarding Completed: Fully Active',
+          message: `${empName} (${targetEmp.email}) completed all required profile sections and compulsory compliance documents. Staff is now fully Active.`,
+          type: 'PROFILE_UPDATE',
+          timestamp: 'Just now',
+          read: false,
+        };
+        dispatchNotification(adminNotif);
+      }
 
       addToast('Profile Completed!', `Congratulations! Onboarding is complete and your staff account is now fully Active.`, 'success');
       return true;
