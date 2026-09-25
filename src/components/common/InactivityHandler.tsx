@@ -174,11 +174,38 @@ export default function InactivityHandler() {
             logoutRef.current?.();
           } catch (e) {}
         }
+      } else if (e.key === 'ems_security_settings_v1' && e.newValue) {
+        try {
+          const parsed = JSON.parse(e.newValue);
+          if (parsed && typeof parsed === 'object') {
+            securitySettingsRef.current = {
+              ...securitySettingsRef.current,
+              ...parsed,
+              sessionTimeoutMinutes: Number(parsed.sessionTimeoutMinutes) || 1,
+              autoLogoutOnInactivity: parsed.autoLogoutOnInactivity !== false,
+            };
+          }
+        } catch (err) {}
       }
     };
 
     const onVisibilityOrFocus = () => {
       if (!currentUserRef.current || isLoggedOutRef.current) return;
+      try {
+        const saved = localStorage.getItem('ems_security_settings_v1');
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          if (parsed && typeof parsed === 'object') {
+            securitySettingsRef.current = {
+              ...securitySettingsRef.current,
+              ...parsed,
+              sessionTimeoutMinutes: Number(parsed.sessionTimeoutMinutes) || 1,
+              autoLogoutOnInactivity: parsed.autoLogoutOnInactivity !== false,
+            };
+          }
+        }
+      } catch (e) {}
+
       const autoLogout = securitySettingsRef.current?.autoLogoutOnInactivity !== false;
       const timeoutMinutes = securitySettingsRef.current?.sessionTimeoutMinutes ?? 1;
       if (!autoLogout || timeoutMinutes <= 0) return;

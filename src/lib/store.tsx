@@ -592,12 +592,16 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           }
           if (setRes.value.settings.securitySettings) {
             const sec = setRes.value.settings.securitySettings;
-            setSecuritySettings(prev => ({
-              ...prev,
+            const mergedSec: SecuritySettings = {
+              ...INITIAL_SECURITY_SETTINGS,
               ...sec,
               sessionTimeoutMinutes: Number(sec.sessionTimeoutMinutes) || 1,
               autoLogoutOnInactivity: sec.autoLogoutOnInactivity !== false,
-            }));
+            };
+            setSecuritySettings(mergedSec);
+            try {
+              localStorage.setItem('ems_security_settings_v1', JSON.stringify(mergedSec));
+            } catch (e) {}
           }
         }
 
@@ -684,6 +688,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       localStorage.setItem('ems_expiry_settings_v1', JSON.stringify(expirySettings));
     } catch (e) {}
   }, [expirySettings]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('ems_security_settings_v1', JSON.stringify(securitySettings));
+    } catch (e) {}
+  }, [securitySettings]);
 
   useEffect(() => {
     try {
@@ -817,6 +827,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const currentStaffIdRef = React.useRef(currentStaffId);
   const currentStaffRef = React.useRef(currentStaff);
   const notificationsRef = React.useRef(notifications);
+  const settingsSyncCounterRef = React.useRef(0);
 
   useEffect(() => {
     activePortalRef.current = activePortal;
@@ -974,6 +985,16 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           setAnnouncements(JSON.parse(e.newValue));
         } else if (e.key === 'ems_audit_v1') {
           setAuditLogs(JSON.parse(e.newValue));
+        } else if (e.key === 'ems_security_settings_v1') {
+          const parsedSec = JSON.parse(e.newValue);
+          if (parsedSec && typeof parsedSec === 'object') {
+            setSecuritySettings(prev => ({
+              ...prev,
+              ...parsedSec,
+              sessionTimeoutMinutes: Number(parsedSec.sessionTimeoutMinutes) || 1,
+              autoLogoutOnInactivity: parsedSec.autoLogoutOnInactivity !== false,
+            }));
+          }
         }
       } catch (err) {}
     };
@@ -1067,6 +1088,37 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
             }
             return prev;
           });
+        }
+
+        // Periodic sync for security & inactivity settings from server (every 2 cycles ~7s)
+        settingsSyncCounterRef.current = (settingsSyncCounterRef.current || 0) + 1;
+        if (settingsSyncCounterRef.current % 2 === 0) {
+          try {
+            const setFetch = await fetch('/api/settings');
+            if (setFetch.ok) {
+              const setData = await setFetch.json();
+              if (setData?.success && setData.settings?.securitySettings) {
+                const sec = setData.settings.securitySettings;
+                const newTimeout = Number(sec.sessionTimeoutMinutes) || 1;
+                const newAuto = sec.autoLogoutOnInactivity !== false;
+                setSecuritySettings(prev => {
+                  if (prev.sessionTimeoutMinutes !== newTimeout || prev.autoLogoutOnInactivity !== newAuto) {
+                    const updated = {
+                      ...prev,
+                      ...sec,
+                      sessionTimeoutMinutes: newTimeout,
+                      autoLogoutOnInactivity: newAuto,
+                    };
+                    try {
+                      localStorage.setItem('ems_security_settings_v1', JSON.stringify(updated));
+                    } catch (e) {}
+                    return updated;
+                  }
+                  return prev;
+                });
+              }
+            }
+          } catch (e) {}
         }
       } catch (e) {}
     }, 3500);
