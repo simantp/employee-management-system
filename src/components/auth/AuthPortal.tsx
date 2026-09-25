@@ -16,6 +16,7 @@ export default function AuthPortal({ onInviteCompleted }: { onInviteCompleted?: 
     resendOTP, 
     pendingOTP, 
     employees,
+    documentTypes,
     clockInWithKiosk,
     clockOutWithKiosk,
     setPasswordFromInvite,
@@ -275,10 +276,12 @@ export default function AuthPortal({ onInviteCompleted }: { onInviteCompleted?: 
   });
 
   // Calculate onboarding progress of matched employee
-  const matchedStaffProgress = matchedStaff ? getOnboardingProgress(matchedStaff) : null;
-  const isMatchedStaffIncomplete = matchedStaff ? (matchedStaff.status === 'Pending' || !matchedStaffProgress?.isComplete) : false;
+  const matchedStaffProgress = matchedStaff ? getOnboardingProgress(matchedStaff, documentTypes) : null;
+  const isMatchedStaffIncomplete = matchedStaff 
+    ? ((matchedStaff.status === 'Pending' && !matchedStaffProgress?.isProfileInfoComplete) || !matchedStaffProgress?.isComplete) 
+    : false;
 
-  const handleClockIn = () => {
+  const handleClockIn = async () => {
     if (!clockUsername.trim() || !clockPin.trim()) return;
     setPunchError(null);
     const user = clockUsername.trim();
@@ -292,7 +295,7 @@ export default function AuthPortal({ onInviteCompleted }: { onInviteCompleted?: 
     // Clear the input fields immediately once used
     setClockUsername('');
     setClockPin('');
-    const res = clockInWithKiosk(user, pin, { ip: currentIp });
+    const res = await clockInWithKiosk(user, pin, { ip: currentIp });
     if (res.success && res.employee) {
       try {
         confetti({ particleCount: 80, spread: 70, origin: { y: 0.6 } });
@@ -316,7 +319,7 @@ export default function AuthPortal({ onInviteCompleted }: { onInviteCompleted?: 
     }
   };
 
-  const handleClockOut = () => {
+  const handleClockOut = async () => {
     if (!clockUsername.trim() || !clockPin.trim()) return;
     setPunchError(null);
     const user = clockUsername.trim();
@@ -330,7 +333,7 @@ export default function AuthPortal({ onInviteCompleted }: { onInviteCompleted?: 
     // Clear the input fields immediately once used
     setClockUsername('');
     setClockPin('');
-    const res = clockOutWithKiosk(user, pin, 30, { ip: currentIp });
+    const res = await clockOutWithKiosk(user, pin, 30, { ip: currentIp });
     if (res.success && res.employee) {
       try {
         confetti({ particleCount: 80, spread: 70, origin: { y: 0.6 } });

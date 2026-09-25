@@ -7,7 +7,7 @@
     "lastName": "Bhandari",
     "email": "admin@hscreations.com.au",
     "mobilePhone": "0432352798",
-    "dateOfBirth": "",
+    "dateOfBirth": "1988-05-15",
     "startDate": "2011-07-11",
     "gender": "Prefer not to say",
     "address": "24/1-9 Andover St",
@@ -18,12 +18,13 @@
     "jobTitle": "Manager",
     "workLocation": "Sydney, NSW",
     "reportsTo": "Operations Manager",
-    "status": "Pending",
-    "onboardingStatus": "INVITED",
+    "status": "Active",
+    "onboardingStatus": "COMPLETED",
     "inviteToken": "inv-1790246248031-mxxxxn",
     "inviteSentAt": "2026-09-24T10:37:28.031Z",
     "inviteExpiresAt": "2026-09-24T11:37:28.031Z",
     "passwordSetAt": "2026-09-24T10:23:22.478Z",
+    "profileCompletedAt": "2026-09-25 11:36:49",
     "workingHours": 38,
     "workingHoursConfirmed": true,
     "citizenStatus": "PERMANENT_RESIDENT",
@@ -55,6 +56,8 @@
     "superMemberNumber": "10140095",
     "kioskPin": "6196",
     "clockState": "CLOCKED_OUT",
+    "lastClockIn": "2026-09-25T05:51:49.725Z",
+    "lastClockOut": "2026-09-25T05:51:49.880Z",
     "avatarUrl": "",
     "leaveBalance": {
       "annual": 20,
@@ -63,6 +66,29 @@
       "longService": 0
     },
     "payslips": [],
-    "documents": []
+    "documents": [
+      {
+        "id": "doc-test-1",
+        "name": "Passport.pdf",
+        "type": "Passport Copy (Australian / International)",
+        "documentNumber": "N1234567",
+        "uploadDate": "2026-09-25",
+        "status": "Verified",
+        "fileSize": "1.8 MB",
+        "fileType": "image",
+        "previewUrl": "/uploads/passport.pdf"
+      },
+      {
+        "id": "doc-test-2",
+        "name": "EmploymentContract.pdf",
+        "type": "Signed Employment Contract",
+        "documentNumber": "CNT-99",
+        "uploadDate": "2026-09-25",
+        "status": "Verified",
+        "fileSize": "1.8 MB",
+        "fileType": "image",
+        "previewUrl": "/uploads/contract.pdf"
+      }
+    ]
   }
 ]

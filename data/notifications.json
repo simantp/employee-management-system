@@ -1,1 +1,20 @@
-[]
+[
+  {
+    "id": "notif-1790315509880",
+    "recipient": "ADMIN",
+    "title": "Santosh Bhandari Clocked Out",
+    "message": "Santosh Bhandari clocked OUT at 03:51:49 pm (Duration: 00:00:00) from Sydney Main Terminal (127.0.0.1).",
+    "type": "TIMECARD_CLOCK_OUT",
+    "timestamp": "Just now",
+    "read": false
+  },
+  {
+    "id": "notif-1790315509725",
+    "recipient": "ADMIN",
+    "title": "Santosh Bhandari Clocked In",
+    "message": "Santosh Bhandari clocked IN at 03:51:49 pm (Administration) from Sydney Main Terminal (127.0.0.1).",
+    "type": "TIMECARD_CLOCK_IN",
+    "timestamp": "Just now",
+    "read": false
+  }
+]

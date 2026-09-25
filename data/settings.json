@@ -54,7 +54,16 @@
   },
   "ipLockSettings": {
     "enabled": true,
-    "lockedIps": []
+    "lockedIps": [
+      {
+        "id": "ip-local",
+        "ip": "127.0.0.1",
+        "label": "Sydney Main Terminal",
+        "isActive": true,
+        "addedAt": "25 Sep 2026",
+        "addedBy": "Super Admin"
+      }
+    ]
   },
   "smtpSettings": {
     "host": "smtp.gmail.com",

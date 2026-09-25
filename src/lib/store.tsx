@@ -109,13 +109,13 @@ interface AppContextType {
     username: string, 
     pin: string, 
     options?: { ip?: string; device?: string }
-  ) => { success: boolean; message: string; employee?: Employee; ipStatus?: string; workstationLabel?: string; ipAddress?: string };
+  ) => Promise<{ success: boolean; message: string; employee?: Employee; ipStatus?: string; workstationLabel?: string; ipAddress?: string; timecard?: TimecardRecord }>;
   clockOutWithKiosk: (
     username: string, 
     pin: string, 
     breakMinutes?: number, 
     options?: { ip?: string; device?: string }
-  ) => { success: boolean; message: string; employee?: Employee; totalHours?: number; ipStatus?: string; workstationLabel?: string; ipAddress?: string };
+  ) => Promise<{ success: boolean; message: string; employee?: Employee; totalHours?: number; ipStatus?: string; workstationLabel?: string; ipAddress?: string; timecard?: TimecardRecord }>;
   adminClockOutStaff: (employeeId: string, options?: { breakMinutes?: number; note?: string }) => { success: boolean; message: string; totalHours?: number };
   updateStaffUsername: (empId: string, newUsername: string) => { success: boolean; message?: string };
   updateStaffKioskPin: (empId: string, newPin: string) => void;
@@ -4237,11 +4237,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   const activeWorkingStaffCount = employees.filter(e => e.status !== 'Archived' && e.status !== 'Terminated' && e.clockState === 'CLOCKED_IN').length;
 
-  const clockInWithKiosk = (
+  const clockInWithKiosk = async (
     username: string, 
     pin: string, 
     options?: { ip?: string; device?: string }
-  ): { success: boolean; message: string; employee?: Employee; ipStatus?: string; workstationLabel?: string; ipAddress?: string } => {
+  ): Promise<{ success: boolean; message: string; employee?: Employee; ipStatus?: string; workstationLabel?: string; ipAddress?: string; timecard?: TimecardRecord }> => {
     const cleanUser = username.trim().toLowerCase();
     const cleanPin = pin.trim();
 
@@ -4258,45 +4258,35 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       return matchUser && matchPin;
     });
 
-    if (!emp) {
-      addToast('Invalid Credentials', 'No employee found matching this Username and 4-digit PIN combination.', 'error');
-      addAudit(
-        'CLOCK_IN_FAILED_UNAUTHORIZED',
-        'ShiftTerminal',
-        cleanUser || 'unknown',
-        `Unauthorized shift clock-in attempt with invalid username "${cleanUser}" or PIN from IP ${options?.ip || '192.168.1.100'}. Punch rejected.`,
-        cleanUser || 'Anonymous',
-        'Unknown'
-      );
-      return { success: false, message: 'Invalid Username or 4-digit PIN.' };
-    }
-
-    if (emp.status === 'Archived') {
+    if (emp && emp.status === 'Archived') {
       addToast('Account Archived', 'This staff account has been archived. Shift Clock punch access is disabled. Please contact HR or your manager.', 'error');
       addAudit('CLOCK_IN_BLOCKED_ARCHIVED', 'Employee', emp.id, `Archived staff member ${emp.firstName} ${emp.lastName} attempted to clock in via Shift Terminal. Access denied.`, `${emp.firstName} ${emp.lastName}`, 'Staff');
       return { success: false, message: 'Your staff account has been archived. Clock-in access is disabled.' };
     }
 
-    const onboarding = getOnboardingProgress(emp);
-    if (emp.status === 'Pending' || !onboarding.isComplete) {
-      addToast('Profile Incomplete', `Your profile is only ${onboarding.percent}% complete. Please complete 100% of your onboarding before clocking in.`, 'error');
-      addAudit(
-        'CLOCK_IN_BLOCKED_INCOMPLETE_PROFILE',
-        'Employee',
-        emp.id,
-        `${emp.firstName} ${emp.lastName} attempted shift punch with incomplete profile (${onboarding.percent}% complete, missing: ${onboarding.missingSectionTitles.join(', ')}). Punch rejected.`,
-        `${emp.firstName} ${emp.lastName}`,
-        'Staff'
-      );
-      return { 
-        success: false, 
-        message: `Shift Clock Locked: Your profile is ${onboarding.percent}% complete (Missing: ${onboarding.missingSectionTitles.join(', ')}). You must complete 100% of your profile in the Staff Portal before clocking in.` 
-      };
-    }
+    if (emp) {
+      const onboarding = getOnboardingProgress(emp, documentTypes);
+      const isPendingIncomplete = emp.status === 'Pending' && !onboarding.isProfileInfoComplete;
+      if (isPendingIncomplete || !onboarding.isComplete) {
+        addToast('Profile Incomplete', `Your profile is only ${onboarding.percent}% complete. Please complete 100% of your onboarding before clocking in.`, 'error');
+        addAudit(
+          'CLOCK_IN_BLOCKED_INCOMPLETE_PROFILE',
+          'Employee',
+          emp.id,
+          `${emp.firstName} ${emp.lastName} attempted shift punch with incomplete profile (${onboarding.percent}% complete, missing: ${onboarding.missingSectionTitles.join(', ')}). Punch rejected.`,
+          `${emp.firstName} ${emp.lastName}`,
+          'Staff'
+        );
+        return { 
+          success: false, 
+          message: `Shift Clock Locked: Your profile is ${onboarding.percent}% complete (Missing: ${onboarding.missingSectionTitles.join(', ')}). You must complete 100% of your profile in the Staff Portal before clocking in.` 
+        };
+      }
 
-    if (emp.clockState === 'CLOCKED_IN') {
-      addToast('Already Clocked In', `${emp.firstName} is currently on shift. Please select Clock Out.`, 'warning');
-      return { success: false, message: `${emp.firstName} is already clocked in.`, employee: emp };
+      if (emp.clockState === 'CLOCKED_IN') {
+        addToast('Already Clocked In', `${emp.firstName} is currently on shift. Please select Clock Out.`, 'warning');
+        return { success: false, message: `${emp.firstName} is already clocked in.`, employee: emp };
+      }
     }
 
     // Workstation IP Verification
@@ -4306,7 +4296,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
     if (!ipEval.isAllowed) {
       addToast('Workstation IP Blocked', ipEval.message, 'error');
-      addAudit('CLOCK_IN_BLOCKED_UNAUTHORIZED_IP', 'Employee', emp.id, `${emp.firstName} ${emp.lastName} attempted clock-in from unauthorized workstation IP (${clientIp}). Punch rejected by Workstation IP Lock policy.`, `${emp.firstName} ${emp.lastName}`, 'Staff');
+      if (emp) {
+        addAudit('CLOCK_IN_BLOCKED_UNAUTHORIZED_IP', 'Employee', emp.id, `${emp.firstName} ${emp.lastName} attempted clock-in from unauthorized workstation IP (${clientIp}). Punch rejected by Workstation IP Lock policy.`, `${emp.firstName} ${emp.lastName}`, 'Staff');
+      }
       return { 
         success: false, 
         message: ipEval.message, 
@@ -4324,47 +4316,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     const shiftId = 'tc-' + nowMs;
     const notifId = 'notif-' + nowMs;
 
-    const newTimecard: TimecardRecord = {
-      id: shiftId,
-      employeeId: emp.id,
-      employeeName: `${emp.firstName} ${emp.lastName}`,
-      employeeAvatar: emp.avatarUrl,
-      department: emp.department || 'General Operations',
-      date: dateStr,
-      clockIn: timeStr,
-      clockInTimestamp: nowMs,
-      clockInIp: ipEval.clientIp,
-      clockInWorkstation: ipEval.workstationLabel,
-      breakMinutes: 0,
-      totalHours: 0,
-      durationSeconds: 0,
-      overtimeHours: 0,
-      status: 'CLOCKED_IN',
-      notes: `Clocked in via ${ipEval.workstationLabel} (IP: ${ipEval.clientIp})`,
-      ipAddress: ipEval.clientIp,
-      workstationLabel: ipEval.workstationLabel,
-      deviceInfo: device,
-      ipStatus: ipEval.status,
-    };
-
-    setTimecards(prev => [newTimecard, ...prev]);
-
-    const updatedEmp: Employee = {
-      ...emp,
-      clockState: 'CLOCKED_IN',
-      lastClockIn: now.toISOString(),
-      clockInTimestamp: nowMs,
-      currentShiftId: shiftId,
-    };
-    setEmployees(prev => prev.map(e => e.id === emp.id ? updatedEmp : e));
-
     // Register local toast suppression before server call
     toastedNotifIdsRef.current.add(notifId);
     localActionAlertsRef.current.add(notifId);
 
-    // Verified Server Shift Punch Sync (MySQL + Audit + Notifications)
+    // Call server punch endpoint
     try {
-      fetch('/api/timecards/punch', {
+      const resp = await fetch('/api/timecards/punch', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -4376,48 +4334,139 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           workstationLabel: ipEval.workstationLabel,
           notifId,
         }),
-      }).catch(err => console.warn('Verified punch server sync warning:', err));
-    } catch (e) {}
+      });
 
-    // Instant SuperAdmin Notification
-    const newNotif: NotificationItem = {
-      id: notifId,
-      recipient: 'ADMIN',
-      title: `${emp.firstName} ${emp.lastName} Clocked In`,
-      message: `${emp.firstName} ${emp.lastName} clocked IN at ${timeStr} (${emp.department || 'Production'}) from ${ipEval.workstationLabel} (${ipEval.clientIp}).`,
-      type: 'TIMECARD_CLOCK_IN',
-      timestamp: 'Just now',
-      read: false
-    };
-    setNotifications(prev => [newNotif, ...prev]);
+      const serverData = await resp.json().catch(() => ({}));
 
-    addToast('Clock-In Successful', `Welcome ${emp.firstName}! Clocked in from ${ipEval.workstationLabel}.`, 'success');
-    
-    addAudit(
-      'SHIFT_CLOCK_IN',
-      'Timecard', 
-      shiftId, 
-      `${emp.firstName} ${emp.lastName} clocked IN at ${timeStr} from ${ipEval.workstationLabel} (IP: ${clientIp})`, 
-      `${emp.firstName} ${emp.lastName}`, 
-      'Staff'
-    );
+      if (!resp.ok || !serverData.success) {
+        const errorMsg = serverData.message || 'Shift punch failed on server.';
+        addToast('Clock-In Failed', errorMsg, 'error');
+        return { 
+          success: false, 
+          message: errorMsg, 
+          employee: emp,
+          ipAddress: ipEval.clientIp,
+          workstationLabel: ipEval.workstationLabel,
+          ipStatus: ipEval.status,
+        };
+      }
 
-    return { 
-      success: true, 
-      message: `Successfully clocked in at ${timeStr} from ${ipEval.workstationLabel}`, 
-      employee: updatedEmp,
-      ipAddress: clientIp,
-      workstationLabel: ipEval.workstationLabel,
-      ipStatus: ipEval.status
-    };
+      const activeEmp: Employee = serverData.employee || (emp ? {
+        ...emp,
+        clockState: 'CLOCKED_IN',
+        lastClockIn: now.toISOString(),
+        clockInTimestamp: nowMs,
+        currentShiftId: shiftId,
+      } : {
+        id: 'emp-unknown',
+        employeeNumber: 'EMP-TEMP',
+        firstName: cleanUser,
+        lastName: '',
+        email: `${cleanUser}@domain.com`,
+        mobilePhone: '',
+        status: 'Active',
+        clockState: 'CLOCKED_IN',
+        lastClockIn: now.toISOString(),
+        clockInTimestamp: nowMs,
+        currentShiftId: shiftId,
+      } as any);
+
+      const activeTimecard: TimecardRecord = serverData.timecard || {
+        id: shiftId,
+        employeeId: activeEmp.id,
+        employeeName: `${activeEmp.firstName} ${activeEmp.lastName}`,
+        employeeAvatar: activeEmp.avatarUrl,
+        department: activeEmp.department || 'General Operations',
+        date: dateStr,
+        clockIn: timeStr,
+        clockInTimestamp: nowMs,
+        clockInIp: ipEval.clientIp,
+        clockInWorkstation: ipEval.workstationLabel,
+        breakMinutes: 0,
+        totalHours: 0,
+        durationSeconds: 0,
+        overtimeHours: 0,
+        status: 'CLOCKED_IN',
+        notes: `Clocked in via ${ipEval.workstationLabel} (IP: ${ipEval.clientIp})`,
+        ipAddress: ipEval.clientIp,
+        workstationLabel: ipEval.workstationLabel,
+        deviceInfo: device,
+        ipStatus: ipEval.status,
+      };
+
+      // 1. Update Timecards in state and sync
+      setTimecards(prev => {
+        const next = [activeTimecard, ...prev.filter(t => t.id !== activeTimecard.id)];
+        try {
+          localStorage.setItem('ems_timecards_v1', JSON.stringify(next));
+        } catch (e) {}
+        broadcastSync('SYNC_TIMECARDS', next);
+        return next;
+      });
+
+      // 2. Update Employees in state and sync
+      setEmployees(prev => {
+        const next = prev.map(e => e.id === activeEmp.id ? activeEmp : e);
+        try {
+          localStorage.setItem('ems_employees_v1', JSON.stringify(next));
+        } catch (e) {}
+        broadcastSync('SYNC_EMPLOYEES', next);
+        return next;
+      });
+
+      // 3. Instant SuperAdmin Notification
+      const newNotif: NotificationItem = {
+        id: notifId,
+        recipient: 'ADMIN',
+        title: `${activeEmp.firstName} ${activeEmp.lastName} Clocked In`,
+        message: `${activeEmp.firstName} ${activeEmp.lastName} clocked IN at ${timeStr} (${activeEmp.department || 'Production'}) from ${ipEval.workstationLabel} (${ipEval.clientIp}).`,
+        type: 'TIMECARD_CLOCK_IN',
+        timestamp: 'Just now',
+        read: false
+      };
+      setNotifications(prev => {
+        const next = [newNotif, ...prev.filter(n => n.id !== notifId)];
+        try {
+          localStorage.setItem('ems_notifs_v1', JSON.stringify(next));
+        } catch (e) {}
+        broadcastSync('SYNC_NOTIFICATIONS', next);
+        broadcastSync('NEW_NOTIFICATION_ALERT', newNotif);
+        return next;
+      });
+
+      addToast('Clock-In Successful', `Welcome ${activeEmp.firstName}! Clocked in from ${ipEval.workstationLabel}.`, 'success');
+      
+      addAudit(
+        'SHIFT_CLOCK_IN',
+        'Timecard', 
+        activeTimecard.id, 
+        `${activeEmp.firstName} ${activeEmp.lastName} clocked IN at ${timeStr} from ${ipEval.workstationLabel} (IP: ${clientIp})`, 
+        `${activeEmp.firstName} ${activeEmp.lastName}`, 
+        'Staff'
+      );
+
+      return { 
+        success: true, 
+        message: serverData.message || `Successfully clocked in at ${timeStr} from ${ipEval.workstationLabel}`, 
+        employee: activeEmp,
+        timecard: activeTimecard,
+        ipAddress: clientIp,
+        workstationLabel: ipEval.workstationLabel,
+        ipStatus: ipEval.status
+      };
+    } catch (err: any) {
+      console.error('Clock-in punch error:', err);
+      addToast('Clock-In Error', err.message || 'Network error during shift punch.', 'error');
+      return { success: false, message: err.message || 'Network error during shift punch.' };
+    }
   };
 
-  const clockOutWithKiosk = (
+  const clockOutWithKiosk = async (
     username: string, 
     pin: string, 
     breakMinutes: number = 0,
     options?: { ip?: string; device?: string }
-  ): { success: boolean; message: string; employee?: Employee; totalHours?: number; ipAddress?: string; workstationLabel?: string; ipStatus?: string } => {
+  ): Promise<{ success: boolean; message: string; employee?: Employee; totalHours?: number; ipAddress?: string; workstationLabel?: string; ipStatus?: string; timecard?: TimecardRecord }> => {
     const cleanUser = username.trim().toLowerCase();
     const cleanPin = pin.trim();
 
@@ -4434,31 +4483,26 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       return matchUser && matchPin;
     });
 
-    if (!emp) {
-      addToast('Invalid Credentials', 'No employee found matching this Username and 4-digit PIN combination.', 'error');
-      addAudit(
-        'CLOCK_OUT_FAILED_UNAUTHORIZED',
-        'ShiftTerminal',
-        cleanUser || 'unknown',
-        `Unauthorized shift clock-out attempt with invalid username "${cleanUser}" or PIN from IP ${options?.ip || '192.168.1.100'}. Punch rejected.`,
-        cleanUser || 'Anonymous',
-        'Unknown'
-      );
-      return { success: false, message: 'Invalid Username or 4-digit PIN.' };
+    if (emp && emp.status === 'Archived') {
+      addToast('Account Archived', 'This staff account has been archived. Shift Clock punch access is disabled.', 'error');
+      return { success: false, message: 'Your staff account has been archived.' };
     }
 
-    const onboarding = getOnboardingProgress(emp);
-    if (emp.status === 'Pending' || !onboarding.isComplete) {
-      addToast('Profile Incomplete', `Your profile is only ${onboarding.percent}% complete. Please complete 100% of your onboarding before clocking out.`, 'error');
-      return { 
-        success: false, 
-        message: `Shift Clock Locked: Your profile is ${onboarding.percent}% complete. You must complete 100% of your onboarding profile.` 
-      };
-    }
+    if (emp) {
+      const onboarding = getOnboardingProgress(emp, documentTypes);
+      const isPendingIncomplete = emp.status === 'Pending' && !onboarding.isProfileInfoComplete;
+      if (isPendingIncomplete || !onboarding.isComplete) {
+        addToast('Profile Incomplete', `Your profile is only ${onboarding.percent}% complete. Please complete 100% of your onboarding before clocking out.`, 'error');
+        return { 
+          success: false, 
+          message: `Shift Clock Locked: Your profile is ${onboarding.percent}% complete. You must complete 100% of your onboarding profile.` 
+        };
+      }
 
-    if (emp.clockState !== 'CLOCKED_IN') {
-      addToast('Not Clocked In', `${emp.firstName} is not currently clocked in.`, 'warning');
-      return { success: false, message: `${emp.firstName} is not clocked in.`, employee: emp };
+      if (emp.clockState !== 'CLOCKED_IN') {
+        addToast('Not Clocked In', `${emp.firstName} is not currently clocked in.`, 'warning');
+        return { success: false, message: `${emp.firstName} is not clocked in.`, employee: emp };
+      }
     }
 
     // Workstation IP Verification
@@ -4468,7 +4512,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
     if (!ipEval.isAllowed) {
       addToast('Workstation IP Blocked', ipEval.message, 'error');
-      addAudit('CLOCK_OUT_BLOCKED_UNAUTHORIZED_IP', 'Employee', emp.id, `${emp.firstName} ${emp.lastName} attempted clock-out from unauthorized workstation IP (${clientIp}). Punch rejected by Workstation IP Lock policy.`, `${emp.firstName} ${emp.lastName}`, 'Staff');
+      if (emp) {
+        addAudit('CLOCK_OUT_BLOCKED_UNAUTHORIZED_IP', 'Employee', emp.id, `${emp.firstName} ${emp.lastName} attempted clock-out from unauthorized workstation IP (${clientIp}). Punch rejected by Workstation IP Lock policy.`, `${emp.firstName} ${emp.lastName}`, 'Staff');
+      }
       return { 
         success: false, 
         message: ipEval.message, 
@@ -4483,163 +4529,169 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     const nowMs = now.getTime();
     const timeStr = now.toLocaleTimeString('en-AU', { timeZone: 'Australia/Sydney', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true });
     const notifId = 'notif-' + nowMs;
-    
-    let clockInTime = emp.clockInTimestamp;
-    if (!clockInTime && emp.lastClockIn) {
-      clockInTime = new Date(emp.lastClockIn).getTime();
-    }
-    if (!clockInTime) {
-      clockInTime = nowMs;
-    }
-
-    const elapsedMs = Math.max(0, nowMs - clockInTime);
-    const elapsedGrossSec = Math.floor(elapsedMs / 1000);
-
-    // Automatic Break Calculation:
-    let effectiveBreak = breakMinutes;
-    let isManual = breakMinutes > 0;
-    if (!isManual) {
-      if (elapsedGrossSec > 4 * 3600) {
-        effectiveBreak = 30;
-      } else {
-        effectiveBreak = 0;
-      }
-    }
-
-    const breakSec = Math.max(0, effectiveBreak * 60);
-    const netSec = Math.max(0, elapsedGrossSec - breakSec);
-    const exactHours = netSec / 3600;
-    const totalHours = parseFloat(exactHours.toFixed(4));
-
-    const pad = (n: number) => String(n).padStart(2, '0');
-    const h = Math.floor(netSec / 3600);
-    const m = Math.floor((netSec % 3600) / 60);
-    const s = netSec % 60;
-    const hmsFormatted = `${pad(h)}:${pad(m)}:${pad(s)}`;
-
-    let recordToSave: TimecardRecord | null = null;
-
-    setTimecards(prev => {
-      const existingIdx = prev.findIndex(t => t.id === emp.currentShiftId || (t.employeeId === emp.id && t.status === 'CLOCKED_IN'));
-      if (existingIdx >= 0) {
-        const updated = [...prev];
-        const updatedRec: TimecardRecord = {
-          ...updated[existingIdx],
-          clockOut: timeStr,
-          clockOutTimestamp: nowMs,
-          clockInIp: updated[existingIdx].clockInIp || updated[existingIdx].ipAddress || ipEval.clientIp,
-          clockOutIp: ipEval.clientIp,
-          clockInWorkstation: updated[existingIdx].clockInWorkstation || updated[existingIdx].workstationLabel || ipEval.workstationLabel,
-          clockOutWorkstation: ipEval.workstationLabel,
-          durationSeconds: netSec,
-          breakMinutes: effectiveBreak,
-          isBreakManuallyAdjusted: isManual,
-          totalHours,
-          overtimeHours: 0,
-          status: 'COMPLETED',
-          ipAddress: ipEval.clientIp,
-          workstationLabel: ipEval.workstationLabel,
-          deviceInfo: device,
-          ipStatus: ipEval.status,
-        };
-        updated[existingIdx] = updatedRec;
-        recordToSave = updatedRec;
-        return updated;
-      } else {
-        const newRecord: TimecardRecord = {
-          id: 'tc-' + nowMs,
-          employeeId: emp.id,
-          employeeName: `${emp.firstName} ${emp.lastName}`,
-          employeeAvatar: emp.avatarUrl,
-          department: emp.department || 'General Operations',
-          date: now.toLocaleDateString('en-AU', { day: '2-digit', month: 'short', year: 'numeric' }),
-          clockIn: timeStr,
-          clockOut: timeStr,
-          clockInTimestamp: clockInTime,
-          clockOutTimestamp: nowMs,
-          clockInIp: ipEval.clientIp,
-          clockOutIp: ipEval.clientIp,
-          clockInWorkstation: ipEval.workstationLabel,
-          clockOutWorkstation: ipEval.workstationLabel,
-          durationSeconds: netSec,
-          breakMinutes: effectiveBreak,
-          isBreakManuallyAdjusted: isManual,
-          totalHours,
-          overtimeHours: 0,
-          status: 'COMPLETED',
-          ipAddress: ipEval.clientIp,
-          workstationLabel: ipEval.workstationLabel,
-          deviceInfo: device,
-          ipStatus: ipEval.status,
-        };
-        recordToSave = newRecord;
-        return [newRecord, ...prev];
-      }
-    });
-
-    const updatedEmp: Employee = {
-      ...emp,
-      clockState: 'CLOCKED_OUT',
-      lastClockOut: now.toISOString(),
-      clockInTimestamp: undefined,
-      currentShiftId: undefined
-    };
-    setEmployees(prev => prev.map(e => e.id === emp.id ? updatedEmp : e));
 
     // Register local toast suppression before server call
     toastedNotifIdsRef.current.add(notifId);
     localActionAlertsRef.current.add(notifId);
 
-    // Verified Server Shift Punch Sync (MySQL + Audit + Notifications)
     try {
-      fetch('/api/timecards/punch', {
+      const resp = await fetch('/api/timecards/punch', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           action: 'OUT',
           username: cleanUser,
           pin: cleanPin,
-          breakMinutes: effectiveBreak,
+          breakMinutes,
           device,
           clientIp: ipEval.clientIp,
           workstationLabel: ipEval.workstationLabel,
           notifId,
         }),
-      }).catch(err => console.warn('Verified punch server sync warning:', err));
-    } catch (e) {}
+      });
 
-    // Instant SuperAdmin Notification
-    const newNotif: NotificationItem = {
-      id: notifId,
-      recipient: 'ADMIN',
-      title: `${emp.firstName} ${emp.lastName} Clocked Out`,
-      message: `${emp.firstName} ${emp.lastName} clocked OUT at ${timeStr} (Duration: ${hmsFormatted}) from ${ipEval.workstationLabel} (${ipEval.clientIp}).`,
-      type: 'TIMECARD_CLOCK_OUT',
-      timestamp: 'Just now',
-      read: false
-    };
-    setNotifications(prev => [newNotif, ...prev]);
+      const serverData = await resp.json().catch(() => ({}));
 
-    addToast('Clock-Out Successful', `Goodbye ${emp.firstName}! Shift recorded: ${hmsFormatted} (${totalHours.toFixed(2)} hrs).`, 'success');
-    
-    addAudit(
-      'SHIFT_CLOCK_OUT',
-      'Timecard', 
-      emp.currentShiftId || 'tc', 
-      `${emp.firstName} ${emp.lastName} clocked OUT at ${timeStr} (${hmsFormatted}) from ${ipEval.workstationLabel} (IP: ${clientIp})`, 
-      `${emp.firstName} ${emp.lastName}`, 
-      'Staff'
-    );
+      if (!resp.ok || !serverData.success) {
+        const errorMsg = serverData.message || 'Shift clock-out failed on server.';
+        addToast('Clock-Out Failed', errorMsg, 'error');
+        return { 
+          success: false, 
+          message: errorMsg, 
+          employee: emp,
+          ipAddress: ipEval.clientIp,
+          workstationLabel: ipEval.workstationLabel,
+          ipStatus: ipEval.status,
+        };
+      }
 
-    return { 
-      success: true, 
-      message: `Shift ended: ${hmsFormatted} (${totalHours.toFixed(2)} hrs) from ${ipEval.workstationLabel}`, 
-      employee: updatedEmp, 
-      totalHours,
-      ipAddress: clientIp,
-      workstationLabel: ipEval.workstationLabel,
-      ipStatus: ipEval.status
-    };
+      let clockInTime = emp?.clockInTimestamp;
+      if (!clockInTime && emp?.lastClockIn) {
+        clockInTime = new Date(emp.lastClockIn).getTime();
+      }
+      if (!clockInTime) {
+        clockInTime = nowMs;
+      }
+
+      const elapsedMs = Math.max(0, nowMs - clockInTime);
+      const elapsedGrossSec = Math.floor(elapsedMs / 1000);
+
+      let effectiveBreak = breakMinutes;
+      const isManual = breakMinutes > 0;
+      if (!isManual) {
+        effectiveBreak = elapsedGrossSec > 4 * 3600 ? 30 : 0;
+      }
+
+      const breakSec = Math.max(0, effectiveBreak * 60);
+      const netSec = Math.max(0, elapsedGrossSec - breakSec);
+      const exactHours = netSec / 3600;
+      const totalHours = serverData.timecard?.totalHours ?? parseFloat(exactHours.toFixed(4));
+
+      const pad = (n: number) => String(n).padStart(2, '0');
+      const h = Math.floor(netSec / 3600);
+      const m = Math.floor((netSec % 3600) / 60);
+      const s = netSec % 60;
+      const hmsFormatted = `${pad(h)}:${pad(m)}:${pad(s)}`;
+
+      const updatedEmp: Employee = serverData.employee || {
+        ...emp!,
+        clockState: 'CLOCKED_OUT',
+        lastClockOut: now.toISOString(),
+        clockInTimestamp: undefined,
+        currentShiftId: undefined,
+      };
+
+      const updatedTc: TimecardRecord = serverData.timecard || {
+        id: emp?.currentShiftId || ('tc-' + nowMs),
+        employeeId: updatedEmp.id,
+        employeeName: `${updatedEmp.firstName} ${updatedEmp.lastName}`,
+        department: updatedEmp.department || 'General Operations',
+        date: now.toLocaleDateString('en-AU', { day: '2-digit', month: 'short', year: 'numeric' }),
+        clockIn: timeStr,
+        clockOut: timeStr,
+        clockInTimestamp: clockInTime,
+        clockOutTimestamp: nowMs,
+        durationSeconds: netSec,
+        breakMinutes: effectiveBreak,
+        isBreakManuallyAdjusted: isManual,
+        totalHours,
+        overtimeHours: 0,
+        status: 'COMPLETED',
+        ipAddress: ipEval.clientIp,
+        workstationLabel: ipEval.workstationLabel,
+        deviceInfo: device,
+        ipStatus: ipEval.status,
+      };
+
+      // 1. Update Timecards in state and sync
+      setTimecards(prev => {
+        const next = prev.map(t => t.id === updatedTc.id ? updatedTc : t);
+        if (!next.some(t => t.id === updatedTc.id)) {
+          next.unshift(updatedTc);
+        }
+        try {
+          localStorage.setItem('ems_timecards_v1', JSON.stringify(next));
+        } catch (e) {}
+        broadcastSync('SYNC_TIMECARDS', next);
+        return next;
+      });
+
+      // 2. Update Employees in state and sync
+      setEmployees(prev => {
+        const next = prev.map(e => e.id === updatedEmp.id ? updatedEmp : e);
+        try {
+          localStorage.setItem('ems_employees_v1', JSON.stringify(next));
+        } catch (e) {}
+        broadcastSync('SYNC_EMPLOYEES', next);
+        return next;
+      });
+
+      // 3. Instant SuperAdmin Notification
+      const newNotif: NotificationItem = {
+        id: notifId,
+        recipient: 'ADMIN',
+        title: `${updatedEmp.firstName} ${updatedEmp.lastName} Clocked Out`,
+        message: `${updatedEmp.firstName} ${updatedEmp.lastName} clocked OUT at ${timeStr} (Duration: ${hmsFormatted}) from ${ipEval.workstationLabel} (${ipEval.clientIp}).`,
+        type: 'TIMECARD_CLOCK_OUT',
+        timestamp: 'Just now',
+        read: false
+      };
+      setNotifications(prev => {
+        const next = [newNotif, ...prev.filter(n => n.id !== notifId)];
+        try {
+          localStorage.setItem('ems_notifs_v1', JSON.stringify(next));
+        } catch (e) {}
+        broadcastSync('SYNC_NOTIFICATIONS', next);
+        broadcastSync('NEW_NOTIFICATION_ALERT', newNotif);
+        return next;
+      });
+
+      addToast('Clock-Out Successful', `Goodbye ${updatedEmp.firstName}! Shift recorded: ${hmsFormatted} (${totalHours.toFixed(2)} hrs).`, 'success');
+      
+      addAudit(
+        'SHIFT_CLOCK_OUT',
+        'Timecard', 
+        updatedTc.id, 
+        `${updatedEmp.firstName} ${updatedEmp.lastName} clocked OUT at ${timeStr} (${hmsFormatted}) from ${ipEval.workstationLabel} (IP: ${clientIp})`, 
+        `${updatedEmp.firstName} ${updatedEmp.lastName}`, 
+        'Staff'
+      );
+
+      return { 
+        success: true, 
+        message: serverData.message || `Shift ended: ${hmsFormatted} (${totalHours.toFixed(2)} hrs) from ${ipEval.workstationLabel}`, 
+        employee: updatedEmp, 
+        timecard: updatedTc,
+        totalHours,
+        ipAddress: clientIp,
+        workstationLabel: ipEval.workstationLabel,
+        ipStatus: ipEval.status
+      };
+    } catch (err: any) {
+      console.error('Clock-out punch error:', err);
+      addToast('Clock-Out Error', err.message || 'Network error during shift punch.', 'error');
+      return { success: false, message: err.message || 'Network error during shift punch.' };
+    }
   };
 
   const adminClockOutStaff = (employeeId: string, options?: { breakMinutes?: number; note?: string }): { success: boolean; message: string; totalHours?: number } => {
@@ -4727,7 +4779,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           adjustedBy: 'SuperAdmin',
         };
         recordToSave = newRecord;
-        return [newRecord, ...prev];
+        const next = [newRecord, ...prev];
+        try {
+          localStorage.setItem('ems_timecards_v1', JSON.stringify(next));
+        } catch (e) {}
+        broadcastSync('SYNC_TIMECARDS', next);
+        return next;
       }
     });
 
@@ -4738,7 +4795,14 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       clockInTimestamp: undefined,
       currentShiftId: undefined,
     };
-    setEmployees(prev => prev.map(e => e.id === emp.id ? updatedEmp : e));
+    setEmployees(prev => {
+      const next = prev.map(e => e.id === emp.id ? updatedEmp : e);
+      try {
+        localStorage.setItem('ems_employees_v1', JSON.stringify(next));
+      } catch (e) {}
+      broadcastSync('SYNC_EMPLOYEES', next);
+      return next;
+    });
 
     try {
       if (recordToSave) {

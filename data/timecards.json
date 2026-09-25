@@ -1,1 +1,29 @@
-[]
+[
+  {
+    "id": "tc-1790315509725",
+    "employeeId": "emp-1",
+    "employeeName": "Santosh Bhandari",
+    "department": "Administration",
+    "date": "25 Sept 2026",
+    "clockIn": "03:51:49 pm",
+    "clockOut": "03:51:49 pm",
+    "clockInTimestamp": 1790315509725,
+    "clockOutTimestamp": 1790315509880,
+    "durationSeconds": 0,
+    "breakMinutes": 0,
+    "isBreakManuallyAdjusted": false,
+    "totalHours": 0,
+    "overtimeHours": 0,
+    "status": "COMPLETED",
+    "notes": "Clocked in via Sydney Main Terminal (IP: 127.0.0.1) | Clocked out via Sydney Main Terminal (IP: 127.0.0.1)",
+    "adminNote": "Clocked in via Sydney Main Terminal (IP: 127.0.0.1)",
+    "clockInIp": "127.0.0.1",
+    "clockOutIp": "127.0.0.1",
+    "clockInWorkstation": "Sydney Main Terminal",
+    "clockOutWorkstation": "Sydney Main Terminal",
+    "ipAddress": "127.0.0.1",
+    "workstationLabel": "Sydney Main Terminal",
+    "deviceInfo": "Verified Server Punch Endpoint",
+    "ipStatus": "LOCKED_IP_AUTHORIZED"
+  }
+]

@@ -1,5 +1,77 @@
 [
   {
+    "id": "aud-1790315509880",
+    "timestamp": "25/09/2026, 3:51:49 pm AEST",
+    "actorId": "emp-1",
+    "actorName": "Santosh Bhandari",
+    "actorRole": "STAFF",
+    "action": "SHIFT_CLOCK_OUT",
+    "targetType": "Timecard",
+    "targetId": "tc-1790315509725",
+    "details": "Santosh Bhandari clocked OUT at 03:51:49 pm (00:00:00) from Sydney Main Terminal (IP: 127.0.0.1)",
+    "ipAddress": "127.0.0.1"
+  },
+  {
+    "id": "aud-1790315509725",
+    "timestamp": "25/09/2026, 3:51:49 pm AEST",
+    "actorId": "emp-1",
+    "actorName": "Santosh Bhandari",
+    "actorRole": "STAFF",
+    "action": "SHIFT_CLOCK_IN",
+    "targetType": "Timecard",
+    "targetId": "tc-1790315509725",
+    "details": "Santosh Bhandari clocked IN at 03:51:49 pm from Sydney Main Terminal (IP: 127.0.0.1)",
+    "ipAddress": "127.0.0.1"
+  },
+  {
+    "id": "aud-1790315468476",
+    "timestamp": "25/09/2026, 3:51:08 pm AEST",
+    "actorId": "emp-1",
+    "actorName": "Santosh Bhandari",
+    "actorRole": "STAFF",
+    "action": "CLOCK_IN_BLOCKED_UNAUTHORIZED_IP",
+    "targetType": "Employee",
+    "targetId": "emp-1",
+    "details": "Santosh Bhandari attempted shift punch from unauthorized workstation IP (127.0.0.1). Punch rejected by policy.",
+    "ipAddress": "127.0.0.1"
+  },
+  {
+    "id": "aud-1790315468006",
+    "timestamp": "25/09/2026, 3:51:08 pm AEST",
+    "actorId": "emp-1",
+    "actorName": "Santosh Bhandari",
+    "actorRole": "STAFF",
+    "action": "CLOCK_IN_BLOCKED_UNAUTHORIZED_IP",
+    "targetType": "Employee",
+    "targetId": "emp-1",
+    "details": "Santosh Bhandari attempted shift punch from unauthorized workstation IP (127.0.0.1). Punch rejected by policy.",
+    "ipAddress": "127.0.0.1"
+  },
+  {
+    "id": "aud-1790315443378",
+    "timestamp": "25/09/2026, 3:50:43 pm AEST",
+    "actorId": "emp-1",
+    "actorName": "Santosh Bhandari",
+    "actorRole": "STAFF",
+    "action": "CLOCK_IN_BLOCKED_INCOMPLETE_PROFILE",
+    "targetType": "Employee",
+    "targetId": "emp-1",
+    "details": "Staff member Santosh Bhandari attempted shift punch with incomplete profile (60% complete, missing: Personal Details, Compulsory Documents). Punch rejected.",
+    "ipAddress": "127.0.0.1"
+  },
+  {
+    "id": "aud-1790314784065",
+    "timestamp": "25/09/2026, 3:39:44 pm AEST",
+    "actorId": "emp-1",
+    "actorName": "Santosh Bhandari",
+    "actorRole": "STAFF",
+    "action": "CLOCK_IN_BLOCKED_INCOMPLETE_PROFILE",
+    "targetType": "Employee",
+    "targetId": "emp-1",
+    "details": "Staff member Santosh Bhandari attempted shift punch with incomplete profile (60% complete, missing: Personal Details, Compulsory Documents). Punch rejected.",
+    "ipAddress": "127.0.0.1"
+  },
+  {
     "id": "aud-1790290484332",
     "action": "USER_LOGOUT",
     "targetType": "User",
