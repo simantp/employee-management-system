@@ -95,23 +95,22 @@ export default function AuthPortal({ onInviteCompleted }: { onInviteCompleted?: 
       const searchParams = new URLSearchParams(window.location.search);
       const inviteParam = searchParams.get('invite') || searchParams.get('token') || searchParams.get('inviteToken');
       const resetParam = searchParams.get('resetToken') || searchParams.get('reset');
+      const loginParam = searchParams.get('login') || searchParams.get('signin');
       const email = searchParams.get('email');
 
       if (resetParam) {
         setResetToken(resetParam);
         if (email) setResetEmail(decodeURIComponent(email));
-      } else if (inviteParam || email) {
-        if (inviteParam) {
-          setUrlInviteToken(inviteParam);
-          setInviteTokenInput(inviteParam);
-        }
+      } else if (inviteParam) {
+        setUrlInviteToken(inviteParam);
+        setInviteTokenInput(inviteParam);
         if (email) {
           setUrlEmail(decodeURIComponent(email));
         }
         setShowInviteModal(true);
 
         // Fetch employee details directly from server for instant accuracy
-        const queryToken = inviteParam ? encodeURIComponent(inviteParam) : '';
+        const queryToken = encodeURIComponent(inviteParam);
         const queryEmail = email ? encodeURIComponent(decodeURIComponent(email)) : '';
         fetch(`/api/auth/activate-invite?token=${queryToken}&email=${queryEmail}`)
           .then(r => r.json())
@@ -127,6 +126,12 @@ export default function AuthPortal({ onInviteCompleted }: { onInviteCompleted?: 
             }
           })
           .catch(() => {});
+      } else if (loginParam || email) {
+        if (email) {
+          setLoginEmail(decodeURIComponent(email));
+        }
+        setRightMode('LOGIN');
+        setShowLoginModal(true);
       }
     }
   }, []);
@@ -565,6 +570,14 @@ export default function AuthPortal({ onInviteCompleted }: { onInviteCompleted?: 
     }
   };
 
+  const handleCloseLoginModal = () => {
+    setShowLoginModal(false);
+    setErrorMessage(null);
+    if (typeof window !== 'undefined' && (window.location.search.includes('login') || window.location.search.includes('email') || window.location.search.includes('signin'))) {
+      window.history.replaceState(null, '', window.location.pathname);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-slate-100 to-blue-50/40 text-slate-900 flex flex-col justify-between relative overflow-x-hidden font-sans selection:bg-orange-500 selection:text-white">
       
@@ -911,7 +924,7 @@ export default function AuthPortal({ onInviteCompleted }: { onInviteCompleted?: 
       {showLoginModal && (
         <div 
           className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4 overflow-y-auto animate-in fade-in duration-200 font-sans"
-          onClick={() => setShowLoginModal(false)}
+          onClick={handleCloseLoginModal}
         >
           <div 
             className="bg-white border border-slate-200 rounded-3xl shadow-2xl p-6 sm:p-8 max-w-md w-full text-slate-800 space-y-5 animate-in zoom-in-95 duration-150 relative"
@@ -920,7 +933,7 @@ export default function AuthPortal({ onInviteCompleted }: { onInviteCompleted?: 
             {/* Modal Close Button */}
             <button
               type="button"
-              onClick={() => setShowLoginModal(false)}
+              onClick={handleCloseLoginModal}
               className="absolute top-5 right-5 text-slate-400 hover:text-slate-700 p-2 rounded-xl bg-slate-100 hover:bg-slate-200 transition cursor-pointer text-xs font-bold"
               aria-label="Close"
             >

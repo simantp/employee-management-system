@@ -28,20 +28,30 @@ export default function AppHome() {
     }
   }, []);
 
-  // If an invite or password reset link is opened on initial page load, clear conflicting sessions and show AuthPortal
+  // If an invite, password reset, or direct login link is opened on initial page load, clear conflicting sessions and show AuthPortal
   useEffect(() => {
     if (typeof window !== 'undefined' && !checkedUrlOnMountRef.current) {
       checkedUrlOnMountRef.current = true;
       const searchParams = new URLSearchParams(window.location.search);
       const inviteParam = searchParams.get('invite') || searchParams.get('token') || searchParams.get('inviteToken');
       const resetParam = searchParams.get('resetToken') || searchParams.get('reset');
+      const loginParam = searchParams.get('login') || searchParams.get('signin');
+      const emailParam = searchParams.get('email');
       
       if (inviteParam || resetParam) {
         setHasInviteOrReset(true);
         logout();
+      } else if (loginParam) {
+        if (currentUser) {
+          if (emailParam && currentUser.email?.toLowerCase() !== emailParam.toLowerCase()) {
+            logout();
+          } else if (currentUser.role !== 'STAFF') {
+            logout();
+          }
+        }
       }
     }
-  }, [logout]);
+  }, [logout, currentUser]);
 
   // Whenever admin or staff logs in, automatically select and display the dashboard tab
   useEffect(() => {
