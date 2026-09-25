@@ -404,13 +404,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
             const progress = getOnboardingProgress(emp, activeDocTypes);
             let targetStatus = emp.status;
             let targetOnboardingStatus = emp.onboardingStatus;
-            if (progress.missingDocuments.length > 0) {
-              if (emp.status === 'Active' && emp.onboardingStatus !== 'COMPLETED') {
-                targetStatus = 'Pending';
-                targetOnboardingStatus = emp.onboardingStatus === 'INVITED' ? 'INVITED' : 'PROFILE_COMPLETED';
-              }
-            } else if (emp.status === 'Pending' && progress.isComplete && progress.missingDocuments.length === 0) {
+            if (emp.status === 'Pending' && progress.isProfileInfoComplete) {
               targetStatus = 'Active';
+              targetOnboardingStatus = progress.missingDocuments.length === 0 ? 'COMPLETED' : 'PROFILE_COMPLETED';
+            } else if (emp.status === 'Active' && progress.missingDocuments.length === 0 && emp.onboardingStatus !== 'COMPLETED') {
               targetOnboardingStatus = 'COMPLETED';
             }
 
@@ -541,22 +538,17 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         if (empRes.status === 'fulfilled' && empRes.value?.success && Array.isArray(empRes.value.employees)) {
           const healed = empRes.value.employees.map((emp: Employee) => {
             const progress = getOnboardingProgress(emp, loadedDocTypes);
-            if (progress.missingDocuments.length > 0) {
-              if (emp.status === 'Active' && emp.onboardingStatus !== 'COMPLETED') {
-                return {
-                  ...emp,
-                  status: 'Pending' as const,
-                  onboardingStatus: emp.onboardingStatus === 'INVITED' ? ('INVITED' as const) : ('PROFILE_COMPLETED' as const),
-                };
-              }
-              return emp;
-            }
-            if (emp.status === 'Pending' && progress.isComplete && progress.missingDocuments.length === 0) {
+            if (emp.status === 'Pending' && progress.isProfileInfoComplete) {
               return {
                 ...emp,
                 status: 'Active' as const,
-                onboardingStatus: 'COMPLETED' as const,
+                onboardingStatus: progress.missingDocuments.length === 0 ? ('COMPLETED' as const) : ('PROFILE_COMPLETED' as const),
                 profileCompletedAt: emp.profileCompletedAt || new Date().toISOString(),
+              };
+            } else if (emp.status === 'Active' && progress.missingDocuments.length === 0 && emp.onboardingStatus !== 'COMPLETED') {
+              return {
+                ...emp,
+                onboardingStatus: 'COMPLETED' as const,
               };
             }
             return emp;
@@ -1790,26 +1782,21 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
       const progress = getOnboardingProgress(emp, documentTypes);
 
-      if (progress.missingDocuments.length > 0) {
-        if (emp.status === 'Active' && emp.onboardingStatus !== 'COMPLETED') {
-          return {
-            ...emp,
-            status: 'Pending' as const,
-            onboardingStatus: emp.onboardingStatus === 'INVITED' ? ('INVITED' as const) : ('PROFILE_COMPLETED' as const),
-          };
-        }
-        return emp;
-      }
-
-      if (progress.isComplete && progress.missingDocuments.length === 0 && emp.status === 'Pending') {
+      if (emp.status === 'Pending' && progress.isProfileInfoComplete) {
         becameActive = true;
         completedEmp = {
           ...emp,
           status: 'Active' as const,
-          onboardingStatus: 'COMPLETED' as const,
-          profileCompletedAt: new Date().toISOString(),
+          onboardingStatus: progress.missingDocuments.length === 0 ? ('COMPLETED' as const) : ('PROFILE_COMPLETED' as const),
+          profileCompletedAt: emp.profileCompletedAt || new Date().toISOString(),
         };
         return completedEmp;
+      }
+      if (emp.status === 'Active' && progress.missingDocuments.length === 0 && emp.onboardingStatus !== 'COMPLETED') {
+        return {
+          ...emp,
+          onboardingStatus: 'COMPLETED' as const,
+        };
       }
       return emp;
     }));

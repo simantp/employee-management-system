@@ -18,6 +18,7 @@ export interface OnboardingProgressResult {
   missingSectionTitles: string[];
   missingDocuments: string[];
   requiredDocumentTypes: DocumentTypeConfig[];
+  isProfileInfoComplete: boolean;
 }
 
 /**
@@ -67,6 +68,7 @@ export function getOnboardingProgress(
       missingSectionTitles: defaultMissing,
       missingDocuments: requiredDocTypes.map(d => d.name),
       requiredDocumentTypes: requiredDocTypes,
+      isProfileInfoComplete: false,
     };
   }
 
@@ -192,6 +194,7 @@ export function getOnboardingProgress(
   const percent = Math.round((completedCount / totalSections) * 100);
   const isComplete = completedCount === totalSections;
   const missingSectionTitles = sections.filter(s => !s.isDone).map(s => s.title);
+  const isProfileInfoComplete = isPersonalDone && isWorkRightsDone && isEmergencyDone && isBankingDone;
 
   return {
     completedCount,
@@ -202,5 +205,6 @@ export function getOnboardingProgress(
     missingSectionTitles,
     missingDocuments,
     requiredDocumentTypes: requiredDocTypes,
+    isProfileInfoComplete,
   };
 }

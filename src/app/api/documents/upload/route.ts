@@ -139,10 +139,13 @@ export async function POST(req: Request) {
           documents: mergedDocs,
         };
         const progress = getOnboardingProgress(updatedEmp, serverDocTypes);
-        if (updatedEmp.status === 'Pending' && progress.isComplete && progress.missingDocuments.length === 0) {
+        if (updatedEmp.status === 'Pending' && progress.isProfileInfoComplete) {
           updatedEmp.status = 'Active';
-          updatedEmp.onboardingStatus = 'COMPLETED';
+          updatedEmp.onboardingStatus = progress.missingDocuments.length === 0 ? 'COMPLETED' : 'PROFILE_COMPLETED';
           updatedEmp.profileCompletedAt = updatedEmp.profileCompletedAt || nowIso;
+          becameActive = true;
+        } else if (updatedEmp.status === 'Active' && progress.missingDocuments.length === 0 && updatedEmp.onboardingStatus !== 'COMPLETED') {
+          updatedEmp.onboardingStatus = 'COMPLETED';
           becameActive = true;
         }
         return updatedEmp;

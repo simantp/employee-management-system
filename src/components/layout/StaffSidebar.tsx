@@ -11,10 +11,10 @@ export default function StaffSidebar({
   activeTab?: string; 
   onSelectTab?: (tab: string) => void;
 }) {
-  const { currentStaff } = useApp();
+  const { currentStaff, documentTypes } = useApp();
 
-  const progress = getOnboardingProgress(currentStaff);
-  const isIncomplete = currentStaff?.status === 'Pending' || !progress.isComplete;
+  const progress = getOnboardingProgress(currentStaff, documentTypes);
+  const isIncomplete = currentStaff?.status === 'Pending' || progress.missingDocuments.length > 0 || !progress.isComplete;
 
   const navItems = [
     { id: 'dashboard', label: 'Dashboard' },

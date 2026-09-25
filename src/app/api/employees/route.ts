@@ -114,24 +114,18 @@ export async function GET(req: Request) {
       const rawEmployees: Employee[] = empRows.map(row => mapDbRowToEmployee(row, docsByEmp[row.id] || []));
       employeesList = rawEmployees.map(emp => {
         const progress = getOnboardingProgress(emp, serverDocTypes);
-        // STRICT: If any compulsory document is missing, staff cannot be active
-        if (progress.missingDocuments.length > 0) {
-          if (emp.status === 'Active' && emp.onboardingStatus !== 'COMPLETED') {
-            return {
-              ...emp,
-              status: 'Pending' as const,
-              onboardingStatus: emp.onboardingStatus === 'INVITED' ? ('INVITED' as const) : ('PROFILE_COMPLETED' as const),
-            };
-          }
-          return emp;
-        }
 
-        if (emp.status === 'Pending' && progress.isComplete && progress.missingDocuments.length === 0) {
+        if (emp.status === 'Pending' && progress.isProfileInfoComplete) {
           return {
             ...emp,
             status: 'Active' as const,
-            onboardingStatus: 'COMPLETED' as const,
+            onboardingStatus: progress.missingDocuments.length === 0 ? ('COMPLETED' as const) : ('PROFILE_COMPLETED' as const),
             profileCompletedAt: emp.profileCompletedAt || new Date().toISOString(),
+          };
+        } else if (emp.status === 'Active' && progress.missingDocuments.length === 0 && emp.onboardingStatus !== 'COMPLETED') {
+          return {
+            ...emp,
+            onboardingStatus: 'COMPLETED' as const,
           };
         }
         return emp;
@@ -147,24 +141,18 @@ export async function GET(req: Request) {
     const rawEmployees = await getStoredEmployees();
     employeesList = rawEmployees.map(emp => {
       const progress = getOnboardingProgress(emp, serverDocTypes);
-      // STRICT: If any compulsory document is missing, staff cannot be active
-      if (progress.missingDocuments.length > 0) {
-        if (emp.status === 'Active' && emp.onboardingStatus !== 'COMPLETED') {
-          return {
-            ...emp,
-            status: 'Pending' as const,
-            onboardingStatus: emp.onboardingStatus === 'INVITED' ? ('INVITED' as const) : ('PROFILE_COMPLETED' as const),
-          };
-        }
-        return emp;
-      }
 
-      if (emp.status === 'Pending' && progress.isComplete && progress.missingDocuments.length === 0) {
+      if (emp.status === 'Pending' && progress.isProfileInfoComplete) {
         return {
           ...emp,
           status: 'Active' as const,
-          onboardingStatus: 'COMPLETED' as const,
+          onboardingStatus: progress.missingDocuments.length === 0 ? ('COMPLETED' as const) : ('PROFILE_COMPLETED' as const),
           profileCompletedAt: emp.profileCompletedAt || new Date().toISOString(),
+        };
+      } else if (emp.status === 'Active' && progress.missingDocuments.length === 0 && emp.onboardingStatus !== 'COMPLETED') {
+        return {
+          ...emp,
+          onboardingStatus: 'COMPLETED' as const,
         };
       }
       return emp;
@@ -346,21 +334,13 @@ export async function PUT(req: Request) {
       const merged = { ...emp, ...updates };
       const progress = getOnboardingProgress(merged, serverDocTypes);
       
-      // STRICT: If compulsory document is missing, staff profile CANNOT be Active
-      if (progress.missingDocuments.length > 0) {
-        if (merged.status === 'Active' && merged.onboardingStatus !== 'COMPLETED') {
-          merged.status = 'Pending';
-          merged.onboardingStatus = (merged.onboardingStatus === 'INVITED' ? 'INVITED' : 'PROFILE_COMPLETED');
-        }
-        if (updates.status === 'Active') {
-          delete updates.status;
-          delete updates.onboardingStatus;
-        }
-      } else if (merged.status === 'Pending' && progress.isComplete && progress.missingDocuments.length === 0) {
+      if (merged.status === 'Pending' && progress.isProfileInfoComplete) {
         merged.status = 'Active';
-        merged.onboardingStatus = 'COMPLETED';
+        merged.onboardingStatus = progress.missingDocuments.length === 0 ? 'COMPLETED' : 'PROFILE_COMPLETED';
         merged.profileCompletedAt = merged.profileCompletedAt || nowIso;
         autoCompleted = true;
+      } else if (merged.status === 'Active' && progress.missingDocuments.length === 0 && merged.onboardingStatus !== 'COMPLETED') {
+        merged.onboardingStatus = 'COMPLETED';
       }
       return merged;
     });

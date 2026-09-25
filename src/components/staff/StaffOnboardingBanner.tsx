@@ -67,7 +67,10 @@ export default function StaffOnboardingBanner() {
   const totalSections = progress.totalSections;
   const progressPercent = progress.percent;
 
-  if (!isPending || progress.isComplete) return null;
+  const hasPendingDocs = progress.missingDocuments.length > 0;
+  if (!isPending && !hasPendingDocs) return null;
+
+  const isProfileInfoDone = progress.isProfileInfoComplete;
 
   return (
     <>
@@ -79,19 +82,23 @@ export default function StaffOnboardingBanner() {
             <div>
               <div className="flex items-center gap-2 flex-wrap">
                 <h3 className="text-base sm:text-lg font-black text-slate-900 tracking-tight">
-                  Account Status: Pending Profile Setup
+                  {isProfileInfoDone && hasPendingDocs
+                    ? 'Account Status: Active • Pending Required Documents'
+                    : 'Account Status: Pending Profile Setup'}
                 </h3>
                 <span className="px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-800 font-extrabold text-[10px] border border-amber-300 animate-pulse">
                   {completedCount} of {totalSections} Completed
                 </span>
-                {progress.missingDocuments.length > 0 && (
+                {hasPendingDocs && (
                   <span className="px-2 py-0.5 rounded-full bg-rose-100 text-rose-800 font-extrabold text-[10px] border border-rose-200">
-                    {progress.missingDocuments.length} Compulsory Doc{progress.missingDocuments.length > 1 ? 's' : ''} Missing
+                    {progress.missingDocuments.length} Required Doc{progress.missingDocuments.length > 1 ? 's' : ''} Pending
                   </span>
                 )}
               </div>
               <p className="text-xs text-slate-600 mt-0.5">
-                Welcome to HsCreations! Please complete the onboarding sections and upload all compulsory compliance documents below to activate your staff profile.
+                {isProfileInfoDone && hasPendingDocs
+                  ? 'Your profile information is completed! Please upload your pending required document(s) below to activate every tab across your portal.'
+                  : 'Welcome to HsCreations! Please complete the onboarding sections and upload all compulsory compliance documents below to activate your staff profile.'}
               </p>
             </div>
           </div>
@@ -107,17 +114,18 @@ export default function StaffOnboardingBanner() {
         </div>
 
         {/* Compulsory Documents Notice */}
-        {progress.missingDocuments.length > 0 && (
-          <div className="flex items-start gap-3 p-3.5 rounded-2xl bg-rose-50/90 border border-rose-200 text-rose-900 text-xs">
-            <div className="px-2 py-0.5 rounded-md bg-rose-200 text-rose-900 font-extrabold text-[10px] tracking-wide shrink-0 uppercase mt-0.5">
+        {hasPendingDocs && (
+          <div className="flex items-start gap-3 p-3.5 rounded-2xl bg-amber-50/90 border border-amber-300 text-amber-950 text-xs shadow-xs">
+            <div className="px-2 py-0.5 rounded-md bg-amber-200 text-amber-950 font-extrabold text-[10px] tracking-wide shrink-0 uppercase mt-0.5">
               Action Required
             </div>
             <div className="space-y-0.5">
               <p className="font-extrabold text-slate-900">
-                Compulsory Compliance Documents Required Before Activation
+                Pending Compulsory Documents to Upload Before All Tabs Are Active
               </p>
               <p className="text-slate-600 leading-relaxed">
-                Before your staff profile can become fully Active, you must upload: <span className="font-bold text-rose-700">{progress.missingDocuments.join(', ')}</span>.
+                You have pending required document{progress.missingDocuments.length > 1 ? 's' : ''} to upload: <span className="font-bold text-amber-900">{progress.missingDocuments.join(', ')}</span>.
+                All operational tabs (Timesheet records, Leave management, etc.) will unlock once these documents are uploaded.
               </p>
             </div>
           </div>

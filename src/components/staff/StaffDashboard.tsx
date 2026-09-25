@@ -10,6 +10,7 @@ import EditPersonalInfoModal from './EditPersonalInfoModal';
 import EditWorkRightsModal from './EditWorkRightsModal';
 import EditEmergencyContactModal from './EditEmergencyContactModal';
 import BankDetailsModal from './BankDetailsModal';
+import UploadDocumentModal from './UploadDocumentModal';
 
 // Dedicated Detailed Views
 import StaffFullProfileView from './views/StaffFullProfileView';
@@ -28,12 +29,12 @@ export default function StaffDashboard({
   activeTab?: string;
   onNavigateTab?: (tab: string) => void;
 }) {
-  const { announcements, currentStaff } = useApp();
+  const { announcements, currentStaff, documentTypes } = useApp();
   const [showResignModal, setShowResignModal] = useState(false);
-  const [activeModal, setActiveModal] = useState<'PERSONAL' | 'WORK_RIGHTS' | 'EMERGENCY' | 'BANK' | null>(null);
+  const [activeModal, setActiveModal] = useState<'PERSONAL' | 'WORK_RIGHTS' | 'EMERGENCY' | 'BANK' | 'DOCUMENTS' | null>(null);
 
-  const onboardingProgress = getOnboardingProgress(currentStaff);
-  const isProfileIncomplete = currentStaff?.status === 'Pending' || !onboardingProgress.isComplete;
+  const onboardingProgress = getOnboardingProgress(currentStaff, documentTypes);
+  const isProfileIncomplete = currentStaff?.status === 'Pending' || onboardingProgress.missingDocuments.length > 0 || !onboardingProgress.isComplete;
 
   const handleOpenNextIncompleteModal = () => {
     const firstIncomplete = onboardingProgress.sections.find(s => !s.isDone);
@@ -45,6 +46,7 @@ export default function StaffDashboard({
     else if (firstIncomplete.id === 'WORK_RIGHTS') setActiveModal('WORK_RIGHTS');
     else if (firstIncomplete.id === 'EMERGENCY') setActiveModal('EMERGENCY');
     else if (firstIncomplete.id === 'BANKING') setActiveModal('BANK');
+    else if (firstIncomplete.id === 'DOCUMENTS') setActiveModal('DOCUMENTS');
   };
 
   // Profile management views: ALWAYS accessible so the staff member can complete their profile
@@ -107,6 +109,7 @@ export default function StaffDashboard({
                     else if (sec.id === 'WORK_RIGHTS') setActiveModal('WORK_RIGHTS');
                     else if (sec.id === 'EMERGENCY') setActiveModal('EMERGENCY');
                     else if (sec.id === 'BANKING') setActiveModal('BANK');
+                    else if (sec.id === 'DOCUMENTS') setActiveModal('DOCUMENTS');
                   }}
                   className={`p-2.5 rounded-xl border flex items-center justify-between text-xs font-semibold cursor-pointer hover:shadow-xs transition ${
                     sec.isDone 
@@ -130,15 +133,31 @@ export default function StaffDashboard({
 
           {/* Onboarding Wizard Action */}
           <div className="pt-2 flex flex-col sm:flex-row items-center gap-3">
-            <button
-              onClick={handleOpenNextIncompleteModal}
-              className="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-500 hover:to-orange-500 text-white font-bold shadow-md shadow-amber-600/25 transition cursor-pointer text-center"
-            >
-              Complete Profile Setup ({onboardingProgress.percent}%) →
-            </button>
-            <p className="text-[11px] text-slate-500 text-center sm:text-left">
-              Once all 4 sections are completed, your portal access will be granted instantly.
-            </p>
+            {onboardingProgress.isProfileInfoComplete && onboardingProgress.missingDocuments.length > 0 ? (
+              <>
+                <button
+                  onClick={() => setActiveModal('DOCUMENTS')}
+                  className="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-gradient-to-r from-rose-600 to-amber-600 hover:from-rose-500 hover:to-amber-500 text-white font-bold shadow-md shadow-rose-600/25 transition cursor-pointer text-center"
+                >
+                  Upload Required Documents ({onboardingProgress.missingDocuments.length} Pending) →
+                </button>
+                <p className="text-[11px] text-slate-500 text-center sm:text-left">
+                  Upload all compulsory documents above to unlock all tabs and operational features.
+                </p>
+              </>
+            ) : (
+              <>
+                <button
+                  onClick={handleOpenNextIncompleteModal}
+                  className="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-500 hover:to-orange-500 text-white font-bold shadow-md shadow-amber-600/25 transition cursor-pointer text-center"
+                >
+                  Complete Profile Setup ({onboardingProgress.percent}%) →
+                </button>
+                <p className="text-[11px] text-slate-500 text-center sm:text-left">
+                  Complete all required profile information and upload compulsory documents to unlock full portal access.
+                </p>
+              </>
+            )}
           </div>
         </div>
 
@@ -157,6 +176,9 @@ export default function StaffDashboard({
         )}
         {activeModal === 'BANK' && (
           <BankDetailsModal onClose={() => setActiveModal(null)} />
+        )}
+        {activeModal === 'DOCUMENTS' && (
+          <UploadDocumentModal onClose={() => setActiveModal(null)} />
         )}
       </div>
     );
@@ -217,28 +239,80 @@ export default function StaffDashboard({
         <StaffOnboardingBanner />
 
         {/* Locked Portal Features Notice */}
-        <div className="bg-white rounded-3xl p-6 sm:p-7 border border-amber-200 shadow-sm space-y-4">
-          <div className="flex items-center gap-3">
-            <span className="text-xl">🔒</span>
-            <div>
-              <h3 className="text-sm font-black text-slate-800 tracking-tight">
-                Staff Portal Features Locked (Onboarding in Progress)
-              </h3>
-              <p className="text-slate-500 text-xs mt-0.5">
-                Shift Clock punch, timesheet records, leave applications, and company activities are locked until you reach 100% profile completion.
-              </p>
+        {onboardingProgress.isProfileInfoComplete && onboardingProgress.missingDocuments.length > 0 ? (
+          <div className="bg-white rounded-3xl p-6 sm:p-7 border border-amber-300 shadow-sm space-y-4">
+            <div className="flex items-center gap-3">
+              <span className="text-xl">📄</span>
+              <div>
+                <h3 className="text-sm font-black text-slate-800 tracking-tight flex items-center gap-2">
+                  <span>Portal Features Locked: Compulsory Documents Pending</span>
+                  <span className="px-2 py-0.5 rounded-full bg-rose-100 text-rose-800 border border-rose-300 font-extrabold text-[10px]">
+                    {onboardingProgress.missingDocuments.length} Pending
+                  </span>
+                </h3>
+                <p className="text-slate-500 text-xs mt-0.5">
+                  Your 4 profile information sections are complete (Status: Active). However, timesheets, shift records, leave applications, and resignation workflows remain locked until all compulsory compliance documents are uploaded.
+                </p>
+              </div>
+            </div>
+
+            <div className="p-4 rounded-2xl bg-amber-50/80 border border-amber-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div className="text-xs text-amber-950">
+                <span className="font-bold">Pending Document(s):</span>{' '}
+                <span className="font-semibold text-rose-700">{onboardingProgress.missingDocuments.join(', ')}</span>
+              </div>
+              <button
+                onClick={() => setActiveModal('DOCUMENTS')}
+                className="px-4 py-2 rounded-xl bg-gradient-to-r from-rose-600 to-amber-600 hover:from-rose-500 hover:to-amber-500 text-white font-bold text-xs shadow-sm cursor-pointer whitespace-nowrap"
+              >
+                Upload Required Documents →
+              </button>
             </div>
           </div>
-          
-          <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-            <div className="text-xs text-slate-700">
-              <span className="font-bold">Current Status:</span> {onboardingProgress.percent}% completed ({4 - onboardingProgress.completedCount} of 4 sections remaining)
+        ) : (
+          <div className="bg-white rounded-3xl p-6 sm:p-7 border border-amber-200 shadow-sm space-y-4">
+            <div className="flex items-center gap-3">
+              <span className="text-xl">🔒</span>
+              <div>
+                <h3 className="text-sm font-black text-slate-800 tracking-tight">
+                  Staff Portal Features Locked (Profile Setup in Progress)
+                </h3>
+                <p className="text-slate-500 text-xs mt-0.5">
+                  Shift Clock punch, timesheet records, leave applications, and company activities are locked until you complete all 4 onboarding sections and upload required documents.
+                </p>
+              </div>
             </div>
-            <div className="text-[11px] text-amber-700 font-bold bg-amber-50 px-3 py-1.5 rounded-xl border border-amber-200">
-              Action Required: Fill all 4 onboarding sections above
+            
+            <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div className="text-xs text-slate-700">
+                <span className="font-bold">Current Status:</span> {onboardingProgress.percent}% completed ({onboardingProgress.totalSections - onboardingProgress.completedCount} remaining)
+              </div>
+              <button
+                onClick={handleOpenNextIncompleteModal}
+                className="text-[11px] text-amber-800 font-bold bg-amber-100 hover:bg-amber-200 px-3 py-1.5 rounded-xl border border-amber-300 transition cursor-pointer"
+              >
+                Continue Setup →
+              </button>
             </div>
           </div>
-        </div>
+        )}
+
+        {/* Direct Action Modals */}
+        {activeModal === 'PERSONAL' && (
+          <EditPersonalInfoModal onClose={() => setActiveModal(null)} />
+        )}
+        {activeModal === 'WORK_RIGHTS' && (
+          <EditWorkRightsModal onClose={() => setActiveModal(null)} />
+        )}
+        {activeModal === 'EMERGENCY' && (
+          <EditEmergencyContactModal onClose={() => setActiveModal(null)} />
+        )}
+        {activeModal === 'BANK' && (
+          <BankDetailsModal onClose={() => setActiveModal(null)} />
+        )}
+        {activeModal === 'DOCUMENTS' && (
+          <UploadDocumentModal onClose={() => setActiveModal(null)} />
+        )}
       </div>
     );
   }
