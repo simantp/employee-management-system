@@ -204,6 +204,19 @@ export async function getStoredSettings(): Promise<any> {
 }
 
 export async function saveStoredSettings(settings: any): Promise<void> {
+  if (settings && settings.smtpSettings) {
+    if (settings.smtpSettings.isEnvConfigured || settings.smtpSettings.source === 'ENV_VARS' || settings.smtpSettings.pass === '••••••••') {
+      const sanitized = {
+        ...settings,
+        smtpSettings: {
+          ...settings.smtpSettings,
+          pass: '',
+        }
+      };
+      await writeJsonFile('settings.json', sanitized);
+      return;
+    }
+  }
   await writeJsonFile('settings.json', settings);
 }
 

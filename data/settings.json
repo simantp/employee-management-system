@@ -66,15 +66,13 @@
     ]
   },
   "smtpSettings": {
-    "host": "smtp.gmail.com",
+    "host": "",
     "port": 587,
     "secure": false,
-    "user": "simantpaudyal@gmail.com",
-    "pass": "usyk wlqg nivv xcjs",
-    "fromEmail": "\"HsCreations Portal\" <simantpaudyal@gmail.com>",
+    "user": "",
+    "pass": "",
+    "fromEmail": "",
     "fromName": "HsCreations Sydney",
-    "enableSmtp": true,
-    "source": "ENV_VARS",
-    "isEnvConfigured": true
+    "enableSmtp": true
   }
 }

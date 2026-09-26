@@ -19,7 +19,7 @@ export async function GET(req: Request) {
       port: envSmtp.port,
       secure: envSmtp.secure,
       user: envSmtp.user,
-      pass: envSmtp.pass,
+      pass: '••••••••',
       fromEmail: envSmtp.fromEmail,
       fromName: envSmtp.fromName,
       enableSmtp: true,
@@ -59,6 +59,22 @@ export async function POST(req: Request) {
     const body = await req.json();
     const current = await getStoredSettings();
     const merged = { ...current, ...body };
+
+    // Security guard: Ensure SMTP password and credentials from environment variables are NEVER persisted to settings.json
+    if (merged.smtpSettings) {
+      const envSmtp = getEnvSmtpConfig();
+      if (envSmtp && envSmtp.isConfigured) {
+        merged.smtpSettings = {
+          ...merged.smtpSettings,
+          pass: '',
+          isEnvConfigured: true,
+          source: 'ENV_VARS',
+        };
+      } else if (merged.smtpSettings.pass === '••••••••') {
+        merged.smtpSettings.pass = current.smtpSettings?.pass || '';
+      }
+    }
+
     await saveStoredSettings(merged);
 
     // If retention days were updated, automatically prune audit logs immediately
